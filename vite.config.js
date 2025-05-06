@@ -172,6 +172,8 @@ console.warn = () => {};
 
 export default defineConfig({
 	plugins: [react(), addTransformIndexHtml],
+	base: '/',
+	plugins: [react()],
 	server: {
 		cors: true,
 		headers: {

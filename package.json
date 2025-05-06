@@ -1,9 +1,9 @@
 {
-  "name": "tutor-finder-egypt",
+  "name": "Modaresy",
   "type": "module",
   "version": "0.0.1",
   "private": true,
-  "homepage": "https://ImComy.github.io/tutor-finder-egypt",
+  "homepage": "https://ImComy.github.io/Modaresy",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
