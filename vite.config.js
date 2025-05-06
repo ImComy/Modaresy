@@ -172,7 +172,6 @@ console.warn = () => {};
 
 export default defineConfig({
 	plugins: [react(), addTransformIndexHtml],
-	base: '/Modaresy/',
 	server: {
 		cors: true,
 		headers: {
