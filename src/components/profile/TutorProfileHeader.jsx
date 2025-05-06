@@ -9,26 +9,14 @@
     import { Input } from '@/components/ui/input';
     import { Textarea } from '@/components/ui/textarea';
     import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-    import { Star, MapPin, Clock, DollarSign, BookOpen, MessageSquare, Heart, Award, CalendarDays, Building } from 'lucide-react';
+    import { MapPin, Clock, DollarSign, BookOpen, MessageSquare, Heart, Award, CalendarDays, Building } from 'lucide-react';
     import { Separator } from '@/components/ui/separator';
+    import renderStars from '@/components/ui/renderStars';
     import { useWishlist } from '@/context/WishlistContext';
     import { useToast } from '@/components/ui/use-toast';
     import { cn } from '@/lib/utils';
     import { locations } from '@/data/formData';
     import { useAuth } from '@/context/AuthContext'; 
-    
-    const renderStars = (rating, size = 18) => {
-      const fullStars = Math.floor(rating);
-      const halfStar = rating % 1 >= 0.5;
-      const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-      return (
-        <div className="flex items-center">
-          {[...Array(fullStars)].map((_, i) => <Star key={`full-${i}`} size={size} className="fill-secondary text-secondary" />)}
-          {halfStar && <Star key="half" size={size} className="fill-secondary text-secondary" style={{ clipPath: 'inset(0 50% 0 0)' }} />}
-          {[...Array(emptyStars)].map((_, i) => <Star key={`empty-${i}`} size={size} className="text-gray-300 dark:text-gray-600" />)}
-        </div>
-      );
-    };
 
     const TutorProfileHeader = ({ tutor, isEditing, onInputChange }) => {
         const { t } = useTranslation();

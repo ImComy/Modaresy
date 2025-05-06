@@ -5,6 +5,8 @@
     import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
     import { Button } from '@/components/ui/button';
     import { Eye, Users, MessageSquare, DollarSign, BarChartHorizontalBig, TrendingUp } from 'lucide-react';
+    import mockVisits from '../data/mockVisits';
+    import BasicLineChart from '../components/graph';
 
     // Mock data for dashboard - replace with actual data fetching
     const dashboardData = {
@@ -15,15 +17,8 @@
       monthlyEarnings: 4500, // Example in EGP
     };
 
-    // Placeholder for chart data
-    const chartData = [
-      { month: 'Jan', visits: 150, contacts: 10 },
-      { month: 'Feb', visits: 210, contacts: 15 },
-      { month: 'Mar', visits: 180, contacts: 12 },
-      { month: 'Apr', visits: 250, contacts: 20 },
-      { month: 'May', visits: 230, contacts: 18 },
-    ];
-
+    const chartdata = mockVisits;
+    console.log(chartdata);
 
     const TeacherDashboardPage = () => {
       const { t } = useTranslation();
@@ -120,9 +115,7 @@
                </CardHeader>
                <CardContent className="h-[350px] flex items-center justify-center bg-muted/30 rounded-md border-2 border-dashed border-border/50">
                  <div className="text-center text-muted-foreground p-6">
-                   <BarChartHorizontalBig size={56} className="mx-auto mb-4 opacity-30 text-primary" />
-                   <p className="text-lg font-semibold mb-1">{t('graphPlaceholderTitle')}</p>
-                   <p className="text-sm">{t('graphPlaceholderDesc')}</p>
+                 <BasicLineChart uData={[100, 200, 300]} xLabels={['Jan', 'Feb', 'Mar']} />
                  </div>
                </CardContent>
              </Card>

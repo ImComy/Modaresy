@@ -9,7 +9,7 @@
         subject: "Mathematics",
         location: "Cairo",
         rate: 200,
-        rating: 4.8,
+        rating: 2.8,
         yearsExp: 8,
         img: "/pfp.png",
         bannerimg: "/52e7d04b4a52a814f1dc8460962e33791c3ad6e04e5074417d2d73dc934fcc_640.jpg",

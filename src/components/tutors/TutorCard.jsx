@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, MapPin, DollarSign, BookOpen, Heart, CalendarDays, GraduationCap, Users } from 'lucide-react';
+import { MapPin, DollarSign, BookOpen, Heart, CalendarDays, GraduationCap, Users } from 'lucide-react';
+import renderStars from '@/components/ui/renderStars';
 import { useWishlist } from '@/context/WishlistContext';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
@@ -35,31 +36,6 @@ const TutorCard = ({ tutor }) => {
         description: `${tutor.name} ${t('hasBeenAdded', { context: 'female' })}.`,
       });
     }
-  };
-
-  const renderStars = (rating) => {
-    const fullStars = Math.floor(rating);
-    const halfStar = rating % 1 >= 0.5;
-    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-
-    return (
-      <>
-        {[...Array(fullStars)].map((_, i) => (
-          <Star key={`full-${i}`} size={14} className="fill-secondary text-secondary" />
-        ))}
-        {halfStar && (
-          <Star
-            key="half"
-            size={14}
-            className="fill-secondary text-secondary"
-            style={{ clipPath: 'inset(0 50% 0 0)' }}
-          />
-        )}
-        {[...Array(emptyStars)].map((_, i) => (
-          <Star key={`empty-${i}`} size={14} className="text-gray-400 dark:text-gray-600" />
-        ))}
-      </>
-    );
   };
 
   const teachingDaysShort =
@@ -105,7 +81,7 @@ const TutorCard = ({ tutor }) => {
             >
               <Heart size={16} fill={isInWishlist ? "currentColor" : "none"} />
             </Button>
-            <div className="flex items-start gap-3 mb-2 absolute bottom-0 left-4">
+            <div className="flex items-start gap-3 mb-2 absolute bottom-0 left-4 ">
               <Avatar className="h-20 w-20 border-2 border-primary flex-shrink-0 rounded-md">
                 <AvatarImage src={tutor.img} alt={tutor.name} radius="rounded-sm" />
                 <AvatarFallback radius="rounded-sm">
