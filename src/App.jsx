@@ -27,7 +27,7 @@
       }, [i18n, i18n.language]);
 
       return (
-        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
           <AuthProvider> {/* Wrap with AuthProvider */}
             <WishlistProvider>
               <Router>
