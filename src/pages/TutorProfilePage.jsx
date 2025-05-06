@@ -35,6 +35,7 @@
             rating: baseTutor.rating || 0,
             yearsExp: baseTutor.yearsExp || 0,
             img: baseTutor.img || "/placeholder-avatar.jpg",
+            bannerimg: baseTutor.bannerimg || "https://placehold.co/600x400",
             bioExcerpt: baseTutor.bioExcerpt || "No bio available.",
             teachingDays: baseTutor.teachingDays || [],
             targetGrades: baseTutor.targetGrades || [],

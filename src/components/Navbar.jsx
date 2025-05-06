@@ -89,7 +89,7 @@
             <div className="flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
               {isLoggedIn && (
                 <Link to="/wishlist" className="relative hidden sm:inline-flex">
-                  <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-accent">
+                  <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-[#ffffff]">
                     <Heart size={20} />
                     {wishlist.length > 0 && (
                       <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">
