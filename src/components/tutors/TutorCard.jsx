@@ -106,7 +106,7 @@ const TutorCard = ({ tutor }) => {
               <Heart size={16} fill={isInWishlist ? "currentColor" : "none"} />
             </Button>
             <div className="flex items-start gap-3 mb-2 absolute bottom-0 left-4">
-              <Avatar className="h-20 w-20 border-2 border-primary flex-shrink-0 rounded-sm">
+              <Avatar className="h-20 w-20 border-2 border-primary flex-shrink-0 rounded-md">
                 <AvatarImage src={tutor.img} alt={tutor.name} radius="rounded-sm" />
                 <AvatarFallback radius="rounded-sm">
                   {tutor.name?.split(' ').map((n) => n[0]).join('')}
