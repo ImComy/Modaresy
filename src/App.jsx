@@ -16,6 +16,7 @@
     import { ThemeProvider } from '@/components/ThemeProvider';
     import { WishlistProvider } from '@/context/WishlistContext';
     import { AuthProvider } from '@/context/AuthContext'; // Import AuthProvider
+    import ScrollToTop from "./components/ScrollToTop";
 
     function App() {
       const { i18n } = useTranslation();
@@ -30,8 +31,9 @@
           <AuthProvider> {/* Wrap with AuthProvider */}
             <WishlistProvider>
               <Router>
+                <ScrollToTop />
                 <Layout>
-                  <Routes>
+                  <Routes key={location.pathname}>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/tutor/:id" element={<TutorProfilePage />} />
                     <Route path="/about" element={<AboutUsPage />} />
