@@ -335,6 +335,11 @@
       "valueInnovationDesc": "نتبنى التقنيات والأساليب الجديدة لتعزيز التعلم.",
       "valueIntegrity": "النزاهة",
       "valueIntegrityDesc": "نلتزم بالصدق والشفافية في جميع تعاملاتنا.",
-      "clickToChangeBanner": "انقر لتغيير الصورة الخلفية"
+      "clickToChangeBanner": "انقر لتغيير الصورة الخلفية",
+      "AcitivityLogs": "سجل النشاط",
+      "recentInteractions": "الانشطة السابقة",
+      "noLogsAvailable": "مفيش اي انشطة بالنسبالك حاليا",
+      "Views": "الزيارات",
+      "Contacts": "التواصلات"
     }
   
