@@ -8,18 +8,20 @@ import { useTranslation } from 'react-i18next';
 
 const getCSSVar = (name) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
 const BasicLineChart = ({ uData, secondaryData, xLabels }) => {
+  const { t } = useTranslation();
   const [value, setValue] = React.useState([
     Math.max(0, xLabels.length - 5),
     xLabels.length - 1,
   ]);
-
-  const { t } = useTranslation();
-
   const [themeColors, setThemeColors] = React.useState({
     primary: '#1976d2',
     secondary: '#c19b00',
   });
+
+  const containerRef = React.useRef(null);
+  const [width, setWidth] = React.useState(300);
 
   React.useEffect(() => {
     const primary = getCSSVar('--primary');
@@ -33,20 +35,34 @@ const BasicLineChart = ({ uData, secondaryData, xLabels }) => {
     }
   }, []);
 
+  // Responsive width logic
+  React.useEffect(() => {
+    const updateWidth = () => {
+      const newWidth = containerRef.current?.offsetWidth || 300;
+      setWidth(newWidth);
+    };
+
+    updateWidth();
+    const handleResize = () => {
+      clearTimeout((window)._chartResizeTimer);
+      (window)._chartResizeTimer = setTimeout(updateWidth, 150);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout((window)._chartResizeTimer);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   const theme = createTheme({
     components: {
       MuiSlider: {
         styleOverrides: {
           root: {
-            '& .MuiSlider-rail': {
-              backgroundColor: themeColors.primary,
-            },
-            '& .MuiSlider-thumb': {
-              color: themeColors.primary,
-            },
-            '& .MuiSlider-track': {
-              color: themeColors.primary,
-            },
+            '& .MuiSlider-rail': { backgroundColor: themeColors.primary },
+            '& .MuiSlider-thumb': { color: themeColors.primary },
+            '& .MuiSlider-track': { color: themeColors.primary },
           },
         },
       },
@@ -64,18 +80,21 @@ const BasicLineChart = ({ uData, secondaryData, xLabels }) => {
 
   return (
     <>
-       <div style={{ direction: 'ltr' }}></div>
+      <div style={{ direction: 'ltr' }} />
       <Box
+        ref={containerRef}
         sx={{
           width: '100%',
+          px: 2,
           maxWidth: 500,
-          '& .MuiChartsAxis-line': { stroke: '#1976d2 !important' },
-          '& .MuiChartsAxis-tick': { stroke: '#1976d2 !important' },
-          '& .MuiChartsAxis-tickLabel': { fill: '#1976d2 !important' },
+          mx: 'auto',
+          '& .MuiChartsAxis-line': { stroke: `${themeColors.primary} !important` },
+          '& .MuiChartsAxis-tick': { stroke: `${themeColors.primary} !important` },
+          '& .MuiChartsAxis-tickLabel': { fill: `${themeColors.primary} !important` },
         }}
       >
         <LineChart
-          width={500}
+          width={width}
           height={300}
           series={[
             {
@@ -108,24 +127,26 @@ const BasicLineChart = ({ uData, secondaryData, xLabels }) => {
         <Box display="flex" justifyContent="center" gap={2} mt={1}>
           <Box display="flex" alignItems="center" gap={1}>
             <Box sx={{ width: 16, height: 4, bgcolor: themeColors.primary }} />
-            <Typography variant="body2">{t('Views')}</Typography>
+            <Typography variant="body2">{t('Contacts')}</Typography>
           </Box>
           <Box display="flex" alignItems="center" gap={1}>
             <Box sx={{ width: 16, height: 4, bgcolor: themeColors.secondary }} />
-            <Typography variant="body2">{t('Contacts')}</Typography>
+            <Typography variant="body2">{t('Views')}</Typography>
           </Box>
         </Box>
 
-        <Slider
-          value={value}
-          onChange={handleChange}
-          valueLabelDisplay="auto"
-          valueLabelFormat={valueLabelFormat}
-          min={0}
-          max={xLabels.length - 1}
-        />
+        <ThemeProvider theme={theme}>
+          <Slider
+            value={value}
+            onChange={handleChange}
+            valueLabelDisplay="auto"
+            valueLabelFormat={valueLabelFormat}
+            min={0}
+            max={xLabels.length - 1}
+          />
+        </ThemeProvider>
       </Box>
-      </>
+    </>
   );
 };
 
