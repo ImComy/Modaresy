@@ -339,5 +339,16 @@
   "recentInteractions": "Recent Interactions",
   "noLogsAvailable": "No recent interactions available for you  yet.",
   "Views": "Views",
-  "Contacts": "Contacts"
+  "Contacts": "Contacts",
+  "logs": {
+    "contacted": "has contacted you",
+    "viewedProfile": "viewed your profile",
+    "rated": "rated your session",
+    "leftReview": "left a review",
+    "contactedShort": "Contacts",
+    "viewedShort": "Views",
+    "ratedShort": "Rates",
+    "reviewedShort": "Reviews"
+  },
+  "allActions": "All"
 }

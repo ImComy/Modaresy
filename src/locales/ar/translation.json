@@ -339,5 +339,16 @@
   "recentInteractions": "الانشطة السابقة",
   "noLogsAvailable": "مفيش اي انشطة بالنسبالك حاليا",
   "Views": "الزيارات",
-  "Contacts": "التواصلات"
+  "Contacts": "التواصلات",
+  "logs": {
+    "contacted": "تواصل معك",
+    "viewedProfile": "عرض ملفك الشخصي",
+    "rated": "قيم حصتك",
+    "leftReview": "ابدى رأيه",
+    "contactedShort": "التواصلات",
+    "viewedShort": "المشاهدات",
+    "ratedShort": "التقيمات",
+    "reviewedShort": "الأراء"
+  },
+  "allActions": "كله"
 }
