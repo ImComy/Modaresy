@@ -1,125 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-    @tailwind base;
-    @tailwind components;
-    @tailwind utilities;
+@layer base {
+  :root {
+    /* Refined Light Theme */
+    --background: 0 0% 96%; /* Slightly off-white */
+    --foreground: 224 71.4% 10%; /* Darker foreground */
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 10%;
+    /* Primary: Deep Blue */
+    --primary: 220 85% 55%;
+    --primary-foreground: 0 0% 100%;
+    /* Secondary: Elegant Gold */
+    --secondary: 45 75% 60%; /* Slightly softer gold */
+    --secondary-foreground: 45 95% 10%;
+    --muted: 210 40% 94%; /* Adjusted muted */
+    --muted-foreground: 215 20% 45%; /* Adjusted muted foreground */
+    /* Accent: Teal/Cyan */
+    --accent: 180 70% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 75% 55%; /* Slightly adjusted red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 30% 88%; /* Softer border */
+    --input: 210 30% 92%; /* Slightly lighter input */
+    --ring: 220 85% 60%; /* Match primary */
+    --radius: 0.65rem; /* Slightly smaller radius */
+  }
 
-    @layer base {
-      :root {
-        /* Refined Light Theme */
-        --background: 0 0% 96%; /* Slightly off-white */
-        --foreground: 224 71.4% 10%; /* Darker foreground */
-        --card: 0 0% 100%;
-        --card-foreground: 224 71.4% 10%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 224 71.4% 10%;
-        /* Primary: Deep Blue */
-        --primary: 220 85% 55%;
-        --primary-foreground: 0 0% 100%;
-        /* Secondary: Elegant Gold */
-        --secondary: 45 75% 60%; /* Slightly softer gold */
-        --secondary-foreground: 45 95% 10%;
-        --muted: 210 40% 94%; /* Adjusted muted */
-        --muted-foreground: 215 20% 45%; /* Adjusted muted foreground */
-        /* Accent: Teal/Cyan */
-        --accent: 180 70% 45%;
-        --accent-foreground: 0 0% 100%;
-        --destructive: 0 75% 55%; /* Slightly adjusted red */
-        --destructive-foreground: 0 0% 100%;
-        --border: 210 30% 88%; /* Softer border */
-        --input: 210 30% 92%; /* Slightly lighter input */
-        --ring: 220 85% 60%; /* Match primary */
-        --radius: 0.65rem; /* Slightly smaller radius */
-      }
+  .dark {
+    /* Refined Dark Theme */
+    --background: 224 71% 6%; /* Very dark blue/grey */
+    --foreground: 210 40% 96%; /* Lighter foreground */
+    --card: 224 71% 10%; /* Slightly lighter card */
+    --card-foreground: 210 40% 96%;
+    --popover: 224 71% 8%; /* Darker popover */
+    --popover-foreground: 210 40% 96%;
+    /* Primary: Brighter Blue */
+    --primary: 215 90% 68%;
+    --primary-foreground: 210 40% 5%; /* Dark text on bright primary */
+    /* Secondary: Vibrant Gold */
+    --secondary: 48 90% 58%;
+    --secondary-foreground: 48 96% 10%;
+    --muted: 215 28% 18%; /* Adjusted muted */
+    --muted-foreground: 215 20% 70%; /* Lighter muted text */
+    /* Accent: Brighter Teal/Cyan */
+    --accent: 180 65% 55%;
+    --accent-foreground: 210 40% 5%;
+    --destructive: 0 70% 60%; /* Brighter red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 28% 20%; /* Adjusted border */
+    --input: 215 28% 22%; /* Adjusted input */
+    --ring: 215 90% 70%; /* Match primary */
+  }
+}
 
-      .dark {
-        /* Refined Dark Theme */
-        --background: 224 71% 6%; /* Very dark blue/grey */
-        --foreground: 210 40% 96%; /* Lighter foreground */
-        --card: 224 71% 10%; /* Slightly lighter card */
-        --card-foreground: 210 40% 96%;
-        --popover: 224 71% 8%; /* Darker popover */
-        --popover-foreground: 210 40% 96%;
-        /* Primary: Brighter Blue */
-        --primary: 215 90% 68%;
-        --primary-foreground: 210 40% 5%; /* Dark text on bright primary */
-        /* Secondary: Vibrant Gold */
-        --secondary: 48 90% 58%;
-        --secondary-foreground: 48 96% 10%;
-        --muted: 215 28% 18%; /* Adjusted muted */
-        --muted-foreground: 215 20% 70%; /* Lighter muted text */
-        /* Accent: Brighter Teal/Cyan */
-        --accent: 180 65% 55%;
-        --accent-foreground: 210 40% 5%;
-        --destructive: 0 70% 60%; /* Brighter red */
-        --destructive-foreground: 0 0% 100%;
-        --border: 215 28% 20%; /* Adjusted border */
-        --input: 215 28% 22%; /* Adjusted input */
-        --ring: 215 90% 70%; /* Match primary */
-      }
-    }
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Subtle gradient background for light mode */
+    @apply bg-gradient-to-b from-background via-blue-50/30 to-background;
+  }
+  .dark body {
+      /* Subtle gradient background for dark mode */
+      @apply bg-gradient-to-b from-background via-slate-900/10 to-background;
+  }
+    /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background) / 0.3);
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.4);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.6);
+      background-clip: content-box;
+      border: 1px solid transparent;
+  }
+}
 
-    @layer base {
-      * {
-        @apply border-border;
-      }
-      body {
-        @apply bg-background text-foreground;
-        font-feature-settings: "rlig" 1, "calt" 1;
-        /* Subtle gradient background for light mode */
-        @apply bg-gradient-to-b from-background via-blue-50/30 to-background;
-      }
-      .dark body {
-         /* Subtle gradient background for dark mode */
-         @apply bg-gradient-to-b from-background via-slate-900/10 to-background;
-      }
-       /* Custom scrollbar */
-      ::-webkit-scrollbar {
-        width: 9px;
-        height: 9px;
-      }
-      ::-webkit-scrollbar-track {
-        background: hsl(var(--background) / 0.3);
-        border-radius: 10px;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: hsl(var(--primary) / 0.4);
-        border-radius: 10px;
-        border: 2px solid transparent;
-        background-clip: content-box;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: hsl(var(--primary) / 0.6);
-         background-clip: content-box;
-         border: 1px solid transparent;
-      }
-    }
+/* Glass effect utility */
+.glass-effect {
+    @apply bg-card/70 backdrop-blur-xl border border-border/15 shadow-lg;
+}
 
-    /* Glass effect utility */
-    .glass-effect {
-       @apply bg-card/70 backdrop-blur-xl border border-border/15 shadow-lg;
-    }
+/* Signup Prompt Overlay/Content Styling */
+.light .signup-prompt-overlay { @apply bg-white/70 backdrop-blur-md; }
+.dark .signup-prompt-overlay { @apply bg-black/70 backdrop-blur-md; }
+.light .signup-prompt-content { @apply bg-white/90 border-border/40 shadow-xl; }
+.dark .signup-prompt-content { @apply bg-background/90 border-border/60 shadow-xl; }
 
-    /* Signup Prompt Overlay/Content Styling */
-    .light .signup-prompt-overlay { @apply bg-white/70 backdrop-blur-md; }
-    .dark .signup-prompt-overlay { @apply bg-black/70 backdrop-blur-md; }
-    .light .signup-prompt-content { @apply bg-white/90 border-border/40 shadow-xl; }
-    .dark .signup-prompt-content { @apply bg-background/90 border-border/60 shadow-xl; }
+/* Schedule Badge Styling */
+.schedule-badge {
+    @apply flex items-center gap-1 text-xs font-medium px-2.5 py-1 border rounded-full;
+    /* Light mode */
+    @apply bg-primary/10 border-primary/20 text-primary/90;
+    /* Dark mode */
+    @apply dark:bg-primary/15 dark:border-primary/30 dark:text-primary/90;
+}
 
-    /* Schedule Badge Styling */
-    .schedule-badge {
-        @apply flex items-center gap-1 text-xs font-medium px-2.5 py-1 border rounded-full;
-        /* Light mode */
-        @apply bg-primary/10 border-primary/20 text-primary/90;
-        /* Dark mode */
-        @apply dark:bg-primary/15 dark:border-primary/30 dark:text-primary/90;
-    }
-
-    /* Video Section Badge Styling */
-    .video-section-badge {
-        @apply text-xs font-medium px-2 py-0.5 rounded-full border;
-        /* Light mode */
-        @apply bg-accent/10 border-accent/20 text-accent/90;
-         /* Dark mode */
-        @apply dark:bg-accent/15 dark:border-accent/30 dark:text-accent/90;
-    }
-  
+/* Video Section Badge Styling */
+.video-section-badge {
+    @apply text-xs font-medium px-2 py-0.5 rounded-full border;
+    /* Light mode */
+    @apply bg-accent/10 border-accent/20 text-accent/90;
+      /* Dark mode */
+    @apply dark:bg-accent/15 dark:border-accent/30 dark:text-accent/90;
+}
