@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, DollarSign, BookOpen, Heart, CalendarDays, GraduationCap, Users } from 'lucide-react';
+import { MapPin, DollarSign, BookOpen, Heart, CalendarDays, GraduationCap, Users, } from 'lucide-react';
 import renderStars from '@/components/ui/renderStars';
 import { useWishlist } from '@/context/WishlistContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -42,10 +42,38 @@ const TutorCard = ({ tutor }) => {
     tutor.teachingDays?.map((day) => t(day.toLowerCase() + 'Short')).join(', ') ||
     t('notSpecifiedShort');
 
-  const targetGradeLabels =
-    tutor.targetGrades
-      ?.map((gVal) => t(gradeData.find((g) => g.value === gVal)?.labelKey || gVal))
-      .slice(0, 2) || [];
+  const stageMap = {
+    'Elementary 1': 'Elementary',
+    'Elementary 2': 'Elementary',
+    'Elementary 3': 'Elementary',
+    'Prep 1': 'Prep',
+    'Prep 2': 'Prep',
+    'Prep 3': 'Prep',
+    'Secondary 1': 'Secondary',
+    'Secondary 2': 'Secondary',
+    'Secondary 3': 'Secondary 3',
+    'University Year 1': 'University',
+    'University Year 2': 'University',
+    'University Year 3': 'University',
+    'University Year 4': 'University',
+  };
+
+  const gradeCountsByStage = {};
+  const stageGrades = {};
+
+  tutor.targetGrades?.forEach((gradeVal) => {
+    const labelKey = gradeData.find((g) => g.value === gradeVal)?.labelKey;
+    const label = t(labelKey || gradeVal);
+    const stage = stageMap[label] || label.split(' ')[0]; // fallback for unlisted
+
+    gradeCountsByStage[stage] = (gradeCountsByStage[stage] || 0) + 1;
+    if (!stageGrades[stage]) stageGrades[stage] = [];
+    stageGrades[stage].push(label);
+  });
+
+  const targetGradeLabels = Object.entries(stageGrades).map(([stage, grades]) =>
+    grades.length > 1 ? stage : grades[0]
+  );
 
   const targetSectorLabels =
     tutor.targetSectors
@@ -74,14 +102,14 @@ const TutorCard = ({ tutor }) => {
               variant="ghost"
               size="icon"
               className={cn(
-                "absolute top-2 right-2 rtl:left-2 rtl:right-auto h-8 w-8 rounded-full bg-background/70 hover:bg-background/90 text-muted-foreground hover:text-accent transition-colors",
-                isInWishlist && "text-accent"
+                'absolute top-2 right-2 rtl:left-2 rtl:right-auto h-8 w-8 rounded-full bg-background/70 hover:bg-background/90 text-muted-foreground hover:text-accent transition-colors',
+                isInWishlist && 'text-accent'
               )}
               onClick={handleWishlistToggle}
             >
-              <Heart size={16} fill={isInWishlist ? "currentColor" : "none"} />
+              <Heart size={16} fill={isInWishlist ? 'currentColor' : 'none'} />
             </Button>
-            <div className="flex items-start gap-3 mb-2 absolute bottom-0 left-4 ">
+            <div className="flex items-start gap-3 mb-2 absolute bottom-0 left-4">
               <Avatar className="h-20 w-20 border-2 border-primary flex-shrink-0 rounded-md">
                 <AvatarImage src={tutor.img} alt={tutor.name} radius="rounded-sm" />
                 <AvatarFallback radius="rounded-sm">
@@ -106,9 +134,10 @@ const TutorCard = ({ tutor }) => {
                 <MapPin size={12} /> {tutor.location}
               </span>
             </div>
+
             {(targetGradeLabels.length > 0 || targetSectorLabels.length > 0) && (
               <div className="flex flex-wrap gap-2 mb-2">
-                {targetGradeLabels.map((label, i) => (
+                {targetGradeLabels.slice(0, 3).map((label, i) => (
                   <Badge
                     key={`g-${i}`}
                     variant="outline"
@@ -118,7 +147,7 @@ const TutorCard = ({ tutor }) => {
                     {label}
                   </Badge>
                 ))}
-                {targetSectorLabels.map((label, i) => (
+                {targetSectorLabels.slice(0, 3).map((label, i) => (
                   <Badge
                     key={`s-${i}`}
                     variant="outline"
@@ -128,7 +157,7 @@ const TutorCard = ({ tutor }) => {
                     {label}
                   </Badge>
                 ))}
-                {(tutor.targetGrades?.length > 2 || tutor.targetSectors?.length > 2) && (
+                {(tutor.targetGrades?.length > 3 || tutor.targetSectors?.length > 3) && (
                   <Badge
                     variant="outline"
                     className="text-xs px-2 py-0.5 border-primary text-primary"
@@ -138,6 +167,7 @@ const TutorCard = ({ tutor }) => {
                 )}
               </div>
             )}
+
             <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-grow">
               {tutor.bioExcerpt}
             </p>
@@ -148,6 +178,11 @@ const TutorCard = ({ tutor }) => {
               <span className="text-lg font-bold text-primary">
                 {t('ratePerMonth', { rate: tutor.rate })}
               </span>
+              <Link to={`/tutor/${tutor.id}`}>
+                <Button variant="outline" size="sm" className="text-primary border-primary">
+                  {t('viewProfile')}
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
