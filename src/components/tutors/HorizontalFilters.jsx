@@ -114,18 +114,6 @@ const HorizontalFilters = ({
           </Select>
         </div>
 
-        {/* Rate Slider - Spans 2 cols on smaller screens if needed */}
-        <div className="md:col-span-2 lg:col-span-1">
-          <label htmlFor="rate-filter-h" className="text-xs font-medium text-muted-foreground">{t('hourlyRate', { min: filters.rateRange[0], max: filters.rateRange[1] })}</label>
-          <Slider
-            id="rate-filter-h"
-            min={50} max={500} step={10}
-            value={filters.rateRange}
-            onValueChange={handleRateChange}
-            className="mt-3 mb-1"
-          />
-        </div>
-
         {/* Min Rating */}
         <div>
           <label className="text-xs font-medium text-muted-foreground flex items-center mb-1"><Star size={12} className="mr-1 rtl:ml-1"/>{t('minRating')}</label>
@@ -159,6 +147,19 @@ const HorizontalFilters = ({
             </SelectContent>
           </Select>
         </div> 
+        
+        {/* Rate Slider - Spans 2 cols on smaller screens if needed */}
+        <div className="col-span-full md:col-span-4 ">
+          <label htmlFor="rate-filter-h" className="text-xs font-medium text-muted-foreground">{t('monthlyRate', { min: filters.rateRange[0], max: filters.rateRange[1] })}</label>
+          <Slider
+            id="rate-filter-h"
+            min={50} max={2000} step={50}
+            value={filters.rateRange}
+            onValueChange={handleRateChange}
+            className="mt-3 mb-1"
+          />
+        </div>
+
       </div>
     </motion.div>
   );

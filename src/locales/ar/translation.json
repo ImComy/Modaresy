@@ -32,7 +32,7 @@
   "viewProfile": "عرض المدرس",
   "subject": "المادة",
   "location": "الموقع",
-  "hourlyRate": "السعر بالساعة ({{min}} - {{max}} جنيه مصري)",
+  "monthlyRate": "السعر في الشهر ({{min}} - {{max}} جنيه مصري)",
   "minRating": "الحد الأدنى للتقييم",
   "anyRating": "أي تقييم",
   "sortBy": "الترتيب حسب",

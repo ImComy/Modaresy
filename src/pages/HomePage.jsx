@@ -42,18 +42,17 @@ const HomePage = () => {
   return (
     <div className="space-y-12 md:space-y-16 ">
       {/* New Hero Section Design */}
-      <section className="relative py-16 md:py-20 lg:py-24 overflow-hidden bg-gradient-to-b from-background via-blue-50 dark:via-blue-900/10 to-background">
+      <section className="relative py-10 md:py-20 lg:py-24 overflow-hidden bg-gradient-to-b from-background via-blue-50 dark:via-blue-900/10 to-background">
         <div className="absolute inset-0 -z-10">
           {/* Subtle background pattern or shapes */}
           <div className="absolute top-0 left-0 w-64 h-64 bg-primary/5 rounded-full filter blur-3xl opacity-50 animate-pulse"></div>
           <div className="absolute bottom-0 right-0 w-72 h-72 bg-secondary/5 rounded-full filter blur-3xl opacity-40 animate-pulse animation-delay-2000"></div>
         </div>
         <div className="container mx-auto px-4 relative z-10 grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left Text Content */}
-          <div className="space-y-5 text-center lg:text-left rtl:lg:text-right">
-            <motion.div variants={fadeInUp} initial="hidden" animate="visible" custom={1}>
-              <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-2">
-                <Sparkles size={12} className="inline mr-1 rtl:ml-1" /> {t('platformHighlight')} {/* Add new translation key */}
+                <div className="space-y-5 text-center lg:text-left rtl:lg:text-right leading-relaxed">
+                <motion.div variants={fadeInUp} initial="hidden" animate="visible" custom={1}>
+                  <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-2">
+                  <Sparkles size={12} className="inline mr-1 rtl:ml-1" /> {t('platformHighlight')} 
               </span>
             </motion.div>
             <motion.h1

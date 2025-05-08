@@ -32,7 +32,7 @@
   "viewProfile": "View Profile",
   "subject": "Subject",
   "location": "Location",
-  "hourlyRate": "Hourly Rate (EGP {{min}} - {{max}})",
+  "monthlyRate": "Monthly Cost (EGP {{min}} - {{max}})",
   "minRating": "Minimum Rating",
   "anyRating": "Any",
   "sortBy": "Sort By",
