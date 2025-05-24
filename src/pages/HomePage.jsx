@@ -15,6 +15,7 @@ const HomePage = () => {
     searchTerm,
     setSearchTerm,
     filters,
+    setFilters, // <-- add this
     handleFilterChange,
     handleRateChange,
     sortBy,
@@ -298,6 +299,7 @@ const HomePage = () => {
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             filters={filters}
+            setFilters={setFilters}
             handleFilterChange={handleFilterChange}
             handleRateChange={handleRateChange}
             sortBy={sortBy}

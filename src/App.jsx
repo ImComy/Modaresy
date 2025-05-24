@@ -69,8 +69,7 @@ function RoutesWrapper() {
     if (grade && sector) {
       setIsReady(true);
     } else {
-      // maybe wait for user to select later
-      setIsReady(true); // or false, depending on logic
+      setIsReady(true);
     }
   }, []);
 
@@ -79,27 +78,22 @@ function RoutesWrapper() {
 
     const shouldShowOverlay = !authState.isLoggedIn &&
       !['/login', '/signup'].includes(location.pathname) &&
-      (!localStorage.getItem('selectedGrade') || !localStorage.getItem('selectedSector'));
+      (!localStorage.getItem('onSubmit') || localStorage.getItem('onSubmit') !== 'true') &&
+      !['/wishlist', '/profile', '/dashboard/teacher'].includes(location.pathname);
 
     setShowOverlay(shouldShowOverlay);
   }, [authState.isLoggedIn, location.pathname, isReady]);
 
+  // This now accepts the selectedGrade and selectedSector from UserOverlay onSubmit
+  function handleSubmit(selectedGrade, selectedSector) {
+    if (selectedGrade && selectedSector) {
+      localStorage.setItem('onSubmit', 'true');
+      localStorage.setItem('selectedGrade', selectedGrade);
+      localStorage.setItem('selectedSector', selectedSector);
 
-  const gradeOptions = [
-    { value: '10', label: 'Grade 10' },
-    { value: '11', label: 'Grade 11' },
-    { value: '12', label: 'Grade 12' },
-  ];
-
-  const sectorOptions = [
-    { value: 'science', label: 'Science' },
-    { value: 'literature', label: 'Literature' },
-  ];
-
-  const handleOverlaySubmit = (data) => {
-    console.log('Overlay submitted:', data);
-    setShowOverlay(false);
-  };
+      setShowOverlay(false);
+    }
+  }
 
   const handleOverlayClose = () => {
     setShowOverlay(false);
@@ -109,9 +103,7 @@ function RoutesWrapper() {
     <>
       {!authState.isLoading && showOverlay && (
         <UserOverlay
-          gradeOptions={gradeOptions}
-          sectorOptions={sectorOptions}
-          onSubmit={handleOverlaySubmit}
+          onSubmit={handleSubmit}
           onClose={handleOverlayClose}
         />
       )}
@@ -129,7 +121,5 @@ function RoutesWrapper() {
     </>
   );
 }
-
-
 
 export default App;

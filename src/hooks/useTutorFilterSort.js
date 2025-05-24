@@ -65,6 +65,7 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
     filters,
     handleFilterChange,
     handleRateChange,
+    setFilters,
     sortBy,
     setSortBy,
     sortedTutors,
