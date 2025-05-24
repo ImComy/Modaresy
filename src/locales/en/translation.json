@@ -350,5 +350,23 @@
     "ratedShort": "Rates",
     "reviewedShort": "Reviews"
   },
-  "allActions": "All"
+  "allActions": "All",
+  "HOW MODARESY WORKS": "How Modaresy Works",
+  "Discover Teachers": "Discover Teachers",
+  "Discover Teachers Desc": "Browse a diverse selection of verified teachers. Filter by subject, language, and experience to find your match.",
+  "Choose the Right Fit": "Choose the Right Fit",
+  "Choose the Right Fit Desc": "View detailed profiles, ratings, and reviews. Compare and pick the teacher who aligns with your learning style.",
+  "Connect & Learn": "Connect & Learn",
+  "Connect & Learn Desc": "Start messaging, schedule sessions, and begin your learning journey with confidence on Modaersy.",
+  "Welcome!": "Welcome! 👋",
+  "Select your Grade:": "Select your Grade:",
+  "-- Select Grade --": "-- Select Grade --",
+  "Select your Sector:": "Select your Sector:",
+  "-- Select Sector --": "-- Select Sector --",
+  "Submit": "Submit",
+  "or": "or",
+  "Log In": "Log In",
+  "Sign Up": "Sign Up",
+  "Sign Up with Google": "Sign Up with Google",
+  "Sign Up with Facebook": "Sign Up with Facebook"
 }

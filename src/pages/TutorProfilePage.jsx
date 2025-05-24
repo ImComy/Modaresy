@@ -42,7 +42,6 @@ const getTutorData = (id) => {
         detailedLocation: baseTutor.detailedLocation || null,
         bio: baseTutor.bio || "No detailed biography provided.",
         introVideoUrl: baseTutor.introVideoUrl || null,
-        // Ensure otherVideos is an array and items have section property
         otherVideos: (baseTutor.otherVideos || []).map(v => ({ ...v, section: v.section || 'other' })),
         courseContent: baseTutor.courseContent || [],
         duration: baseTutor.duration || 60,

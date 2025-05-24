@@ -1,0 +1,185 @@
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { FaGoogle, FaFacebookF } from "react-icons/fa";
+import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
+import i18next from 'i18next'; 
+
+export default function UserOverlay({
+  onClose,
+  onSubmit,
+  gradeOptions,
+  sectorOptions
+}) {
+  const [selectedGrade, setSelectedGrade] = useState("");
+  const [selectedSector, setSelectedSector] = useState("");
+  const { t } = useTranslation();
+  const isRTL = i18next.dir() === 'rtl';
+
+  useEffect(() => {
+    function handleEsc(e) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
+
+  function handleOutsideClick(e) {
+    if (e.target.id === "overlay-background") {
+      onClose();
+    }
+  }
+
+  function handleSubmit() {
+    if (selectedGrade && selectedSector) {
+      localStorage.setItem('selectedGrade', selectedGrade);
+      localStorage.setItem('selectedSector', selectedSector);
+
+      onSubmit(selectedGrade, selectedSector);
+      onClose();
+    }
+  }
+
+  const overlayVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+    exit: { opacity: 0, transition: { duration: 0.3 } },
+  };
+
+  const cardVariants = {
+    hidden: { scale: 0.9, opacity: 0 },
+    visible: {
+      scale: 1,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 300, damping: 25, duration: 0.4 },
+    },
+    exit: {
+      scale: 0.9,
+      opacity: 0,
+      transition: { duration: 0.4, ease: "easeInOut" },
+    },
+  };
+
+  const buttonClasses =
+    "w-full py-2 rounded-lg mb-3 font-semibold text-white transition-colors duration-300 hover:brightness-110";
+
+  return (
+    <AnimatePresence style={{ direction: 'ltr' }}>
+      <motion.div
+        id="overlay-background"
+        onClick={handleOutsideClick}
+        className="fixed inset-0 z-50 flex items-center justify-center signup-prompt-overlay bg-black/70 backdrop-blur-md"
+        variants={overlayVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+      >
+        <motion.div
+          onClick={(e) => e.stopPropagation()}
+          className="signup-prompt-content w-full max-w-md p-6 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-2xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative"
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+        >
+<button
+  onClick={onClose}
+  className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} text-3xl font-bold text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-300 focus:outline-none`}
+  aria-label={t("Close overlay")}
+>
+
+            <motion.span
+              whileHover={{ rotate: 90, scale: 1.2 }}
+              transition={{ type: "spring", stiffness: 400 }}
+            >
+              {t("×")}
+            </motion.span>
+          </button>
+
+          <h2 className="text-2xl font-bold mb-6 text-primary">{t("Welcome!")}</h2>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">{t("Select your Grade:")}</label>
+            <select
+              className="w-full border rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              value={selectedGrade}
+              onChange={(e) => setSelectedGrade(e.target.value)}
+            >
+              <option value="">{t("-- Select Grade --")}</option>
+              {gradeOptions.map((g) => (
+                <option key={g.value} value={g.value}>
+                  {t(g.label)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-1">{t("Select your Sector:")}</label>
+            <select
+              className="w-full border rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              value={selectedSector}
+              onChange={(e) => setSelectedSector(e.target.value)}
+            >
+              <option value="">{t("-- Select Sector --")}</option>
+              {sectorOptions.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {t(s.label)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            disabled={!selectedGrade || !selectedSector}
+            className={`bg-primary text-primary-foreground font-semibold px-5 py-2 rounded-lg mb-4 hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed w-full ${buttonClasses}`}
+          >
+            {t("Submit")}
+          </button>
+
+          {/* Divider */}
+          <div className="flex items-center my-6">
+            <hr className="flex-grow border-t border-gray-300 dark:border-gray-600" />
+            <span className="mx-3 text-gray-500 dark:text-gray-400 font-semibold select-none">
+              {t("or")}
+            </span>
+            <hr className="flex-grow border-t border-gray-300 dark:border-gray-600" />
+          </div>
+
+          {/* Auth Buttons */}
+          <div className="flex gap-6 mb-4">
+            <a href="/login" className="w-full">
+              <Button
+                variant="outline"
+                className="text-primary border-primary w-[100%] bg-inherit hover:bg-inherit/90 hover:text-primary"
+              >
+                {t("Log In")}
+              </Button>
+            </a>
+            <a href="/signup" className="w-full">
+              <Button
+                variant="outline"
+                className="text-primary-foreground border-primary w-[100%] bg-primary hover:bg-primary/90 hover:text-primary-foreground"
+              >
+                {t("Sign Up")}
+              </Button>
+            </a>
+          </div>
+          <button
+            onClick={() => alert(t("Sign Up with Google clicked"))}
+            className={`${buttonClasses} bg-red-500 flex items-center justify-center gap-2`}
+          >
+            <FaGoogle/>{t("Sign Up with Google")}
+          </button>
+          <button
+            onClick={() => alert(t("Sign Up with Facebook clicked"))}
+            className={`${buttonClasses} bg-blue-600 flex items-center justify-center gap-2`}
+          >
+           <FaFacebookF/> {t("Sign Up with Facebook")}
+          </button>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}

@@ -36,14 +36,14 @@ export const AuthProvider = ({ children }) => {
 
   // Persist mock login state for demonstration
   useEffect(() => {
-      if (authState.isLoggedIn) {
-        localStorage.setItem('mockUserRole', authState.userRole);
-        localStorage.setItem('mockUserId', authState.userId);
-      } else {
-        localStorage.removeItem('mockUserRole');
-        localStorage.removeItem('mockUserId');
-      }
-    }, [authState]);
+    if (authState.isLoggedIn) {
+      localStorage.setItem('mockUserRole', authState.userRole);
+      localStorage.setItem('mockUserId', authState.userId);
+    } else {
+      localStorage.removeItem('mockUserRole');
+      localStorage.removeItem('mockUserId');
+    }
+  }, [authState]);
 
 
   return (
