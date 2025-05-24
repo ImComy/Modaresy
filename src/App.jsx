@@ -18,14 +18,27 @@ import { AuthProvider } from '@/context/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import UserOverlay from './components/ui/overlay';
 import { useAuth } from './context/AuthContext';
+import i18n from 'i18next';
 
 function App() {
   const { i18n } = useTranslation();
+  const [isLangReady, setIsLangReady] = useState(false);
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem('modaresy-lang');
+    if (savedLang && i18n.language !== savedLang) {
+      i18n.changeLanguage(savedLang).then(() => setIsLangReady(true));
+    } else {
+      setIsLangReady(true);
+    }
+  }, [i18n]);
 
   useEffect(() => {
     document.documentElement.dir = i18n.dir();
     document.documentElement.lang = i18n.language;
   }, [i18n.language]);
+
+  if (!isLangReady) return null;
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">

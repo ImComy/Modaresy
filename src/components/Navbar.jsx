@@ -23,6 +23,7 @@ const Navbar = () => {
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
+    localStorage.setItem('modaresy-lang', lng);
   };
 
   const handleLogout = () => {
