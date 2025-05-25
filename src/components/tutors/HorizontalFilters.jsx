@@ -53,7 +53,7 @@ const HorizontalFilters = ({
     useEffect(() => {
     setTempFilters(filters); 
   }, [filters]);
-
+ 
     const onTempFilterChange = (key, value) => {
     setTempFilters(prev => ({ ...prev, [key]: value }));
   };
@@ -166,11 +166,13 @@ const HorizontalFilters = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('allSubjects')}</SelectItem>
-              {subjectOptions.map(subject => (
-                <SelectItem key={subject} value={subject.toLowerCase()} className="capitalize">
-                  {subject}
-                </SelectItem>
-              ))}
+              {subjectOptions
+                .filter(subject => subject.toLowerCase() !== 'all') // filter out "all"
+                .map(subject => (
+                  <SelectItem key={subject} value={subject.toLowerCase()} className="capitalize">
+                    {subject}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
@@ -189,11 +191,13 @@ const HorizontalFilters = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('allLocations')}</SelectItem>
-              {locationOptions.map(location => (
-                <SelectItem key={location} value={location.toLowerCase()} className="capitalize">
-                  {location}
-                </SelectItem>
-              ))}
+              {locationOptions
+                .filter(location => location.toLowerCase() !== 'all')
+                .map(location => (
+                  <SelectItem key={location} value={location.toLowerCase()} className="capitalize">
+                    {location}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>

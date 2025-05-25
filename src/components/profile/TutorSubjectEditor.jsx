@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { MultiSelect } from '@/components/ui/multi-select'; // Use MultiSelect
+import MultiSelect from '@/components/ui/multi-select'; // Use MultiSelect
 import { Badge } from '@/components/ui/badge';
 import { BookOpen } from 'lucide-react';
 import { subjects as allSubjectsList } from '@/data/formData'; // Import all subjects

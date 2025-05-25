@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { MultiSelect } from '@/components/ui/multi-select';
+import MultiSelect from '@/components/ui/multi-select';
 import { Badge } from '@/components/ui/badge';
 import { Users, GraduationCap } from 'lucide-react';
 

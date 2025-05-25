@@ -10,11 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { MultiSelect } from '@/components/ui/multi-select'; // Import MultiSelect
+import MultiSelect from '@/components/ui/multi-select'; // Import MultiSelect
 import { grades, sectors, locations, subjects as allSubjectsList } from '@/data/formData';
+import PfpUploadWithCrop from '@/components/ui/cropper'; 
+import BannerUploadWithCrop from '@/components/ui/bannercropper'; // Import BannerUploadWithCrop
 
-// Prepare options for MultiSelect
-const subjectOptions = allSubjectsList.map(s => ({ value: s.value, label: s.label }));
+const subjectOptions = allSubjectsList.map(subject => ({
+  value: subject.toLowerCase().replace(/\s+/g, '-'),
+  label: subject
+}));
 const gradeOptions = grades.map(g => ({ value: g.value, label: g.labelKey })); // Use labelKey for translation
 const sectorOptions = sectors.map(s => ({ value: s.value, label: s.labelKey })); // Use labelKey for translation
 
@@ -36,6 +40,8 @@ const SignupPage = () => {
     targetSectors: [], // Teacher specific (multi-select)
     photoUrl: '', // Teacher specific
     agreedToTerms: false,
+    banner: "",
+    pfp: "",
   });
   const [errors, setErrors] = useState({});
 
@@ -174,11 +180,10 @@ const SignupPage = () => {
                 <div className="space-y-1">
                     <Label htmlFor="subjects">{t('subjects')}</Label>
                     <MultiSelect
-                      id="subjects"
                       options={subjectOptions}
                       selected={formData.subjects}
                       onChange={(selected) => handleMultiSelectChange('subjects', selected)}
-                      placeholder={t('selectSubjectsPlaceholder')} // Add this key
+                      placeholder={t('selectSubjectsPlaceholder')}
                       searchPlaceholder={t('searchSubjectsPlaceholder')} // Add this key
                       emptyPlaceholder={t('noSubjectsFoundPlaceholder')} // Add this key
                       error={errors.subjects}
@@ -213,10 +218,16 @@ const SignupPage = () => {
                     />
                     {errors.targetSectors && <p className="text-xs text-destructive">{errors.targetSectors}</p>}
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="photoUrl">{t('photoUrl')}</Label>
-                  <Input id="photoUrl" name="photoUrl" type="url" value={formData.photoUrl} onChange={handleInputChange} placeholder={t('photoUrlPlaceholder')} />
-                </div>
+<div className="space-y-6">
+  {/* Profile Picture Upload */}
+  <PfpUploadWithCrop formData={formData} setFormData={setFormData} />
+
+
+  {/* Banner Upload */}
+<BannerUploadWithCrop formData={formData} setFormData={setFormData} />
+</div>
+
+
               </>
             )}
 

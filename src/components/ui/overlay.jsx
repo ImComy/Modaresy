@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import i18next from 'i18next';
 import { grades, sectors } from '@/data/formData';
 
-export default function UserOverlay({ onClose, onSubmit }) {
+export default function UserOverlay({ onClose, onSubmit, onFiltersChange}) {
   const { t } = useTranslation();
   const isRTL = i18next.dir() === 'rtl';
 
