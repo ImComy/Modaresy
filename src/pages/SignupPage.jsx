@@ -12,8 +12,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import MultiSelect from '@/components/ui/multi-select'; // Import MultiSelect
 import { grades, sectors, locations, subjects as allSubjectsList } from '@/data/formData';
-import PfpUploadWithCrop from '@/components/ui/cropper'; 
-import BannerUploadWithCrop from '@/components/ui/bannercropper'; // Import BannerUploadWithCrop
+import PfpUploadWithCrop from '@/components/pfpSignup'; 
+import BannerUploadWithCrop from '@/components/bannerSignup'; // Import BannerUploadWithCrop
 
 const subjectOptions = allSubjectsList.map(subject => ({
   value: subject.toLowerCase().replace(/\s+/g, '-'),
@@ -218,16 +218,11 @@ const SignupPage = () => {
                     />
                     {errors.targetSectors && <p className="text-xs text-destructive">{errors.targetSectors}</p>}
                 </div>
-<div className="space-y-6">
-  {/* Profile Picture Upload */}
-  <PfpUploadWithCrop formData={formData} setFormData={setFormData} />
+                <div className="space-y-6">
+                  <PfpUploadWithCrop formData={formData} setFormData={setFormData} />
 
-
-  {/* Banner Upload */}
-<BannerUploadWithCrop formData={formData} setFormData={setFormData} />
-</div>
-
-
+                  <BannerUploadWithCrop formData={formData} setFormData={setFormData} />
+                </div>
               </>
             )}
 

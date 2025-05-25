@@ -1,74 +1,131 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
+import { Button } from '@/components/ui/button';
 
-export default function PfpUploadWithCrop({ formData, setFormData }) {
-  const [rawImage, setRawImage] = useState(null);
-  const [cropperVisible, setCropperVisible] = useState(false);
-  const canvasRef = useRef(null);
+export default function BannerCropOverlay({
+  rawImage,
+  onCancel,
+  onCrop,
+  shape = "rect",
+}) {
   const imgRef = useRef(null);
-  const containerRef = useRef(null); // New ref for the container
-
-  // Crop area params relative to canvas/image displayed size
-  const [cropParams, setCropParams] = useState({ x: 0, y: 0, size: 100 });
+  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const [cropParams, setCropParams] = useState({ x: 0, y: 0, width: 100, height: 40 });
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState(null);
-
-  // Cleanup Object URLs
-  useEffect(() => {
-    return () => {
-      if (rawImage) {
-        URL.revokeObjectURL(rawImage);
-      }
-      if (formData.pfp) {
-        URL.revokeObjectURL(URL.createObjectURL(formData.pfp));
-      }
-    };
-  }, [rawImage, formData.pfp]);
-
-  function onFileChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Cleanup previous image if exists
-    if (rawImage) URL.revokeObjectURL(rawImage);
-
-    const url = URL.createObjectURL(file);
-    setRawImage(url);
-    setCropperVisible(true);
-  }
-
-  // Calculate mouse position relative to image (not just canvas)
+  const [zoom, setZoom] = useState(1);
+  
   function getMousePosOnImage(e) {
-    if (!imgRef.current || !containerRef.current) return null;
-    
     const img = imgRef.current;
-    const container = containerRef.current;
-    const containerRect = container.getBoundingClientRect();
-    
-    // Calculate image position within container (centered)
-    const imgLeft = containerRect.left + (containerRect.width - img.width) / 2;
-    const imgTop = containerRect.top + (containerRect.height - img.height) / 2;
-    
-    return {
-      x: e.clientX - imgLeft,
-      y: e.clientY - imgTop,
-    };
+    const rect = img.getBoundingClientRect();
+    // Adjust for zoom
+    const x = (e.clientX - rect.left) / zoom;
+    const y = (e.clientY - rect.top) / zoom;
+    return { x, y };
   }
 
-  // Check if point is inside crop circle
-  function isInsideCropCircle(pos) {
+function handleCrop() {
+  const img = imgRef.current;
+  if (!img) return;
+
+  // Adjust cropParams for zoom
+  const cropX = cropParams.x / zoom;
+  const cropY = cropParams.y / zoom;
+  const cropW = cropParams.width / zoom;
+  const cropH = cropParams.height / zoom;
+
+  const scaleX = img.naturalWidth / img.width;
+  const scaleY = img.naturalHeight / img.height;
+
+  const sx = cropX * scaleX;
+  const sy = cropY * scaleY;
+  const sWidth = cropW * scaleX;
+  const sHeight = cropH * scaleY;
+
+  const outputCanvas = document.createElement("canvas");
+  outputCanvas.width = cropParams.width;
+  outputCanvas.height = cropParams.height;
+  const ctx = outputCanvas.getContext("2d");
+
+  if (shape === "circle") {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(
+      cropParams.width / 2,
+      cropParams.height / 2,
+      Math.min(cropParams.width, cropParams.height) / 2,
+      0,
+      2 * Math.PI
+    );
+    ctx.closePath();
+    ctx.clip();
+  }
+
+  ctx.drawImage(
+    img,
+    sx, sy, sWidth, sHeight,
+    0, 0, cropParams.width, cropParams.height
+  );
+
+  if (shape === "circle") ctx.restore();
+
+  outputCanvas.toBlob((blob) => {
+    if (!blob) return;
+    const croppedFile = new File([blob], `cropped-${shape}.png`, {
+      type: "image/png",
+      lastModified: Date.now(),
+    });
+    onCrop(croppedFile);
+  }, "image/png");
+}
+  function initCropArea() {
+    const img = imgRef.current;
+    if (!img) return;
+    const imgWidth = img.width;
+    const imgHeight = img.height;
+    let width, height;
+    if (shape === "circle") {
+      const size = Math.min(imgWidth, imgHeight, imgWidth * 0.8, imgHeight * 0.8);
+      width = height = size;
+    } else {
+      const aspectRatio = 3 / 1;
+      if (imgWidth / imgHeight > aspectRatio) {
+        height = Math.min(200, imgHeight);
+        width = height * aspectRatio;
+      } else {
+        width = Math.min(600, imgWidth);
+        height = width / aspectRatio;
+      }
+    }
+    setCropParams({
+      x: (imgWidth - width) / 2,
+      y: (imgHeight - height) / 2,
+      width,
+      height,
+    });
+  }
+
+  function isInsideCropRect(pos) {
     if (!pos) return false;
-    const centerX = cropParams.x + cropParams.size / 2;
-    const centerY = cropParams.y + cropParams.size / 2;
-    const dx = pos.x - centerX;
-    const dy = pos.y - centerY;
-    return dx * dx + dy * dy <= (cropParams.size / 2) ** 2;
+    if (shape === "circle") {
+      const cx = cropParams.x + cropParams.width / 2;
+      const cy = cropParams.y + cropParams.height / 2;
+      const r = cropParams.width / 2;
+      return (
+        Math.pow(pos.x - cx, 2) + Math.pow(pos.y - cy, 2) <= r * r
+      );
+    }
+    return (
+      pos.x >= cropParams.x &&
+      pos.x <= cropParams.x + cropParams.width &&
+      pos.y >= cropParams.y &&
+      pos.y <= cropParams.y + cropParams.height
+    );
   }
 
-  // Drag handlers
   function onMouseDown(e) {
     const pos = getMousePosOnImage(e);
-    if (!isInsideCropCircle(pos)) return;
-    
+    if (!isInsideCropRect(pos)) return;
     setDragging(true);
     setDragStart(pos);
   }
@@ -81,240 +138,144 @@ export default function PfpUploadWithCrop({ formData, setFormData }) {
     if (!dragging) return;
     const pos = getMousePosOnImage(e);
     if (!pos) return;
-
-    const dx = pos.x - (dragStart?.x || 0);
-    const dy = pos.y - (dragStart?.y || 0);
+    const dx = pos.x - dragStart.x;
+    const dy = pos.y - dragStart.y;
+    const img = imgRef.current;
+    if (!img) return;
 
     setCropParams((prev) => {
-      const img = imgRef.current;
-      if (!img) return prev;
-
       let newX = prev.x + dx;
       let newY = prev.y + dy;
-
-      // Clamp inside image bounds
-      newX = Math.max(0, Math.min(img.width - prev.size, newX));
-      newY = Math.max(0, Math.min(img.height - prev.size, newY));
-
+      newX = Math.max(0, Math.min(img.width - prev.width, newX));
+      newY = Math.max(0, Math.min(img.height - prev.height, newY));
       return { ...prev, x: newX, y: newY };
     });
 
     setDragStart(pos);
-  }
+  } 
 
-  // Draw crop overlay on canvas
   useEffect(() => {
-    if (!cropperVisible || !imgRef.current || !canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
     const img = imgRef.current;
+    const canvas = canvasRef.current;
+    if (!img || !canvas || !cropParams) return;
 
-    // Match canvas size to displayed image size
-    canvas.width = img.width;
-    canvas.height = img.height;
-
+      canvas.width = img.width;
+      canvas.height = img.height;
+    const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    // Dark overlay outside circle
     ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Clear crop circle area
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(
-      cropParams.x + cropParams.size / 2,
-      cropParams.y + cropParams.size / 2,
-      cropParams.size / 2,
-      0,
-      Math.PI * 2
-    );
-    ctx.clip();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
+    if (shape === "circle") {
+      ctx.beginPath();
+      ctx.arc(
+        cropParams.x + cropParams.width / 2,
+        cropParams.y + cropParams.height / 2,
+        Math.min(cropParams.width, cropParams.height) / 2,
+        0,
+        2 * Math.PI
+      );
+      ctx.closePath();
+      ctx.clip();
+      ctx.clearRect(cropParams.x, cropParams.y, cropParams.width, cropParams.height);
+      ctx.restore();
 
-    // White border around crop circle
-    ctx.beginPath();
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 2;
-    ctx.arc(
-      cropParams.x + cropParams.size / 2,
-      cropParams.y + cropParams.size / 2,
-      cropParams.size / 2,
-      0,
-      Math.PI * 2
-    );
-    ctx.stroke();
-  }, [cropParams, cropperVisible]);
+      ctx.beginPath();
+      ctx.arc(
+        cropParams.x + cropParams.width / 2,
+        cropParams.y + cropParams.height / 2,
+        Math.min(cropParams.width, cropParams.height) / 2,
+        0,
+        2 * Math.PI
+      );
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else {
+      ctx.clearRect(cropParams.x, cropParams.y, cropParams.width, cropParams.height);
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cropParams.x, cropParams.y, cropParams.width, cropParams.height);
+    }
+  }, [cropParams, zoom, rawImage, shape]);
 
-  // Confirm crop, generate cropped file and update formData
-  function onConfirmCrop() {
-    if (!imgRef.current) return;
-
-    const img = imgRef.current;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    // Scaling between natural image and displayed image size
-    const scaleX = img.naturalWidth / img.width;
-    const scaleY = img.naturalHeight / img.height;
-
-    const sx = cropParams.x * scaleX;
-    const sy = cropParams.y * scaleY;
-    const sSize = cropParams.size * Math.min(scaleX, scaleY);
-
-    const outputCanvas = document.createElement("canvas");
-    outputCanvas.width = cropParams.size;
-    outputCanvas.height = cropParams.size;
-    const ctx = outputCanvas.getContext("2d");
-
-    // Clip to circle
-    ctx.beginPath();
-    ctx.arc(
-      cropParams.size / 2,
-      cropParams.size / 2,
-      cropParams.size / 2,
-      0,
-      Math.PI * 2
-    );
-    ctx.clip();
-
-    ctx.drawImage(
-      img,
-      sx, sy, sSize, sSize,
-      0, 0, cropParams.size, cropParams.size
-    );
-
-    outputCanvas.toBlob((blob) => {
-      if (!blob) return;
-      
-      const croppedFile = new File([blob], "pfp-cropped.png", {
-        type: "image/png",
-        lastModified: Date.now(),
-      });
-
-      setFormData((prev) => ({
-        ...prev,
-        pfp: croppedFile,
-      }));
-
-      setCropperVisible(false);
-      if (rawImage) URL.revokeObjectURL(rawImage);
-      setRawImage(null);
-    }, "image/png");
+  let transformOrigin = "center center";
+  const img = imgRef.current;
+  if (img && cropParams) {
+    const originX = ((cropParams.x + cropParams.width / 2) / img.width) * 100;
+    const originY = ((cropParams.y + cropParams.height / 2) / img.height) * 100;
+    transformOrigin = `${originX}% ${originY}%`;
   }
 
   return (
-    <div>
-      <label htmlFor="pfp" className="text-base font-medium text-foreground">
-        Profile Picture
-      </label>
-      <div className="flex items-center gap-5 mt-3">
-        <div className="w-20 h-20 rounded-full overflow-hidden border border-border bg-muted shadow-sm">
-          {formData.pfp ? (
-            <img
-              src={URL.createObjectURL(formData.pfp)}
-              alt="Profile Preview"
-              className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-              No image
-            </div>
-          )}
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-70">
+      <div className="relative bg-background rounded-lg p-4 w-full max-w-4xl">
+        <p className="mb-2 text-center font-semibold text-foreground">
+          Crop your {shape === "circle" ? "profile picture" : "banner"}
+        </p>
+        <div className="mt-4">
+          <input
+            id="zoomRange"
+            type="range"
+            min="1"
+            max="3"
+            step="0.01"
+            value={zoom}
+            onChange={(e) => setZoom(parseFloat(e.target.value))}
+            className="w-full"
+          />
+          <span className="text-sm mt-1">Zoom: {zoom.toFixed(1)}x</span>
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="max-w-20 relative cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md text-sm font-medium shadow-sm transition-colors duration-200">
-            Upload
-            <input
-              type="file"
-              accept="image/*"
-              id="pfp"
-              className="absolute inset-0 opacity-0 cursor-pointer"
-              onChange={onFileChange}
+
+        <div
+          ref={containerRef}
+          className="relative select-none flex justify-center items-center max-h-[70vh]"
+          onMouseDown={onMouseDown}
+          onMouseUp={onMouseUp}
+          onMouseMove={onMouseMove}
+          onMouseLeave={onMouseUp}
+          style={{ cursor: dragging ? "grabbing" : "grab" }}
+        >
+          {/* Your untouched image + canvas block */}
+          <div className="max-w-full max-h-[60vh] rounded relative select-none flex justify-center items-center overflow-hidden" >
+          <img
+            ref={imgRef}
+            src={rawImage}
+            alt="To crop"
+            className="max-w-full max-h-[60vh] rounded select-none"
+            draggable={false}
+            onLoad={initCropArea}
+            style={{
+              transform: `scale(${zoom})`,
+              transformOrigin: transformOrigin,
+            }}
+          />
+            <canvas
+              ref={canvasRef}
+              className="absolute pointer-events-none rounded"
             />
-          </label>
-          {formData.pfp && (
-            <span className="text-sm text-muted-foreground truncate max-w-[12rem]">
-              {formData.pfp.name}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Cropper Overlay */}
-{cropperVisible && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
-          <div className="relative bg-background rounded-lg p-4 max-w-md w-full">
-            <p className="mb-2 text-center font-semibold text-foreground">
-              Crop your profile picture
-            </p>
-            <div
-              ref={containerRef} // Added container ref
-              className="relative select-none flex justify-center items-center"
-              onMouseDown={onMouseDown}
-              onMouseUp={onMouseUp}
-              onMouseMove={onMouseMove}
-              onMouseLeave={onMouseUp}
-              style={{ cursor: dragging ? "grabbing" : "grab" }}
-            >
-              <img
-                ref={imgRef}
-                src={rawImage}
-                alt="To crop"
-                className="max-w-full max-h-[300px] rounded select-none"
-                draggable={false}
-                onLoad={() => {
-                  if (!imgRef.current || !canvasRef.current) return;
-
-                  // Set canvas size same as displayed image size
-                  canvasRef.current.width = imgRef.current.width;
-                  canvasRef.current.height = imgRef.current.height;
-
-                  // Initialize crop area: centered square, max 200px or smaller if image is small
-                  const size = Math.min(200, imgRef.current.width, imgRef.current.height);
-
-                  setCropParams({
-                    x: (imgRef.current.width - size) / 2,
-                    y: (imgRef.current.height - size) / 2,
-                    size,
-                  });
-                }}
-              />
-              <canvas
-                ref={canvasRef}
-                className="absolute pointer-events-none rounded"
-                style={{ 
-                  userSelect: "none",
-                  left: `calc(50% - ${imgRef.current?.width ? imgRef.current.width/2 : 0}px)`,
-                  top: `calc(50% - ${imgRef.current?.height ? imgRef.current.height/2 : 0}px)`
-                }}
-              />
-            </div>
-
-            <div className="mt-4 flex justify-between">
-              <button
-                onClick={() => {
-                  setCropperVisible(false);
-                  if (rawImage) URL.revokeObjectURL(rawImage);
-                  setRawImage(null);
-                }}
-                className="bg-muted px-4 py-2 rounded hover:bg-muted/80"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={onConfirmCrop}
-                className="bg-primary px-4 py-2 rounded text-primary-foreground hover:bg-primary/90"
-              >
-                Crop & Save
-              </button>
-            </div>
           </div>
         </div>
-      )}
+
+        <div className="mt-4 flex justify-between">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="bg-muted px-4 py-2 rounded hover:bg-muted/80"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleCrop}
+            className="bg-primary px-4 py-2 rounded text-primary-foreground hover:bg-primary/90"
+          >
+            Crop & Save
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
