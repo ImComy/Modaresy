@@ -50,7 +50,7 @@ export default function PfpUploadWithCrop({ formData, setFormData }) {
         Profile Picture
       </label>
       <div className="flex items-center gap-5 mt-3 ">
-        <div className="w-20 h-20 rounded-full overflow-hidden border border-border bg-muted shadow-sm">
+        <div className="w-20 h-20 rounded-md overflow-hidden border border-border bg-muted shadow-sm">
           {formData.pfp ? (
             <img
               src={URL.createObjectURL(formData.pfp)}
@@ -89,7 +89,7 @@ export default function PfpUploadWithCrop({ formData, setFormData }) {
           rawImage={rawImage}
           onCancel={handleCancel}
           onCrop={handleCrop}
-          shape="circle"
+          shape="profile"
         />
       )}
     </div>

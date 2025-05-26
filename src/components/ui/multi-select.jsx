@@ -25,7 +25,7 @@ export default function MultiSelect({
   )
 
   const filteredOptions = normalizedOptions.filter((opt) =>
-    opt.label.toLowerCase().includes(search.toLowerCase())
+    (opt.label || "").toLowerCase().includes(search.toLowerCase())
   )
 
   const toggleSelect = (value) => {
