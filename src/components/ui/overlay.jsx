@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import i18next from 'i18next';
 import { grades, sectors } from '@/data/formData';
+import { useNavigate } from 'react-router-dom';
 
-export default function UserOverlay({ onClose, onSubmit, onFiltersChange}) {
+export default function UserOverlay({ onClose, onSubmit, onFiltersChange }) {
   const { t } = useTranslation();
   const isRTL = i18next.dir() === 'rtl';
+  const navigate = useNavigate();
 
   const gradeOptions = [{ value: 'all', labelKey: 'allGrades' }, ...grades];
   const sectorOptions = [{ value: 'all', labelKey: 'allSectors' }, ...sectors];
@@ -16,7 +18,7 @@ export default function UserOverlay({ onClose, onSubmit, onFiltersChange}) {
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedSector, setSelectedSector] = useState("");
 
-    const buttonClasses =
+  const buttonClasses =
     "w-full py-2 rounded-lg mb-3 font-semibold text-white transition-colors duration-300 hover:brightness-110";
 
   useEffect(() => {
@@ -43,8 +45,8 @@ export default function UserOverlay({ onClose, onSubmit, onFiltersChange}) {
 
   function handleSubmit() {
     if (selectedGrade && selectedSector) {
-      localStorage.setItem('onSubmit', 'true');             
-      localStorage.setItem('filter-grade', selectedGrade);  
+      localStorage.setItem('onSubmit', 'true');
+      localStorage.setItem('filter-grade', selectedGrade);
       localStorage.setItem('filter-sector', selectedSector);
 
       onSubmit(selectedGrade, selectedSector);
@@ -151,22 +153,20 @@ export default function UserOverlay({ onClose, onSubmit, onFiltersChange}) {
           </div>
 
           <div className="flex gap-6 mb-4">
-            <a href="/login" className="w-full">
-              <Button
-                variant="outline"
-                className="text-primary border-primary w-[100%] bg-inherit hover:bg-inherit/90 hover:text-primary"
-              >
-                {t("Log In")}
-              </Button>
-            </a>
-            <a href="/signup" className="w-full">
-              <Button
-                variant="outline"
-                className="text-primary-foreground border-primary w-[100%] bg-primary hover:bg-primary/90 hover:text-primary-foreground"
-              >
-                {t("Sign Up")}
-              </Button>
-            </a>
+            <Button
+              variant="outline"
+              className="text-primary border-primary w-[100%] bg-inherit hover:bg-inherit/90 hover:text-primary"
+              onClick={() => { navigate('/signup'); }}
+            >
+              {t("Log In")}
+            </Button>
+            <Button
+              variant="outline"
+              className="text-primary-foreground border-primary w-[100%] bg-primary hover:bg-primary/90 hover:text-primary-foreground"
+              onClick={() => { navigate('/signup'); }}
+            >
+              {t("Sign Up")}
+            </Button>
           </div>
           <button
             onClick={() => alert(t("Sign Up with Google clicked"))}
