@@ -169,10 +169,20 @@ const TutorCard = ({ tutor }) => {
             <p className="text-xs text-muted-foreground line-clamp-2 self-start">{tutor.bioExcerpt}</p>
           </div>
 
-          <div className="flex justify-center items-center text-muted-foreground mt-2 pt-2 border-t border-border/30">
+         <div className="flex justify-between items-center text-muted-foreground mt-2 pt-2 border-t border-border/30 gap-2">
             <span className="font-bold text-primary text-lg">
               {t('ratePerMonth', { rate: tutor.rate })}
             </span>
+            <Button
+              as={Link}
+              to={`/tutor/${tutor.id}`}
+              size="sm"
+              variant="outline"
+              className="border-primary text-primary hover:bg-primary hover:text-white transition-colors duration-200 px-3 py-1 rounded-md font-semibold"
+              onClick={e => e.stopPropagation()}
+            >
+              {t('viewProfile', 'View Profile')}
+            </Button>
           </div>
         </Card>
       </Link>
