@@ -91,12 +91,23 @@ const HorizontalFilters = ({
       }
     });
 
+    // Ensure subject and grade default to "none" if not set
+    if (!stored.subject) {
+      stored.subject = 'none';
+      localStorage.setItem('filter-subject', 'none');
+    }
+    if (!stored.grade) {
+      stored.grade = 'none';
+      localStorage.setItem('filter-grade', 'none');
+    }
+
     const merged = { ...getDefaultFilters(), ...stored };
     setFilters(merged);
     if (stored.sortBy) setSortBy(stored.sortBy);
 
     if (typeof triggerFilterUpdate === 'function') triggerFilterUpdate();
   }, []);
+
 
   // Save filters (except searchTerm) to localStorage on change
   useEffect(() => {
