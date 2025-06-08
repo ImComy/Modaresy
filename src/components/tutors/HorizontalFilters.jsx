@@ -21,9 +21,9 @@ const FILTER_KEYS = [
 ];
 
 const getDefaultFilters = () => ({
-  subject: 'all',
+  subject: 'none',
   location: 'all',
-  grade: 'all',
+  grade: 'none',
   sector: 'all',
   minRating: 0,
   rateRange: [50, 2000],
@@ -41,9 +41,9 @@ const HorizontalFilters = ({
   triggerFilterUpdate
 }) => {
   const { t } = useTranslation();
+  const gradeOptions = [{ value: 'none', labelKey: 'none' }, ...grades];
   const subjectOptions = [...uniqueSubjectsSimple];
   const locationOptions = [...uniqueLocationsSimple];
-  const gradeOptions = [{ value: 'all', labelKey: 'allGrades' }, ...grades];
   const sectorOptions = [{ value: 'all', labelKey: 'allSectors' }, ...sectors];
 
   // Only run localStorage load on first mount
@@ -124,9 +124,9 @@ const HorizontalFilters = ({
 
   // Placeholders from translation only
   const placeholders = {
-    subject: t('allSubjects'),
+    subject: t('none'),
     location: t('allLocations'),
-    grade: t('allGrades'),
+    grade: t('none'),
     sector: t('allSectors'),
     minRating: t('anyRating'),
     sortBy: t('sortBy'),
@@ -139,7 +139,7 @@ const HorizontalFilters = ({
       transition={{ duration: 0.3, delay: 0.1 }}
       className="mb-8 p-4 rounded-lg shadow-sm bg-card/80 backdrop-blur-sm border border-border/20"
     >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 items-end">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 items-end">
         {/* Search input remains controlled by searchTerm / setSearchTerm */}
         <div className="relative md:col-span-2 lg:col-span-1 xl:col-span-2">
           <Search className="absolute left-3 rtl:left-auto rtl:right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -154,20 +154,30 @@ const HorizontalFilters = ({
 
         {/* Subject Filter */}
         <div>
-          <label className="text-xs font-medium text-muted-foreground flex items-center mb-1">
+          <label
+            className={`text-xs font-medium flex items-center mb-1 ${
+              tempFilters.subject === 'none'
+                ? 'text-red-600'
+                : 'text-muted-foreground'
+            }`}
+          >
             <BookOpen size={12} className="mr-1 rtl:ml-1" />{t('subject')}
           </label>
           <Select
             value={tempFilters.subject}
             onValueChange={(value) => onTempFilterChange('subject', value)}
           >
-            <SelectTrigger className="h-10 text-sm w-full">
+            <SelectTrigger
+              className={`h-10 text-sm w-full ${
+                tempFilters.subject === 'none' ? 'border-red-600 focus:ring-red-600' : ''
+              }`}
+            >
               <SelectValue placeholder={placeholders.subject} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('allSubjects')}</SelectItem>
+              <SelectItem value="none">{t('none')}</SelectItem>
               {subjectOptions
-                .filter(subject => subject.toLowerCase() !== 'all') // filter out "all"
+                .filter(subject => subject.toLowerCase() !== 'all' && subject.toLowerCase() !== 'none')
                 .map(subject => (
                   <SelectItem key={subject} value={subject.toLowerCase()} className="capitalize">
                     {subject}
@@ -204,18 +214,29 @@ const HorizontalFilters = ({
 
         {/* Grade Filter */}
         <div>
-          <label className="text-xs font-medium text-muted-foreground flex items-center mb-1">
+          <label
+            className={`text-xs font-medium flex items-center mb-1 ${
+              tempFilters.grade === 'none'
+                ? 'text-red-600'
+                : 'text-muted-foreground'
+            }`}
+          >
             <GraduationCap size={12} className="mr-1 rtl:ml-1" />{t('grade')}
           </label>
           <Select
             value={tempFilters.grade}
             onValueChange={(value) => onTempFilterChange('grade', value)}
           >
-            <SelectTrigger className="h-10 text-sm w-full">
+            <SelectTrigger
+              className={`h-10 text-sm w-full ${
+                tempFilters.grade === 'none' ? 'border-red-600 focus:ring-red-600' : ''
+              }`}
+            >
               <SelectValue placeholder={placeholders.grade} />
             </SelectTrigger>
             <SelectContent>
-              {gradeOptions.map(grade => (
+              <SelectItem value="none">{t('none')}</SelectItem>
+              {grades.map(grade => (
                 <SelectItem key={grade.value} value={grade.value}>
                   {t(grade.labelKey)}
                 </SelectItem>
@@ -301,14 +322,14 @@ const HorizontalFilters = ({
 
         {/* Apply and Reset Buttons */}
 
-<Button
-  onClick={applyFilters}
-  variant="outline"
-  className="w-full text-green-600 border-green-600 hover:bg-green-600 hover:text-white transition-colors duration-200 flex items-center justify-center gap-2 py-2 rounded-md font-semibold"
->
-  <CheckCircle size={18} />
-  {t('applyFilters')}
-</Button>
+          <Button
+            onClick={applyFilters}
+            variant="outline"
+            className="w-full text-green-600 border-green-600 hover:bg-green-600 hover:text-white transition-colors duration-200 flex items-center justify-center gap-2 py-2 rounded-md font-semibold"
+          >
+            <CheckCircle size={18} />
+            {t('applyFilters')}
+          </Button>
 
           <Button
             variant="outline"

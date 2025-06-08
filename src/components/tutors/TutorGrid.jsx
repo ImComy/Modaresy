@@ -3,18 +3,32 @@ import { AnimatePresence, motion } from 'framer-motion';
 import TutorCard from './TutorCard';
 import { useTranslation } from 'react-i18next';
 
-const TutorGrid = ({ tutors }) => {
+const TutorGrid = ({ tutors, filters }) => {
   const { t } = useTranslation();
 
+  // Show custom message if subject or grade is not selected
+  if (filters?.subject === 'none' || filters?.grade === 'none') {
+    return (
+      <p className="text-center text-red-600 font-semibold py-8">
+        Please enter grade or subject
+      </p>
+    );
+  }
+
+  // Default no tutors found message
   if (!tutors || tutors.length === 0) {
-    return <p className="text-center text-muted-foreground py-8">{t('noTutorsFound')}</p>;
+    return (
+      <p className="text-center text-muted-foreground py-8">
+        {t('noTutorsFound')}
+      </p>
+    );
   }
 
   return (
     <AnimatePresence>
       <motion.div
-        layout // Enable layout animation for the grid itself
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6" // Added xl:grid-cols-4
+        layout
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
       >
         {tutors.map((tutor) => (
           <TutorCard key={tutor.id} tutor={tutor} />
@@ -25,4 +39,3 @@ const TutorGrid = ({ tutors }) => {
 };
 
 export default TutorGrid;
-  

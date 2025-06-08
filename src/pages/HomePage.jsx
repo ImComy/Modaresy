@@ -7,15 +7,17 @@ import TutorGrid from '@/components/tutors/TutorGrid';
 import HorizontalFilters from '@/components/tutors/HorizontalFilters';
 import { mockTutors } from '@/data/mockTutors';
 import { useTutorFilterSort } from '@/hooks/useTutorFilterSort';
-import { Card, CardContent } from '@/components/ui/card'; // Import Card components
+import { Card, CardContent } from '@/components/ui/card'; 
+import { Link, useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const {
     searchTerm,
     setSearchTerm,
     filters,
-    setFilters, // <-- add this
+    setFilters, 
     handleFilterChange,
     handleRateChange,
     sortBy,
@@ -27,7 +29,7 @@ const HomePage = () => {
     hidden: { opacity: 0 },
     visible: (i = 1) => ({
       opacity: 1,
-      transition: { duration: 0.3, delay: i * 0.1 }, // Simple fade-in
+      transition: { duration: 0.3, delay: i * 0.1 }, 
     }),
   };
 
@@ -36,15 +38,10 @@ const HomePage = () => {
       visible: (i = 1) => ({
         opacity: 1,
         y: 0,
-        transition: { duration: 0.3, delay: i * 0.1 }, // Simple fade-in up
+        transition: { duration: 0.3, delay: i * 0.1 }, 
       }),
   };
-
-  const targetRef = useRef(null);
-  const handleScroll = () => {
-    targetRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  
   return (
     <div className=" ">
       {/* New Hero Section Design */}
@@ -55,10 +52,10 @@ const HomePage = () => {
           <div className="absolute bottom-0 right-0 w-72 h-72 bg-secondary/5 rounded-full filter blur-3xl opacity-40 animate-pulse animation-delay-2000"></div>
         </div>
         <div className="container mx-auto px-4 relative z-10 grid lg:grid-cols-2 gap-12 items-center">
-                <div className="space-y-5 text-center lg:text-left rtl:lg:text-right leading-relaxed">
-                <motion.div variants={fadeInUp} initial="hidden" animate="visible" custom={1}>
-                  <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-2">
-                  <Sparkles size={12} className="inline mr-1 rtl:ml-1" /> {t('platformHighlight')} 
+          <div className="space-y-5 text-center lg:text-left rtl:lg:text-right leading-relaxed">
+            <motion.div variants={fadeInUp} initial="hidden" animate="visible" custom={1}>
+              <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-2">
+                <Sparkles size={12} className="inline mr-1 rtl:ml-1" /> {t('platformHighlight')} 
               </span>
             </motion.div>
             <motion.h1
@@ -77,7 +74,7 @@ const HomePage = () => {
               variants={fadeInUp} initial="hidden" animate="visible" custom={4}
               className="pt-3"
             >
-              <Button size="lg"  onClick={handleScroll} className="shadow-lg hover:shadow-primary/40 transition-shadow duration-300">
+              <Button size="lg"  onClick={() => navigate('/signup')} className="shadow-lg hover:shadow-primary/40 transition-shadow duration-300">
                 {t('getStarted')} <Search size={18} className="ml-2 rtl:mr-2 rtl:ml-0" />
               </Button>
             </motion.div>
@@ -200,98 +197,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="py-16 bg-muted/40 rounded-3xl shadow-xl mb-16">
-        <div className="container mx-auto text-center space-y-10">
-          <motion.h2
-        variants={fadeInUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        custom={1}
-        className="text-3xl md:text-4xl font-extrabold tracking-tight"
-          >
-        {t("HOW MODARESY WORKS")}
-          </motion.h2>
-
-          <div className="grid md:grid-cols-3 gap-10 px-4 md:px-0">
-        {[
-          {
-            icon: Search,
-            title: t("Discover Teachers"),
-            desc: t("Discover Teachers Desc"),
-            custom: 2,
-          },
-          {
-            icon: UserCheck,
-            title: t("Choose the Right Fit"),
-            desc: t("Choose the Right Fit Desc"),
-            custom: 2.5,
-          },
-          {
-            icon: MessageSquare,
-            title: t("Connect & Learn"),
-            desc: t("Connect & Learn Desc"),
-            custom: 3,
-          },
-        ].map(({ icon: Icon, title, desc, custom }, idx) => (
-          <motion.div
-            key={idx}
-            variants={fadeInUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            custom={custom}
-            className="bg-white dark:bg-background border border-border rounded-xl p-6 shadow-md flex flex-col items-center text-center space-y-4 cursor-pointer relative overflow-hidden"
-            whileHover={{
-          scale: 1.05,
-          y: -6,
-          boxShadow: "0 8px 20px rgba(99, 102, 241, 0.3)",
-          transition: { duration: 0.3, ease: "easeOut" },
-            }}
-          >
-            <motion.div
-          className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary rounded-full p-4"
-          whileHover={{ scale: 1.1, transition: { duration: 0.3, ease: "easeInOut" } }}
-            >
-          <Icon size={28} />
-            </motion.div>
-
-            <h3 className="text-xl font-semibold relative">
-          {title}
-          <span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-primary rounded transition-all" />
-            </h3>
-
-            <p className="text-muted-foreground text-sm leading-relaxed max-w-[280px]">
-          {desc}
-            </p>
-
-            {/* Glowing gradient border */}
-              <motion.div
-                className="absolute inset-0 rounded-xl pointer-events-none"
-                initial={{ opacity: 0 }}
-                whileHover={{
-                  opacity: 1,
-                  background: "linear-gradient(270deg, #6366F1, #A78BFA, #6366F1)",
-                  backgroundSize: "600% 600%",
-                  animation: "glowAnim 3s ease infinite",
-                }}
-              />
-            </motion.div>
-          ))}
-        </div>
-      </div>
-      <div ref={targetRef}></div>
-
-      <style jsx>{`
-        @keyframes glowAnim {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-      `}</style>
-    </section>
-
       {/* Filter and Tutor List Section */}
       <section className="space-y-6 container mx-auto px-4" >
           <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center">{t('findYourTutor')}</motion.h2>
@@ -305,7 +210,7 @@ const HomePage = () => {
             sortBy={sortBy}
             setSortBy={setSortBy}
           />
-          <TutorGrid tutors={sortedTutors} />
+          <TutorGrid tutors={sortedTutors} filters={filters} />
       </section>
     </div>
   );

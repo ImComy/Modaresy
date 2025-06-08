@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, DollarSign, BookOpen, Heart, CalendarDays, GraduationCap, Users, } from 'lucide-react';
+import { MapPin, DollarSign, BookOpen, Heart, CalendarDays, GraduationCap, Users, Clock } from 'lucide-react';
 import renderStars from '@/components/ui/renderStars';
 import { useWishlist } from '@/context/WishlistContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -64,7 +64,7 @@ const TutorCard = ({ tutor }) => {
   tutor.targetGrades?.forEach((gradeVal) => {
     const labelKey = gradeData.find((g) => g.value === gradeVal)?.labelKey;
     const label = t(labelKey || gradeVal);
-    const stage = stageMap[label] || label.split(' ')[0]; // fallback for unlisted
+    const stage = stageMap[label] || label.split(' ')[0];
 
     gradeCountsByStage[stage] = (gradeCountsByStage[stage] || 0) + 1;
     if (!stageGrades[stage]) stageGrades[stage] = [];
@@ -80,6 +80,11 @@ const TutorCard = ({ tutor }) => {
       ?.map((sVal) => t(sectorData.find((s) => s.value === sVal)?.labelKey || sVal))
       .slice(0, 2) || [];
 
+  const displayName =
+    tutor.name && tutor.name.length > 16
+      ? tutor.name.slice(0, 15) + '...'
+      : tutor.name;
+
   return (
     <motion.div
       layout
@@ -87,108 +92,92 @@ const TutorCard = ({ tutor }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      whileHover={{ y: -3, transition: { duration: 0.15 } }}
+      whileHover={{ y: -2, transition: { duration: 0.15 } }}
       className="h-full"
     >
       <Link to={`/tutor/${tutor.id}`} className="block h-full">
-        <Card className="h-full overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-150 glass-effect flex flex-col">
-          <div className="relative h-40 w-full overflow-hidden">
-            <img
-              src={tutor.bannerimg || 'https://placehold.co/600x400'}
-              alt={tutor.name}
-              className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-            />
+        <Card className="p-3 h-full rounded-xl bg-muted/50 border border-muted text-sm flex flex-col gap-3 hover:shadow transition-shadow">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-20 w-20 border-2 border-primary flex-shrink-0 rounded-md">
+                <AvatarImage src={tutor.img} alt={tutor.name} radius="rounded-sm" />
+                  <AvatarFallback radius="rounded-sm">
+                    {tutor.name?.split(' ').map((n) => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
+              <div className="min-w-0">
+                <h3
+                  className="font-semibold text-base text-foreground truncate"
+                  title={tutor.name}
+                >
+                  {displayName}
+                </h3>
+                <div className="text-muted-foreground flex items-center gap-1 text-primary">
+                  <BookOpen size={14} />
+                  <span className="truncate">{tutor.subject}</span>
+                </div>
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  {renderStars(tutor.rating)}
+                  <span>({tutor.rating?.toFixed(1)})</span>
+                </div>
+              </div>
+            </div>
             <Button
               variant="ghost"
               size="icon"
-              className={cn(
-                'absolute top-2 right-2 rtl:left-2 rtl:right-auto h-8 w-8 rounded-full bg-background/70 hover:bg-background/90 text-muted-foreground hover:text-accent transition-colors',
-                isInWishlist && 'text-accent'
-              )}
               onClick={handleWishlistToggle}
+              className={cn(
+                'hover:text-destructive text-muted-foreground transition-colors h-8 w-8 rounded-full',
+                isInWishlist && 'text-destructive'
+              )}
             >
               <Heart size={16} fill={isInWishlist ? 'currentColor' : 'none'} />
             </Button>
-            <div className="flex items-start gap-3 mb-2 absolute bottom-0 left-4">
-              <Avatar className="h-20 w-20 border-2 border-primary flex-shrink-0 rounded-md">
-                <AvatarImage src={tutor.img} alt={tutor.name} radius="rounded-sm" />
-                <AvatarFallback radius="rounded-sm">
-                  {tutor.name?.split(' ').map((n) => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-            </div>
           </div>
-          <CardContent className="p-4 flex-grow flex flex-col">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-              <div className="flex-grow min-w-0">
-                <h3 className="text-lg font-semibold truncate">{tutor.name}</h3>
-                <p className="text-sm text-primary font-medium flex items-center gap-1 truncate">
-                  <BookOpen size={14} /> {tutor.subject}
-                </p>
-                <div className="flex items-center gap-1">
-                  {renderStars(tutor.rating)}
-                  <span className="ml-1">({tutor.rating?.toFixed(1)})</span>
-                </div>
-              </div>
-              <span className="flex items-center gap-1">
-                <MapPin size={12} /> {tutor.location}
-              </span>
-            </div>
 
-            {(targetGradeLabels.length > 0 || targetSectorLabels.length > 0) && (
-              <div className="flex flex-wrap gap-2 mb-2">
-                {targetGradeLabels.slice(0, 3).map((label, i) => (
-                  <Badge
-                    key={`g-${i}`}
-                    variant="outline"
-                    className="text-xs px-2 py-0.5 border-primary text-primary"
-                  >
-                    <GraduationCap size={12} className="mr-1 rtl:ml-1" />
-                    {label}
-                  </Badge>
-                ))}
-                {targetSectorLabels.slice(0, 3).map((label, i) => (
-                  <Badge
-                    key={`s-${i}`}
-                    variant="outline"
-                    className="text-xs px-2 py-0.5 border-primary text-primary"
-                  >
-                    <Users size={12} className="mr-1 rtl:ml-1" />
-                    {label}
-                  </Badge>
-                ))}
-                {(tutor.targetGrades?.length > 3 || tutor.targetSectors?.length > 3) && (
-                  <Badge
-                    variant="outline"
-                    className="text-xs px-2 py-0.5 border-primary text-primary"
-                  >
-                    ...
-                  </Badge>
-                )}
-              </div>
+          <div className="flex items-center gap-1 text-muted-foreground text-xs">
+            <MapPin size={12} />
+            <span>{tutor.location}</span>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {targetGradeLabels.slice(0, 2).map((label, i) => (
+              <Badge
+                key={`g-${i}`}
+                className="bg-primary/10 border border-primary text-primary text-xs px-2 py-0.5"
+              >
+                <GraduationCap size={12} className="mr-1" />
+                {label}
+              </Badge>
+            ))}
+            {targetSectorLabels.slice(0, 2).map((label, i) => (
+              <Badge
+                key={`s-${i}`}
+                className="bg-secondary/10 border border-secondary text-secondary text-xs px-2 py-0.5"
+              >
+                <Users size={12} className="mr-1" />
+                {label}
+              </Badge>
+            ))}
+            {(tutor.targetGrades?.length > 2 || tutor.targetSectors?.length > 2) && (
+              <Badge className="bg-muted border border-border text-muted-foreground text-xs px-2 py-0.5">
+                ...
+              </Badge>
             )}
+          </div>
+          <div className="flex-1 flex">
+            <p className="text-xs text-muted-foreground line-clamp-2 self-start">{tutor.bioExcerpt}</p>
+          </div>
 
-            <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-grow">
-              {tutor.bioExcerpt}
-            </p>
-            <div className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
-              <CalendarDays size={12} /> {teachingDaysShort}
-            </div>
-            <div className="mt-auto flex items-center justify-between pt-3 border-t border-border/10">
-              <span className="text-lg font-bold text-primary">
-                {t('ratePerMonth', { rate: tutor.rate })}
-              </span>
-              <Link to={`/tutor/${tutor.id}`}>
-                <Button variant="outline" size="sm" className="text-primary border-primary">
-                  {t('viewProfile')}
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
+          <div className="flex justify-center items-center text-muted-foreground mt-2 pt-2 border-t border-border/30">
+            <span className="font-bold text-primary text-lg">
+              {t('ratePerMonth', { rate: tutor.rate })}
+            </span>
+          </div>
         </Card>
       </Link>
     </motion.div>
   );
 };
 
-export default TutorCard;
+export default TutorCard
