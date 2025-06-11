@@ -1,24 +1,19 @@
-import React, { useState, useRef  } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MapPin, Clock, DollarSign, BookOpen, MessageSquare, Heart, Award, CalendarDays, Building } from 'lucide-react';
+import { MapPin, BookOpen, MessageSquare, Heart, Award, Building, GraduationCap} from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import renderStars from '@/components/ui/renderStars';
 import { useWishlist } from '@/context/WishlistContext';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
-import { locations } from '@/data/formData';
-import { useAuth } from '@/context/AuthContext'; 
-import BannerCropOverlay from '@/components/ui/cropper';
+import { useAuth } from '@/context/AuthContext';
 
-const TutorProfileHeader = ({ tutor, isEditing, onInputChange }) => {
+const TutorProfileHeader = ({ tutor }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -27,49 +22,7 @@ const TutorProfileHeader = ({ tutor, isEditing, onInputChange }) => {
   const { isLoggedIn } = authState;
   const isInWishlist = wishlist.some(item => item.id === tutor.id);
 
-  // Cropper overlay state
-  const [cropperOpen, setCropperOpen] = useState(false);
-  const [cropperShape, setCropperShape] = useState('rect'); // 'rect' for banner, 'circle' for pfp
-  const [rawImage, setRawImage] = useState(null);
-  const [pendingField, setPendingField] = useState(null);
-  const bannerInputRef = useRef(null); // <-- for banner
-  const pfpInputRef = useRef(null);    // <-- for profile image
-
-  const handleFileInput = (e, field, shape) => {
-    const file = e.target.files[0];
-    if (file) {
-      setRawImage(URL.createObjectURL(file));
-      setCropperShape(shape);
-      setPendingField(field);
-      setCropperOpen(true);
-    }
-  };
-
-  function handleCrop(croppedFile) {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      onInputChange(pendingField, event.target.result);
-      setCropperOpen(false);
-      setRawImage(null);
-      setPendingField(null);
-      // Reset the correct input
-      if (pendingField === 'bannerimg' && bannerInputRef.current) bannerInputRef.current.value = "";
-      if (pendingField === 'img' && pfpInputRef.current) pfpInputRef.current.value = "";
-    };
-    reader.readAsDataURL(croppedFile);
-  }
-
-  const handleCancel = () => {
-    setRawImage(null);
-    setCropperOpen(false);
-    setPendingField(null);
-    // Reset both inputs just in case
-    if (bannerInputRef.current) bannerInputRef.current.value = "";
-    if (pfpInputRef.current) pfpInputRef.current.value = "";
-  };
-
   const handleWishlistToggle = () => {
-    if (isEditing) return;
     if (!isLoggedIn) {
       toast({ title: t('loginRequiredTitle'), description: t('loginRequiredWishlist'), variant: 'destructive' });
       navigate('/login');
@@ -90,231 +43,122 @@ const TutorProfileHeader = ({ tutor, isEditing, onInputChange }) => {
       navigate('/login');
     } else {
       alert("Contact functionality (e.g., opening chat) requires backend integration.");
-      console.log("Initiate contact with tutor:", tutor.id, "User ID:", authState.userId);
     }
   };
 
-  const teachingDaysString = tutor.teachingDays?.join(', ') || t('notSpecified');
+  const allRatings = tutor.subjects?.map(s => s.rating).filter(r => typeof r === 'number' && isFinite(r));
+  const averageRating = allRatings.length ? (allRatings.reduce((a, b) => a + b, 0) / allRatings.length) : null;
+  const maxYearsExp = Math.max(...(tutor.subjects?.map(s => s.yearsExp || 0) || [0]));
 
   return (
-    <>
-      <Card className="overflow-hidden shadow-lg bg-gradient-to-br from-card via-card to-primary/5 dark:to-primary/10">
-        <div className="relative h-40 md:h-60">
-          {isEditing ? (
-            <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer rounded-none">
-              <span className="text-white text-xs text-center">{t('clickToChangeBanner')}</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                ref={bannerInputRef}
-                onChange={e => handleFileInput(e, 'bannerimg', 'rect')}
-              />
-            </label>
-          ) : (
-            <img
-              src={tutor.bannerimg || 'https://placehold.co/600x400'}
-              alt={tutor.name}
-              className="w-full h-full object-cover transition-transform duration-200"
-            />
-          )}
-          {isEditing && (
-            <img
-              src={tutor.bannerimg || 'https://placehold.co/600x400'}
-              alt={tutor.name}
-              className="w-full h-full object-cover pointer-events-none"
-            />
-          )}
-          {!isEditing && (
-            <div className="bg-gradient-to-t from-black/60 via-black/40 to-transparent"></div>
-          )}
-        </div>
-        <CardContent className="p-6 md:p-8 md:flex md:items-start md:gap-8">
-          <motion.div
-            initial={{ opacity: 0, x: -15 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            className="flex flex-col items-center md:items-start mb-6 md:mb-0 flex-shrink-0 md:w-48"
-          >
-            <Avatar className="w-32 h-32 md:w-40 md:h-40 border-4 border-primary mb-4 shadow-md rounded-md">
-              {isEditing && (
-                <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer rounded-none">
-                  <span className="text-white text-xs text-center">{t('changePhoto')}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    ref={pfpInputRef}
-                    onChange={e => handleFileInput(e, 'img', 'profile')}
-                  />
-                </label>
-              )}
-              <AvatarImage src={tutor.img} alt={tutor.name} radius="rounded-md" />
-              <AvatarFallback className="text-4xl" radius="rounded-md">
-                {tutor.name?.split(' ').map((n) => n[0]).join('')}
+    <Card className=" shadow-xl bg-gradient-to-br from-primary/5 to-primary/10">
+      <div className="relative h-48 md:h-64">
+        <img
+          src={tutor.bannerimg || 'https://placehold.co/600x400'}
+          alt={tutor.name}
+          className="w-full h-full object-cover"
+        />
+      </div>
+      <CardContent className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="flex flex-col items-center text-center"
+        >
+        <div className="flex flex-col items-center gap-4 text-center -mt-20 md:mt-0 z-10">
+          <div className="w-40 h-40  border-2 border-primary rounded-md shadow">
+            <Avatar className="w-full h-full rounded-sm ">
+              <AvatarImage src={tutor.img} alt={tutor.name} />
+              <AvatarFallback className="text-3xl">
+                {tutor.name?.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
+          </div>
 
-            <div className="flex items-center justify-center md:justify-start gap-2 mb-3 w-full">
-              {renderStars(tutor.rating, 20)}
-              <span className="text-muted-foreground text-sm font-medium">
-                {t('reviewsCount', { count: tutor.comments?.length || 0 })}
-              </span>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold text-primary">{tutor.name}</h1>
+            <div className="text-sm text-muted-foreground flex justify-center items-center gap-1">
+              {typeof averageRating === 'number' ? (
+                <>
+                  {renderStars(averageRating)} <span>({averageRating.toFixed(1)})</span>
+                </>
+              ) : t('noRating')}
             </div>
-            <Button
-              size="lg"
-              className="w-full mb-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-              disabled={isEditing}
-              onClick={handleContactClick}
-            >
-              <MessageSquare size={18} className="mr-2 rtl:ml-2 rtl:mr-0" /> {t('contactTutor')}
+          </div>
+
+          <div className="w-full space-y-2">
+            <Button className="w-full" onClick={handleContactClick}>
+              <MessageSquare size={18} className="mr-2" /> {t('contactTutor')}
             </Button>
             <Button
               variant="outline"
-              size="lg"
               className={cn(
-                "w-full border-primary hover:bg-primary/10",
-                isInWishlist ? "text-accent border-accent hover:bg-accent/10" : "text-primary",
-                isEditing && "opacity-50 cursor-not-allowed"
+                "w-full",
+                isInWishlist ? "text-accent border-accent hover:bg-accent/10" : "text-primary border-primary"
               )}
               onClick={handleWishlistToggle}
-              disabled={isEditing}
             >
-              <Heart
-                size={18}
-                className="mr-2 rtl:ml-2 rtl:mr-0"
-                fill={isInWishlist ? "currentColor" : "none"}
-              />
+              <Heart size={18} className="mr-2" fill={isInWishlist ? "currentColor" : "none"} />
               {isInWishlist ? t('removeFromWishlist') : t('addToWishlist')}
             </Button>
-          </motion.div>
+          </div>
+        </div>
+        </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 15 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-            className="flex-grow space-y-4"
-          >
-            {isEditing ? (
-              <Input
-                value={tutor.name || ''}
-                onChange={(e) => onInputChange('name', e.target.value)}
-                placeholder={t('tutorNamePlaceholder')}
-                className="text-3xl md:text-4xl font-bold tracking-tight h-auto p-0 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-            ) : (
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">{tutor.name}</h1>
-            )}
-            <p className="text-xl text-primary font-semibold flex items-center gap-2 flex-wrap">
-              <BookOpen size={20} />
-              {t('teachesSubjects')}: {tutor.subjects?.join(', ') || t('notSpecified')}
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-muted-foreground text-sm md:text-base">
-              <div className="flex items-center gap-1.5">
-                <MapPin size={16} />
-                  {isEditing ? (
-                    <Select
-                      value={tutor.location?.toLowerCase()}
-                      onValueChange={(value) => onInputChange('location', value)}
-                    >
-                      <SelectTrigger className="h-8 text-xs border-dashed focus-visible:ring-1 focus-visible:ring-offset-1">
-                        <SelectValue placeholder={t('selectLocation')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {locations.map((loc) => (
-                          <SelectItem
-                            key={loc.value}
-                            value={loc.value}
-                            className="text-xs capitalize"
-                          >
-                            {loc.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span>{t('basedInLocation', { location: tutor.location })}</span>
-                  )}
+<motion.div
+  initial={{ opacity: 0, x: 10 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ duration: 0.4, delay: 0.1 }}
+  className="md:col-span-2 space-y-4 flex flex-col items-center text-center md:items-start md:text-left"
+>
+  <div className="text-lg font-semibold flex items-center gap-2 text-primary">
+    <BookOpen size={20} />
+    {t('teachesSubjects')}:
+  </div>
+
+            <div className="flex flex-wrap justify-center gap-2 mt-3">
+                {tutor.subjects.map((subject, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 px-2 py-1 rounded-md border text-xs text-primary border-primary bg-primary/10"
+                  >
+                    <GraduationCap size={12} />
+                    <span>{subject.subject} - {subject.grade}</span>
+                    {subject.type && (
+                      <span className="px-1 py-0.5 text-secondary border border-secondary bg-secondary/10 rounded-sm">
+                        {subject.type}
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <Building size={16} />
-                  {isEditing ? (
-                    <Input
-                      value={tutor.detailedLocation || ''}
-                      onChange={(e) => onInputChange('detailedLocation', e.target.value)}
-                      placeholder={t('detailedLocationPlaceholder')}
-                      className="h-8 text-xs border-dashed focus-visible:ring-1 focus-visible:ring-offset-1"
-                    />
-                  ) : (
-                    <span>{tutor.detailedLocation || t('detailedLocationNotSet')}</span>
-                  )}
-              </div>
+  <div className="flex flex-col md:flex-row md:justify-start items-center gap-y-2 md:gap-y-0 md:gap-x-8 text-sm text-muted-foreground text-center md:text-left">
+    <div className="flex items-center gap-2">
+      <MapPin size={16} className="text-primary" />
+      <span className="font-medium text-foreground">{t('basedInLocation', { location: tutor.location })}</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <Building size={16} className="text-primary" />
+      <span className="font-medium text-foreground">{tutor.detailedLocation || t('detailedLocationNotSet')}</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <Award size={16} className="text-primary" />
+      <span className="font-medium text-foreground">{t('yearsExp', { count: maxYearsExp })}</span>
+    </div>
+  </div>
 
-              <div className="flex items-center gap-1.5">
-                <Award size={16} />
-                {isEditing ? (
-                  <Input
-                  type="number"
-                  value={tutor.yearsExp || 0}
-                  onChange={(e) => onInputChange('yearsExp', parseInt(e.target.value) || 0)}
-                  placeholder={t('years')}
-                  className="h-8 text-xs w-20 border-dashed focus-visible:ring-1 focus-visible:ring-offset-1"
-                  />
-                ) : (
-                  <span>{t('yearsExp', { count: tutor.yearsExp })}</span>
-                )}
-              </div>
+  <Separator className="my-4" />
 
-              <div className="flex items-center gap-1.5">
-                <DollarSign size={16} className="text-green-500" />
-                {isEditing ? (
-                  <Input
-                  type="number"
-                  value={tutor.rate || 0}
-                  onChange={(e) => onInputChange('rate', parseInt(e.target.value) || 0)}
-                  placeholder={t('rate')}
-                  className="h-8 text-xs w-24 border-dashed focus-visible:ring-1 focus-visible:ring-offset-1"
-                  />
-                ) : (
-                  <span>{t('ratePerMonth', { rate: tutor.rate })}</span>
-                )}
-              </div>
+  <h2 className="text-xl font-semibold mb-2 text-primary">{t('aboutMe')}</h2>
+  <p className="text-foreground/90 leading-relaxed whitespace-pre-wrap bg-muted/50 p-4 rounded-md border border-border max-w-prose">
+    {tutor.GeneralBio || t('noBioAvailable')}
+  </p>
+</motion.div>
 
-              <span className="flex items-center gap-1.5">
-                <Clock size={16} /> {t('durationMinutes', { duration: tutor.duration })}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CalendarDays size={16} /> {t('teachingDaysLabel')}: {teachingDaysString}
-              </span>
-            </div>
-
-            <Separator className="my-4" />
-            <h2 className="text-xl font-semibold">{t('aboutMe')}</h2>
-            {isEditing ? (
-              <Textarea
-                value={tutor.bio || ''}
-                onChange={(e) => onInputChange('bio', e.target.value)}
-                placeholder={t('bioPlaceholder')}
-                rows={5}
-                className="text-sm leading-relaxed focus-visible:ring-1 focus-visible:ring-offset-1"
-              />
-            ) : (
-              <p className="text-foreground/90 leading-relaxed whitespace-pre-wrap">{tutor.bio}</p>
-            )}
-          </motion.div>
-        </CardContent>
-      </Card>
-      {/* Cropper Overlay */}
-      {cropperOpen && rawImage && (
-        <BannerCropOverlay
-          rawImage={rawImage}
-          onCancel={handleCancel}
-          onCrop={handleCrop}
-          shape={cropperShape}
-        />
-      )}
-    </>
+      </CardContent>
+    </Card>
   );
 };
 

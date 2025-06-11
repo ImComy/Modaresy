@@ -33,9 +33,9 @@ const TutorVideoManager = ({ introVideoUrl, otherVideos = [], isOwner, isEditing
     const [validationError, setValidationError] = useState('');
 
     const isValidYoutubeUrl = (url) => {
-          if (!url) return false;
-          const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+(&?.*)?$/;
-          return youtubeRegex.test(url);
+      if (!url) return false;
+      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/)|youtu\.be\/)[\w-]+/;
+      return youtubeRegex.test(url);
     };
 
     const handleAddVideoSubmit = () => {
@@ -58,22 +58,30 @@ const TutorVideoManager = ({ introVideoUrl, otherVideos = [], isOwner, isEditing
         setIsVideoDialogOpen(false);
     };
 
-    const getEmbedUrl = (url) => {
-        if (!url || !isValidYoutubeUrl(url)) return null;
-        try {
-            const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
-            let videoId = null;
-            if (urlObj.hostname === 'youtu.be') {
-                videoId = urlObj.pathname.substring(1).split('?')[0];
-            } else if (urlObj.hostname.includes('youtube.com')) {
-                videoId = urlObj.searchParams.get('v');
-            }
-            return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
-        } catch (e) {
-            console.error("Invalid URL for embed:", url, e);
-            return null;
+  const getEmbedUrl = (url) => {
+    if (!url) return null;
+    try {
+      const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+      const hostname = urlObj.hostname;
+      let videoId = null;
+
+      if (hostname === 'youtu.be') {
+        videoId = urlObj.pathname.substring(1);
+      } else if (hostname.includes('youtube.com')) {
+        if (urlObj.pathname.startsWith('/watch')) {
+          videoId = urlObj.searchParams.get('v');
+        } else if (urlObj.pathname.startsWith('/embed/')) {
+          videoId = urlObj.pathname.split('/embed/')[1];
         }
-    };
+      }
+
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    } catch (e) {
+      console.error("Invalid URL for embed:", url, e);
+      return null;
+    }
+  };
+
 
     const introEmbedUrl = getEmbedUrl(introVideoUrl);
 

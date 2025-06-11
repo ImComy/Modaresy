@@ -30,9 +30,16 @@ const TutorGrid = ({ tutors, filters }) => {
         layout
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
       >
-        {tutors.map((tutor) => (
-          <TutorCard key={tutor.id} tutor={tutor} />
-        ))}
+        {tutors
+          .filter(tutor =>
+            Array.isArray(tutor.subjects) &&
+            tutor.subjects.some(
+              s => s.subject === filters.subject && s.grade === filters.grade
+            )
+          )
+          .map((tutor) => (
+            <TutorCard key={tutor.id} tutor={tutor} filters={filters} />
+          ))}
       </motion.div>
     </AnimatePresence>
   );

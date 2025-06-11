@@ -10,7 +10,10 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext'; // Import useAuth
 
 const renderStars = (rating, size = 14) => {
-    const fullStars = Math.floor(rating);
+  if (typeof rating !== 'number' || !isFinite(rating) || rating < 0) {
+    return null; // or return a placeholder, e.g. <span>No rating</span>
+  }
+  const fullStars = Math.floor(rating);
   const halfStar = rating % 1 >= 0.5;
   const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
   return (
@@ -28,9 +31,7 @@ const TutorReviews = ({ tutorId, comments = [], onSubmitReview }) => { // Accept
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
     const [hoverRating, setHoverRating] = useState(0);
-
-    // Determine if the current logged-in user can leave a review
-    // Cannot review if not logged in, or if the user is the tutor themselves
+    
     const canLeaveReview = authState.isLoggedIn && authState.userId !== parseInt(tutorId);
 
     const handleFormSubmit = (e) => {
@@ -120,7 +121,9 @@ const TutorReviews = ({ tutorId, comments = [], onSubmitReview }) => { // Accept
                         <span className="text-xs text-muted-foreground">{comment.date}</span>
                       </div>
                       <div className="flex items-center mb-2">
-                        {renderStars(comment.rating, 14)}
+                        {typeof comment.rating === 'number' && isFinite(comment.rating)
+                          ? renderStars(comment.rating, 14)
+                          : t('noRating')}
                       </div>
                       <p className="text-sm text-foreground/90">{comment.text}</p>
                     </motion.div>

@@ -1,14 +1,15 @@
-import { useRef } from 'react'; 
+import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
-import { Search, UserCheck, FileText, MessageSquare, Sparkles, GraduationCap, MapPin as MapPinIcon } from 'lucide-react'; // Added icons
+import { Search, UserCheck, MessageSquare, Sparkles, GraduationCap, MapPin as MapPinIcon } from 'lucide-react';
 import TutorGrid from '@/components/tutors/TutorGrid';
 import HorizontalFilters from '@/components/tutors/HorizontalFilters';
-import { mockTutors } from '@/data/mockTutors';
+import { mockTutors } from '@/data/enhanced';
 import { useTutorFilterSort } from '@/hooks/useTutorFilterSort';
-import { Card, CardContent } from '@/components/ui/card'; 
-import { Link, useNavigate } from 'react-router-dom';
+import { Card, CardContent } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
+import { GeneralTutorGrid } from '../components/tutors/GeneralTutorGrid';
 
 const HomePage = () => {
   const { t } = useTranslation();
@@ -17,7 +18,7 @@ const HomePage = () => {
     searchTerm,
     setSearchTerm,
     filters,
-    setFilters, 
+    setFilters,
     handleFilterChange,
     handleRateChange,
     sortBy,
@@ -29,25 +30,23 @@ const HomePage = () => {
     hidden: { opacity: 0 },
     visible: (i = 1) => ({
       opacity: 1,
-      transition: { duration: 0.3, delay: i * 0.1 }, 
+      transition: { duration: 0.3, delay: i * 0.1 },
     }),
   };
 
   const fadeInUp = {
-      hidden: { opacity: 0, y: 15 },
-      visible: (i = 1) => ({
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.3, delay: i * 0.1 }, 
-      }),
+    hidden: { opacity: 0, y: 15 },
+    visible: (i = 1) => ({
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.3, delay: i * 0.1 },
+    }),
   };
-  
+
   return (
     <div className=" ">
-      {/* New Hero Section Design */}
       <section className="relative py-10 md:py-20 lg:py-24 overflow-hidden bg-gradient-to-b from-background via-blue-50 dark:via-blue-900/10 to-background">
         <div className="absolute inset-0 -z-10">
-          {/* Subtle background pattern or shapes */}
           <div className="absolute top-0 left-0 w-64 h-64 bg-primary/5 rounded-full filter blur-3xl opacity-50 animate-pulse"></div>
           <div className="absolute bottom-0 right-0 w-72 h-72 bg-secondary/5 rounded-full filter blur-3xl opacity-40 animate-pulse animation-delay-2000"></div>
         </div>
@@ -55,7 +54,7 @@ const HomePage = () => {
           <div className="space-y-5 text-center lg:text-left rtl:lg:text-right leading-relaxed">
             <motion.div variants={fadeInUp} initial="hidden" animate="visible" custom={1}>
               <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-2">
-                <Sparkles size={12} className="inline mr-1 rtl:ml-1" /> {t('platformHighlight')} 
+                <Sparkles size={12} className="inline mr-1 rtl:ml-1" /> {t('platformHighlight')}
               </span>
             </motion.div>
             <motion.h1
@@ -74,13 +73,11 @@ const HomePage = () => {
               variants={fadeInUp} initial="hidden" animate="visible" custom={4}
               className="pt-3"
             >
-              <Button size="lg"  onClick={() => navigate('/signup')} className="shadow-lg hover:shadow-primary/40 transition-shadow duration-300">
+              <Button size="lg" onClick={() => navigate('/signup')} className="shadow-lg hover:shadow-primary/40 transition-shadow duration-300">
                 {t('getStarted')} <Search size={18} className="ml-2 rtl:mr-2 rtl:ml-0" />
               </Button>
             </motion.div>
           </div>
-
-          {/* Right Animated Cards/Image */}
           <motion.div
             variants={fadeIn}
             initial="visible"
@@ -90,102 +87,55 @@ const HomePage = () => {
           >
             <div className="grid grid-cols-2 gap-4">
               <motion.div variants={fadeInUp} custom={2.5}>
-                <Card
-                  className="shadow-md hover:shadow-lg transition-shadow glass-effect
-                    hover:scale-105 hover:-translate-y-1 transition-transform duration-300 ease-out"
-                >
+                <Card className="shadow-md hover:shadow-lg transition-shadow glass-effect hover:scale-105 hover:-translate-y-1 transition-transform duration-300 ease-out">
                   <CardContent className="p-4 flex items-center gap-3">
-                    <motion.div
-                      className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-2 rounded-full"
-                      whileHover={{
-                        scale: [1, 1.3, 1.1],
-                        transition: { duration: 0.35, ease: "easeOut" },
-                      }}
-                    >
+                    <motion.div className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-2 rounded-full"
+                      whileHover={{ scale: [1, 1.3, 1.1], transition: { duration: 0.35, ease: "easeOut" } }}>
                       <GraduationCap size={20} />
                     </motion.div>
-                    <motion.div
-                      whileHover={{ y: -3, transition: { duration: 0.3 } }}
-                      className="flex flex-col"
-                    >
+                    <motion.div whileHover={{ y: -3, transition: { duration: 0.3 } }} className="flex flex-col">
                       <p className="font-semibold text-sm">{t("subjectsCount")}</p>
                       <p className="text-xs text-muted-foreground">{t("subjectsAvailable")}</p>
                     </motion.div>
                   </CardContent>
                 </Card>
               </motion.div>
-
               <motion.div variants={fadeInUp} custom={3}>
-                <Card
-                  className="shadow-md hover:shadow-lg transition-shadow glass-effect mt-8
-                    hover:scale-105 hover:-translate-y-1 transition-transform duration-300 ease-out"
-                >
+                <Card className="shadow-md hover:shadow-lg transition-shadow glass-effect mt-8 hover:scale-105 hover:-translate-y-1 transition-transform duration-300 ease-out">
                   <CardContent className="p-4 flex items-center gap-3">
-                    <motion.div
-                      className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-full"
-                      whileHover={{
-                        scale: [1, 1.3, 1.1],
-                        transition: { duration: 0.35, ease: "easeOut" },
-                      }}
-                    >
+                    <motion.div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-full"
+                      whileHover={{ scale: [1, 1.3, 1.1], transition: { duration: 0.35, ease: "easeOut" } }}>
                       <UserCheck size={20} />
                     </motion.div>
-                    <motion.div
-                      whileHover={{ y: -3, transition: { duration: 0.3 } }}
-                      className="flex flex-col"
-                    >
+                    <motion.div whileHover={{ y: -3, transition: { duration: 0.3 } }} className="flex flex-col">
                       <p className="font-semibold text-sm">{t("verifiedTutors")}</p>
                       <p className="text-xs text-muted-foreground">{t("verifiedTutorsDesc")}</p>
                     </motion.div>
                   </CardContent>
                 </Card>
               </motion.div>
-
               <motion.div variants={fadeInUp} custom={3.5}>
-                <Card
-                  className="shadow-md hover:shadow-lg transition-shadow glass-effect -mt-4
-                    hover:scale-105 hover:-translate-y-1 transition-transform duration-300 ease-out"
-                >
+                <Card className="shadow-md hover:shadow-lg transition-shadow glass-effect -mt-4 hover:scale-105 hover:-translate-y-1 transition-transform duration-300 ease-out">
                   <CardContent className="p-4 flex items-center gap-3">
-                    <motion.div
-                      className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 p-2 rounded-full"
-                      whileHover={{
-                        scale: [1, 1.3, 1.1],
-                        transition: { duration: 0.35, ease: "easeOut" },
-                      }}
-                    >
+                    <motion.div className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 p-2 rounded-full"
+                      whileHover={{ scale: [1, 1.3, 1.1], transition: { duration: 0.35, ease: "easeOut" } }}>
                       <MapPinIcon size={20} />
                     </motion.div>
-                    <motion.div
-                      whileHover={{ y: -3, transition: { duration: 0.3 } }}
-                      className="flex flex-col"
-                    >
+                    <motion.div whileHover={{ y: -3, transition: { duration: 0.3 } }} className="flex flex-col">
                       <p className="font-semibold text-sm">{t("locationsCovered")}</p>
                       <p className="text-xs text-muted-foreground">{t("locationsCoveredDesc")}</p>
                     </motion.div>
                   </CardContent>
                 </Card>
               </motion.div>
-
               <motion.div variants={fadeInUp} custom={4}>
-                <Card
-                  className="shadow-md hover:shadow-lg transition-shadow glass-effect mt-4
-                    hover:scale-105 hover:-translate-y-1 transition-transform duration-300 ease-out"
-                >
+                <Card className="shadow-md hover:shadow-lg transition-shadow glass-effect mt-4 hover:scale-105 hover:-translate-y-1 transition-transform duration-300 ease-out">
                   <CardContent className="p-4 flex items-center gap-3">
-                    <motion.div
-                      className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-full"
-                      whileHover={{
-                        scale: [1, 1.3, 1.1],
-                        transition: { duration: 0.35, ease: "easeOut" },
-                      }}
-                    >
+                    <motion.div className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-full"
+                      whileHover={{ scale: [1, 1.3, 1.1], transition: { duration: 0.35, ease: "easeOut" } }}>
                       <MessageSquare size={20} />
                     </motion.div>
-                    <motion.div
-                      whileHover={{ y: -3, transition: { duration: 0.3 } }}
-                      className="flex flex-col"
-                    >
+                    <motion.div whileHover={{ y: -3, transition: { duration: 0.3 } }} className="flex flex-col">
                       <p className="font-semibold text-sm">{t("easyCommunication")}</p>
                       <p className="text-xs text-muted-foreground">{t("easyCommunicationDesc")}</p>
                     </motion.div>
@@ -196,21 +146,9 @@ const HomePage = () => {
           </motion.div>
         </div>
       </section>
-
-      {/* Filter and Tutor List Section */}
-      <section className="space-y-6 container mx-auto px-4" >
-          <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center">{t('findYourTutor')}</motion.h2>
-          <HorizontalFilters
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            filters={filters}
-            setFilters={setFilters}
-            handleFilterChange={handleFilterChange}
-            handleRateChange={handleRateChange}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-          />
-          <TutorGrid tutors={sortedTutors} filters={filters} />
+      <section className="space-y-6 container mx-auto px-4">
+        <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center">{t('RecommendedTutors')}</motion.h2>
+        <GeneralTutorGrid tutors={mockTutors} />
       </section>
     </div>
   );

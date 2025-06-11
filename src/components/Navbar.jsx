@@ -1,11 +1,36 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
-import { Sun, Moon, Laptop, Menu, X, Heart, Bell, User, LogOut, LayoutDashboard, Languages, Palette } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem
+} from '@/components/ui/dropdown-menu';
+import {
+  Sun,
+  Moon,
+  Laptop,
+  Menu,
+  X,
+  Heart,
+  Bell,
+  User,
+  LogOut,
+  LayoutDashboard,
+  Languages,
+  Settings,
+  Home,
+  Info,
+  Search,
+} from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { cn } from '@/lib/utils';
 import { useWishlist } from '@/context/WishlistContext';
@@ -20,6 +45,7 @@ const Navbar = () => {
   const { isLoggedIn, userRole } = authState;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { wishlist } = useWishlist();
+  const location = useLocation();
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
@@ -33,17 +59,17 @@ const Navbar = () => {
   };
 
   const testLogin = (role = 'student') => {
-      const testUserId = role === 'teacher' ? 1 : 2;
-      login(role, testUserId);
-      setIsMobileMenuOpen(false);
-      const profilePath = role === 'teacher' ? `/tutor/${testUserId}` : '/profile';
-      navigate(profilePath);
+    const testUserId = role === 'teacher' ? 1 : 2;
+    login(role, testUserId);
+    setIsMobileMenuOpen(false);
+    const profilePath = role === 'teacher' ? `/tutor/${testUserId}` : '/profile';
+    navigate(profilePath);
   };
 
   const navItems = [
-    { label: t('home'), path: '/' },
-    { label: t('aboutUs'), path: '/about' },
-    { label: t('contactUs'), path: '/contact' },
+    { label: t('home'), path: '/', icon: <Home size={16} /> },
+    { label: t('aboutUs'), path: '/about', icon: <Info size={16} /> },
+    { label: t('PickYourTeacher'), path: '/filters', icon: <Search size={16} /> },
   ];
 
   const profilePath = userRole === 'teacher' ? `/tutor/${authState.userId}` : '/profile';
@@ -52,6 +78,19 @@ const Navbar = () => {
     closed: { opacity: 0, height: 0, transition: { duration: 0.2 } },
     open: { opacity: 1, height: 'auto', transition: { duration: 0.25 } },
   };
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+  const mediaQuery = window.matchMedia('(max-width: 767px)');
+
+  const handleResize = (e) => setIsMobile(e.matches);
+  mediaQuery.addEventListener('change', handleResize);
+
+  // Set initial value
+  setIsMobile(mediaQuery.matches);
+
+  return () => mediaQuery.removeEventListener('change', handleResize);
+}, []);
 
   return (
     <motion.nav
@@ -72,20 +111,24 @@ const Navbar = () => {
           <span className="font-bold text-lg tracking-tight">Modaresy</span>
         </Link>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-6 rtl:space-x-reverse">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {item.label}
-            </Link>
-          ))}
+       <div className="hidden md:flex items-center space-x-6 rtl:space-x-reverse">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  "flex items-center gap-1 text-sm font-medium transition-colors hover:text-white",
+                  isActive ? "text-white border-b-2 border-white pb-0.5" : "text-muted-foreground"
+                )}
+              >
+                {item.icon} {item.label}
+              </Link>
+            );
+          })}
         </div>
 
-        {/* Right Side Icons & Actions */}
         <div className="flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
           {isLoggedIn && (
             <Link to="/wishlist" className="relative hidden sm:inline-flex">
@@ -101,12 +144,11 @@ const Navbar = () => {
           )}
 
           {isLoggedIn && (
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-secondary hidden sm:inline-flex">
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-secondary hidden sm:inline-flex">
               <Bell size={20} />
             </Button>
           )}
 
-          {/* Language Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
@@ -123,34 +165,38 @@ const Navbar = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Theme Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                  <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                  <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                 <span className="sr-only">{t('theme')}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{t('theme')}</DropdownMenuLabel>
-                <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-                  <DropdownMenuRadioItem value="light">
-                    <Sun className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('light')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="dark">
-                    <Moon className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('dark')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="system">
-                    <Laptop className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('system')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
+              <DropdownMenuLabel>{t('theme')}</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                <DropdownMenuRadioItem value="light">
+                  <Sun className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('light')}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="dark">
+                  <Moon className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('dark')}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="system">
+                  <Laptop className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('system')}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
 
-
-          {/* User Actions / Login */}
-          {isLoggedIn ? (
+          {!isLoggedIn ? (
+            <div className="hidden md:flex items-center space-x-2 rtl:space-x-reverse">
+              <Button variant="ghost" onClick={() => navigate('/login')}>{t('login')}</Button>
+              <Button onClick={() => navigate('/signup')}>{t('signup')}</Button>
+              <Button variant="outline" size="sm" onClick={() => testLogin('student')}>Test Login (Student)</Button>
+              <Button variant="outline" size="sm" onClick={() => testLogin('teacher')}>Test Login (Teacher)</Button>
+            </div>
+          ) : !isMobile && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
@@ -163,15 +209,28 @@ const Navbar = () => {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate(profilePath)}>
-                    <User className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
-                    <span>{t('profile')}</span>
+                {userRole === "student" && (
+                  <DropdownMenuItem onClick={() => navigate("/profile")}>
+                    <Settings className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
+                    <span>{t('settings')}</span>
                   </DropdownMenuItem>
+                )}
+
                 {userRole === 'teacher' && (
-                  <DropdownMenuItem onClick={() => navigate('/dashboard/teacher')}>
-                    <LayoutDashboard className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
-                    <span>{t('dashboard')}</span>
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem onClick={() => navigate(profilePath)}>
+                      <User className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
+                      <span>{t('profile')}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/dashboard/teacher')}>
+                      <LayoutDashboard className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
+                      <span>{t('dashboard')}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/settings/teacher')}>
+                      <Settings className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
+                      <span>{t('settings')}</span>
+                    </DropdownMenuItem>
+                  </>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
@@ -180,16 +239,8 @@ const Navbar = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
-            <div className="hidden md:flex items-center space-x-2 rtl:space-x-reverse">
-              <Button variant="ghost" onClick={() => navigate('/login')}>{t('login')}</Button>
-              <Button onClick={() => navigate('/signup')}>{t('signup')}</Button>
-                <Button variant="outline" size="sm" onClick={() => testLogin('student')}>Test Login (Student)</Button>
-                <Button variant="outline" size="sm" onClick={() => testLogin('teacher')}>Test Login (Teacher)</Button>
-            </div>
           )}
 
-          {/* Mobile Menu Toggle */}
           <Button
             variant="ghost"
             size="icon"
@@ -202,7 +253,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
@@ -213,33 +263,54 @@ const Navbar = () => {
             exit="closed"
             className="md:hidden border-t absolute top-full left-0 w-full bg-background shadow-md overflow-hidden"
           >
-            <div className="flex flex-col space-y-1 p-4">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className="text-base font-medium text-foreground hover:bg-accent hover:text-accent-foreground p-3 rounded-md block"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
+              <div className="flex flex-col space-y-1 p-4">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className="text-base font-medium text-foreground hover:bg-accent hover:text-accent-foreground p-3 rounded-md block flex items-center gap-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.icon} {item.label}
+                  </Link>
+                ))}
               {isLoggedIn && (
-                  <>
-                      <Separator className="my-2" />
-                      <Link to="/wishlist" className="text-base font-medium text-foreground hover:bg-accent hover:text-accent-foreground p-3 rounded-md flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
-                          <Heart size={18} /> {t('wishlist')}
-                          {wishlist.length > 0 && <span className="ml-auto text-xs bg-accent text-accent-foreground rounded-full px-1.5 py-0.5">{wishlist.length}</span>}
-                      </Link>
-                  </>
+                <>
+                  <Separator className="my-2" />
+                  <Link to="/wishlist" className="text-base font-medium text-foreground hover:bg-accent hover:text-accent-foreground p-3 rounded-md flex items-center gap-2 ml-1" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Heart size={16} /> {t('wishlist')}
+                    {wishlist.length > 0 && <span className="ml-auto text-xs bg-accent text-accent-foreground rounded-full px-1.5 py-0.5">{wishlist.length}</span>}
+                  </Link>
+                  {userRole === 'student' && (
+                    <Button variant="ghost" className="justify-start w-full text-left" onClick={() => { navigate("/profile"); setIsMobileMenuOpen(false); }}>
+                      <Settings className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('settings')}
+                    </Button>
+                  )}
+                  {userRole === 'teacher' && (
+                    <>
+                      <Button variant="ghost" className="justify-start w-full text-left" onClick={() => { navigate("/tutor/1"); setIsMobileMenuOpen(false); }}>
+                        <User className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('profile')}
+                      </Button>
+                      <Button variant="ghost" className="justify-start w-full text-left" onClick={() => { navigate('/dashboard/teacher'); setIsMobileMenuOpen(false); }}>
+                        <LayoutDashboard className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('dashboard')}
+                      </Button>
+                      <Button variant="ghost" className="justify-start w-full text-left" onClick={() => { navigate('/settings/teacher'); setIsMobileMenuOpen(false); }}>
+                        <Settings className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('settings')}
+                      </Button>
+                    </>
+                  )}
+                  <Button variant="ghost" className="justify-start w-full text-left" onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('logout')}
+                  </Button>
+                </>
               )}
               <Separator className="my-2" />
               {!isLoggedIn && (
                 <>
                   <Button variant="outline" className="w-full justify-center" onClick={() => { navigate('/login'); setIsMobileMenuOpen(false); }}>{t('login')}</Button>
                   <Button className="w-full justify-center" onClick={() => { navigate('/signup'); setIsMobileMenuOpen(false); }}>{t('signup')}</Button>
-                    <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => testLogin('student')}>Test Login (Student)</Button>
-                    <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => testLogin('teacher')}>Test Login (Teacher)</Button>
+                  <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => testLogin('student')}>Test Login (Student)</Button>
+                  <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => testLogin('teacher')}>Test Login (Teacher)</Button>
                 </>
               )}
             </div>

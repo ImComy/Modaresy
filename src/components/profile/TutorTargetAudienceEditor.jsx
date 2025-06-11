@@ -8,11 +8,8 @@ import { Users, GraduationCap } from 'lucide-react';
 const TutorTargetAudienceEditor = ({
     targetGrades = [],
     targetSectors = [],
-    gradeOptions = [], // Expect translated options { value, label }
-    sectorOptions = [], // Expect translated options { value, label }
-    isEditing,
-    onGradeChange,
-    onSectorChange
+    gradeOptions = [], 
+    sectorOptions = [],
 }) => {
     const { t } = useTranslation();
 
@@ -31,19 +28,7 @@ const TutorTargetAudienceEditor = ({
                     <h4 className="font-medium text-sm mb-2 flex items-center gap-1.5">
                         <GraduationCap size={16} className="text-muted-foreground" />
                         {t('targetGrades')}
-                    </h4>
-                    {isEditing ? (
-                        <MultiSelect
-                            options={gradeOptions}
-                            selected={targetGrades}
-                            onChange={onGradeChange}
-                            placeholder={t('selectTargetGradesPlaceholder')}
-                            searchPlaceholder={t('searchGradesPlaceholder')}
-                            emptyPlaceholder={t('noGradesFoundPlaceholder')}
-                            className="text-sm"
-                            triggerClassName="border-dashed focus-visible:ring-1 focus-visible:ring-offset-1"
-                        />
-                    ) : targetGrades.length > 0 ? (
+                    </h4>{ targetGrades.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                             {targetGrades.map((gradeValue, index) => {
                                 const gradeLabel = gradeOptions.find(opt => opt.value === gradeValue)?.label || gradeValue;
@@ -60,19 +45,7 @@ const TutorTargetAudienceEditor = ({
                     <h4 className="font-medium text-sm mb-2 flex items-center gap-1.5">
                         <Users size={16} className="text-muted-foreground" />
                         {t('targetSectors')}
-                    </h4>
-                    {isEditing ? (
-                        <MultiSelect
-                            options={sectorOptions}
-                            selected={targetSectors}
-                            onChange={onSectorChange}
-                            placeholder={t('selectTargetSectorsPlaceholder')}
-                            searchPlaceholder={t('searchSectorsPlaceholder')}
-                            emptyPlaceholder={t('noSectorsFoundPlaceholder')}
-                            className="text-sm"
-                            triggerClassName="border-dashed focus-visible:ring-1 focus-visible:ring-offset-1"
-                        />
-                    ) : targetSectors.length > 0 ? (
+                    </h4>{ targetSectors.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                             {targetSectors.map((sectorValue, index) => {
                                     const sectorLabel = sectorOptions.find(opt => opt.value === sectorValue)?.label || sectorValue;

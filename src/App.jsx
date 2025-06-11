@@ -21,6 +21,7 @@ import { useAuth } from './context/AuthContext';
 import i18n from 'i18next';
 import TermsPage from './pages/terms';
 import PrivacyPage from './pages/privacy';
+import Filters from './pages/Filters';
 
 function App() {
   const { i18n } = useTranslation();
@@ -121,6 +122,7 @@ function RoutesWrapper() {
         <Route path="/dashboard/teacher" element={<TeacherDashboardPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path='/Filters' element={<Filters />} />
         {/* Add more routes as needed */}
         <Route path="*" element={<div className="text-center mt-10">404 - Page Not Found</div>} />
       </Routes>

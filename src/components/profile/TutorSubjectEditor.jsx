@@ -35,8 +35,15 @@ const TutorSubjectEditor = ({ subjects = [], isEditing, onSubjectChange }) => {
                     />
                 ) : subjects.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                        {subjects.map((subjectValue, index) => {
-                            const subjectLabel = subjectOptions.find(opt => opt.value === subjectValue)?.label || subjectValue;
+                        {subjects.map((subjectObj, index) => {
+                            if (typeof subjectObj === 'object' && subjectObj !== null) {
+                                return (
+                                    <Badge key={index} variant="outline">
+                                        {subjectObj.subject} - {subjectObj.grade}
+                                    </Badge>
+                                );
+                            }
+                            const subjectLabel = subjectOptions.find(opt => opt.value === subjectObj)?.label || String(subjectObj);
                             return <Badge key={index} variant="outline">{subjectLabel}</Badge>;
                         })}
                     </div>

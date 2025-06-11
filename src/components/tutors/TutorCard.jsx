@@ -11,14 +11,36 @@ import { useWishlist } from '@/context/WishlistContext';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { grades as gradeData, sectors as sectorData } from '@/data/formData';
+import { useAuth } from '@/context/AuthContext';
 
-const TutorCard = ({ tutor }) => {
+const TutorCard = ({ tutor, filters }) => {
   const { t } = useTranslation();
   const { wishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { toast } = useToast();
+  const { authState } = useAuth();
   const isInWishlist = wishlist.some((item) => item.id === tutor.id);
 
+  function getGradeLabel(grade, t) {
+    switch (grade) {
+      case "1": return t("primary1", "Primary 1");
+      case "2": return t("primary2", "Primary 2");
+      case "3": return t("primary3", "Primary 3");
+      case "4": return t("primary4", "Primary 4");
+      case "5": return t("primary5", "Primary 5");
+      case "6": return t("primary6", "Primary 6");
+      case "7": return t("preparatory1", "Preparatory 1");
+      case "8": return t("preparatory2", "Preparatory 2");
+      case "9": return t("preparatory3", "Preparatory 3");
+      case "10": return t("secondary1", "Secondary 1");
+      case "11": return t("secondary2", "Secondary 2");
+      case "12": return t("secondary3", "Secondary 3");
+      case "KG": return t("kg", "KG");
+      case "University": return t("university", "University");
+      case "Other": return t("other", "Other");
+      default: return grade;
+    }
+  }
+  
   const handleWishlistToggle = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -38,47 +60,14 @@ const TutorCard = ({ tutor }) => {
     }
   };
 
-  const teachingDaysShort =
-    tutor.teachingDays?.map((day) => t(day.toLowerCase() + 'Short')).join(', ') ||
-    t('notSpecifiedShort');
-
-  const stageMap = {
-    'Elementary 1': 'Elementary',
-    'Elementary 2': 'Elementary',
-    'Elementary 3': 'Elementary',
-    'Prep 1': 'Prep',
-    'Prep 2': 'Prep',
-    'Prep 3': 'Prep',
-    'Secondary 1': 'Secondary',
-    'Secondary 2': 'Secondary',
-    'Secondary 3': 'Secondary 3',
-    'University Year 1': 'University',
-    'University Year 2': 'University',
-    'University Year 3': 'University',
-    'University Year 4': 'University',
-  };
-
-  const gradeCountsByStage = {};
-  const stageGrades = {};
-
-  tutor.targetGrades?.forEach((gradeVal) => {
-    const labelKey = gradeData.find((g) => g.value === gradeVal)?.labelKey;
-    const label = t(labelKey || gradeVal);
-    const stage = stageMap[label] || label.split(' ')[0];
-
-    gradeCountsByStage[stage] = (gradeCountsByStage[stage] || 0) + 1;
-    if (!stageGrades[stage]) stageGrades[stage] = [];
-    stageGrades[stage].push(label);
-  });
-
-  const targetGradeLabels = Object.entries(stageGrades).map(([stage, grades]) =>
-    grades.length > 1 ? stage : grades[0]
-  );
-
-  const targetSectorLabels =
-    tutor.targetSectors
-      ?.map((sVal) => t(sectorData.find((s) => s.value === sVal)?.labelKey || sVal))
-      .slice(0, 2) || [];
+  // Get the subject object matching the selected subject and grade
+  const selectedSubject = Array.isArray(tutor.subjects)
+    ? tutor.subjects.find(
+        s =>
+          s.subject === filters.subject &&
+          s.grade === filters.grade
+      )
+    : undefined;
 
   const displayName =
     tutor.name && tutor.name.length > 16
@@ -101,10 +90,10 @@ const TutorCard = ({ tutor }) => {
             <div className="flex items-center gap-3">
               <Avatar className="h-20 w-20 border-2 border-primary flex-shrink-0 rounded-md">
                 <AvatarImage src={tutor.img} alt={tutor.name} radius="rounded-sm" />
-                  <AvatarFallback radius="rounded-sm">
-                    {tutor.name?.split(' ').map((n) => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
+                <AvatarFallback radius="rounded-sm">
+                  {tutor.name?.split(' ').map((n) => n[0]).join('')}
+                </AvatarFallback>
+              </Avatar>
               <div className="min-w-0">
                 <h3
                   className="font-semibold text-base text-foreground truncate"
@@ -114,25 +103,33 @@ const TutorCard = ({ tutor }) => {
                 </h3>
                 <div className="text-muted-foreground flex items-center gap-1 text-primary">
                   <BookOpen size={14} />
-                  <span className="truncate">{tutor.subject}</span>
+                  <span className="truncate">{selectedSubject?.subject || filters.subject}</span>
                 </div>
                 <div className="flex items-center gap-1 text-muted-foreground">
-                  {renderStars(tutor.rating)}
-                  <span>({tutor.rating?.toFixed(1)})</span>
+                  {typeof selectedSubject?.rating === 'number' && isFinite(selectedSubject.rating)
+                    ? (
+                        <>
+                          {renderStars(selectedSubject.rating)}
+                          <span>({selectedSubject.rating.toFixed(1)})</span>
+                        </>
+                      )
+                    : t('noRating')}
                 </div>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleWishlistToggle}
-              className={cn(
-                'hover:text-destructive text-muted-foreground transition-colors h-8 w-8 rounded-full',
-                isInWishlist && 'text-destructive'
-              )}
-            >
-              <Heart size={16} fill={isInWishlist ? 'currentColor' : 'none'} />
-            </Button>
+            {authState.isLoggedIn && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleWishlistToggle}
+                className={cn(
+                  'hover:text-destructive text-muted-foreground transition-colors h-8 w-8 rounded-full',
+                  isInWishlist && 'text-destructive'
+                )}
+              >
+                <Heart size={16} fill={isInWishlist ? 'currentColor' : 'none'} />
+              </Button>
+            )}
           </div>
 
           <div className="flex items-center gap-1 text-muted-foreground text-xs">
@@ -141,37 +138,34 @@ const TutorCard = ({ tutor }) => {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {targetGradeLabels.slice(0, 2).map((label, i) => (
+            {selectedSubject?.grade && (
               <Badge
-                key={`g-${i}`}
                 className="bg-primary/10 border border-primary text-primary text-xs px-2 py-0.5"
               >
                 <GraduationCap size={12} className="mr-1" />
-                {label}
+                {getGradeLabel(selectedSubject.grade, t)}
               </Badge>
-            ))}
-            {targetSectorLabels.slice(0, 2).map((label, i) => (
+            )}
+            {selectedSubject?.type && (
               <Badge
-                key={`s-${i}`}
                 className="bg-secondary/10 border border-secondary text-secondary text-xs px-2 py-0.5"
               >
                 <Users size={12} className="mr-1" />
-                {label}
-              </Badge>
-            ))}
-            {(tutor.targetGrades?.length > 2 || tutor.targetSectors?.length > 2) && (
-              <Badge className="bg-muted border border-border text-muted-foreground text-xs px-2 py-0.5">
-                ...
+                {selectedSubject.type}
               </Badge>
             )}
           </div>
           <div className="flex-1 flex">
-            <p className="text-xs text-muted-foreground line-clamp-2 self-start">{tutor.bioExcerpt}</p>
+            <p className="text-xs text-muted-foreground line-clamp-2 self-start">
+              {selectedSubject?.bio || ''}
+            </p>
           </div>
 
-         <div className="flex justify-between items-center text-muted-foreground mt-2 pt-2 border-t border-border/30 gap-2">
+          <div className="flex justify-between items-center text-muted-foreground mt-2 pt-2 border-t border-border/30 gap-2">
             <span className="font-bold text-primary text-lg">
-              {t('ratePerMonth', { rate: tutor.rate })}
+              {selectedSubject?.price && isFinite(selectedSubject.price)
+                ? t('ratePerMonth', { rate: selectedSubject.price })
+                : t('noPrice')}
             </span>
             <Button
               as={Link}
@@ -190,4 +184,4 @@ const TutorCard = ({ tutor }) => {
   );
 };
 
-export default TutorCard
+export default TutorCard;

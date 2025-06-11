@@ -4,11 +4,43 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { Search, MapPin, BookOpen, Star, GraduationCap, Users, XCircle } from 'lucide-react';
+import { Search, MapPin, BookOpen, Star, GraduationCap, Users, XCircle, CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { uniqueSubjectsSimple, uniqueLocationsSimple } from '@/data/mockTutors';
-import { grades, sectors } from '@/data/formData';
-import { CheckCircle } from 'lucide-react';
+import { mockTutors } from '@/data/enhanced';
+
+function areFiltersEqual(a, b) {
+  return (
+    a.subject === b.subject &&
+    a.location === b.location &&
+    a.grade === b.grade &&
+    a.sector === b.sector &&
+    a.minRating === b.minRating &&
+    a.sortBy === b.sortBy &&
+    JSON.stringify(a.rateRange) === JSON.stringify(b.rateRange)
+  );
+}
+
+const allGrades = mockTutors.flatMap(t => t.subjects?.map(s => s.grade) || []);
+const uniqueGradesSimple = ['none', ...Array.from(new Set(allGrades))].map(grade => {
+  return { value: grade, label: grade === 'none' ? 'None' : grade };
+});
+
+const allSubjects = mockTutors.flatMap(t => t.subjects?.map(s => s.subject) || []);
+const uniqueSubjectsSimple = ['all', ...Array.from(new Set(allSubjects))];
+
+const allLocations = mockTutors.map(t => t.location);
+const uniqueLocationsSimple = ['all', ...Array.from(new Set(allLocations))];
+
+const allTypes = mockTutors.flatMap(tutor =>
+  tutor.subjects.map(subject => subject.type)
+);
+
+const uniqueTypes = ['all', ...Array.from(new Set(allTypes))];
+const uniqueSectorsSimple = uniqueTypes.map(type => ({
+  value: type,
+  labelKey: type === 'all' ? 'allSectors' : type
+}));
+
 
 const FILTER_KEYS = [
   'subject',
@@ -34,36 +66,33 @@ const HorizontalFilters = ({
   setSearchTerm,
   filters,
   setFilters, 
-  handleFilterChange,
-  handleRateChange,
   sortBy,
   setSortBy,
   triggerFilterUpdate
 }) => {
   const { t } = useTranslation();
-  const gradeOptions = [{ value: 'none', labelKey: 'none' }, ...grades];
-  const subjectOptions = [...uniqueSubjectsSimple];
-  const locationOptions = [...uniqueLocationsSimple];
-  const sectorOptions = [{ value: 'all', labelKey: 'allSectors' }, ...sectors];
+  const subjectOptions = uniqueSubjectsSimple;
+  const locationOptions = uniqueLocationsSimple;
+  const gradeOptions = uniqueGradesSimple;
+  const sectorOptions = uniqueSectorsSimple;
 
-  // Only run localStorage load on first mount
   const didInit = useRef(false);
   const [tempFilters, setTempFilters] = useState(filters);
 
-    useEffect(() => {
+  const filtersChanged = !areFiltersEqual(tempFilters, filters);
+
+  useEffect(() => {
     setTempFilters(filters); 
   }, [filters]);
  
-    const onTempFilterChange = (key, value) => {
+  const onTempFilterChange = (key, value) => {
     setTempFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  // For rate slider changes:
   const onTempRateChange = (value) => {
     setTempFilters(prev => ({ ...prev, rateRange: value }));
   };
 
-  // Apply button handler
   const applyFilters = () => {
     setFilters(tempFilters);
     if (typeof triggerFilterUpdate === 'function') triggerFilterUpdate();
@@ -108,8 +137,6 @@ const HorizontalFilters = ({
     if (typeof triggerFilterUpdate === 'function') triggerFilterUpdate();
   }, []);
 
-
-  // Save filters (except searchTerm) to localStorage on change
   useEffect(() => {
     FILTER_KEYS.forEach(key => {
       let val = filters[key];
@@ -131,9 +158,8 @@ const HorizontalFilters = ({
     FILTER_KEYS.forEach(key => localStorage.removeItem(`filter-${key}`));
     localStorage.removeItem('filter-sortBy');
     if (typeof triggerFilterUpdate === 'function') triggerFilterUpdate();
-  };;
+  };
 
-  // Placeholders from translation only
   const placeholders = {
     subject: t('none'),
     location: t('allLocations'),
@@ -190,7 +216,7 @@ const HorizontalFilters = ({
               {subjectOptions
                 .filter(subject => subject.toLowerCase() !== 'all' && subject.toLowerCase() !== 'none')
                 .map(subject => (
-                  <SelectItem key={subject} value={subject.toLowerCase()} className="capitalize">
+                  <SelectItem key={subject} value={subject} className="capitalize">
                     {subject}
                   </SelectItem>
                 ))}
@@ -215,7 +241,7 @@ const HorizontalFilters = ({
               {locationOptions
                 .filter(location => location.toLowerCase() !== 'all')
                 .map(location => (
-                  <SelectItem key={location} value={location.toLowerCase()} className="capitalize">
+                  <SelectItem key={location} value={location} className="capitalize">
                     {location}
                   </SelectItem>
                 ))}
@@ -243,15 +269,17 @@ const HorizontalFilters = ({
                 tempFilters.grade === 'none' ? 'border-red-600 focus:ring-red-600' : ''
               }`}
             >
-              <SelectValue placeholder={placeholders.grade} />
+            <SelectValue placeholder={placeholders.grade} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">{t('none')}</SelectItem>
-              {grades.map(grade => (
-                <SelectItem key={grade.value} value={grade.value}>
-                  {t(grade.labelKey)}
-                </SelectItem>
-              ))}
+              {gradeOptions
+                .filter(grade => grade.value !== 'none')
+                .map(grade => (
+                  <SelectItem key={grade.value} value={grade.value}>
+                    {grade.value}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
@@ -310,7 +338,6 @@ const HorizontalFilters = ({
             <SelectContent>
               <SelectItem value="ratingDesc">{t('sortByRatingDesc')}</SelectItem>
               <SelectItem value="rateAsc">{t('sortByRateAsc')}</SelectItem>
-              <SelectItem value="rateDesc">{t('sortByRateDesc')}</SelectItem>
               <SelectItem value="nameAsc">{t('sortByNameAsc')}</SelectItem>
             </SelectContent>
           </Select>
@@ -332,24 +359,27 @@ const HorizontalFilters = ({
         </div>
 
         {/* Apply and Reset Buttons */}
+        <Button
+          onClick={applyFilters}
+          variant="outline"
+          className={`w-full border-green-600 flex items-center justify-center gap-2 py-2 rounded-md font-semibold transition-colors duration-200
+            ${filtersChanged
+              ? 'text-white bg-green-600 shadow-lg'
+              : 'text-green-600 bg-transparent hover:bg-green-600 hover:text-white'
+            }`}
+        >
+          <CheckCircle size={18} />
+          {filtersChanged ? t('applyFilters') : t('filtersApplied')}
+        </Button>
 
-          <Button
-            onClick={applyFilters}
-            variant="outline"
-            className="w-full text-green-600 border-green-600 hover:bg-green-600 hover:text-white transition-colors duration-200 flex items-center justify-center gap-2 py-2 rounded-md font-semibold"
-          >
-            <CheckCircle size={18} />
-            {t('applyFilters')}
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={handleReset}
-            className="w-full text-red-600 border-red-600 hover:bg-red-600 hover:text-white transition-colors duration-200 flex items-center justify-center gap-2 py-2 rounded-md font-semibold"
-          >
-            <XCircle size={18} />
-            {t('resetFilters')}
-          </Button>
+        <Button
+          variant="outline"
+          onClick={handleReset}
+          className="w-full text-red-600 border-red-600 hover:bg-red-600 hover:text-white transition-colors duration-200 flex items-center justify-center gap-2 py-2 rounded-md font-semibold"
+        >
+          <XCircle size={18} />
+          {t('resetFilters')}
+        </Button>
       </div>
     </motion.div>
   );
