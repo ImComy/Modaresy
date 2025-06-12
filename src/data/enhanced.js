@@ -9,6 +9,19 @@ export const mockTutors = [
     phone: "01234567890",
     isTopRated: true,
     GeneralBio: "Experienced Mathematics tutor with over 8 years of teaching high school and university students. Passionate about making complex concepts understandable and helping students build strong problem-solving skills. Proven track record of improving grades and boosting confidence. My approach focuses on identifying individual student needs and tailoring lessons accordingly. I utilize various teaching methods, including visual aids and real-world examples, to ensure comprehension and retention.",
+    socials: {
+      facebook: "https://www.facebook.com/ahmed.hassan",
+      instagram: "https://www.instagram.com/ahmed.hassan",
+      twitter: "https://twitter.com/ahmed_hassan",
+      linkedin: "https://www.linkedin.com/in/ahmed-hassan",
+      youtube: "https://www.youtube.com/channel/ahmed.hassan",
+      tiktok: "https://www.tiktok.com",
+      whatsapp: "https://wa.me/01234567890",
+      telegram: "https://t.me/ahmed_hassan",
+      email: "info@modaresy.com",
+      website: "https://www.modaresy.com",
+      github: "",
+    },
     subjects: [
       {
         subject: "Mathematics",
@@ -71,6 +84,14 @@ export const mockTutors = [
     price: 200,
     isTopRated: false,
     GeneralBio: "Passionate and experienced tutor committed to student success. Uses a tailored approach with real-world examples and interactive methods. Focuses on building confidence and understanding in students.",
+    socials: {
+      facebook: "https://www.facebook.com/ahmed.hassan",
+      instagram: "https://www.instagram.com/ahmed.hassan",
+      twitter: "https://twitter.com/ahmed_hassan",
+      linkedin: "https://www.linkedin.com/in/ahmed-hassan",
+      youtube: "https://www.youtube.com/channel/ahmed.hassan",
+      tiktok: "https://www.tiktok.com",
+    },
     subjects: [
       {
         subject: "Biology",
