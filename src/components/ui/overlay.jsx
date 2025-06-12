@@ -156,7 +156,7 @@ export default function UserOverlay({ onClose, onSubmit, onFiltersChange }) {
             <Button
               variant="outline"
               className="text-primary border-primary w-[100%] bg-inherit hover:bg-inherit/90 hover:text-primary"
-              onClick={() => { navigate('/signup'); }}
+              onClick={() => { navigate('/login'); }}
             >
               {t("Log In")}
             </Button>

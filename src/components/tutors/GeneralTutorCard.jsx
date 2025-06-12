@@ -69,7 +69,7 @@ const TutorCard = ({ tutor }) => {
       className="h-full"
     >
       <Link to={`/tutor/${tutor.id}`} className="block h-full">
-        <Card className="relative h-full flex flex-col rounded-xl overflow-hidden border bg-muted/50">
+        <Card className="relative h-full flex flex-col rounded-xl overflow-hidden border bg-muted">
           <div className="relative w-full h-32 rounded-t-xl">
             <img
               src={tutor.bannerimg}
@@ -127,7 +127,7 @@ const TutorCard = ({ tutor }) => {
                     <GraduationCap size={12} />
                     <span>{subject.subject} - {subject.grade}</span>
                     {subject.type && (
-                      <span className="px-1 py-0.5 text-secondary border border-secondary bg-secondary/10 rounded-sm">
+                      <span className="px-1 py-0.5 text-green-700 border border-green-300 bg-green-200 rounded-sm">
                         {subject.type}
                       </span>
                     )}

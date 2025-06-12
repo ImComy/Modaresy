@@ -35,7 +35,14 @@ export const mockTutors = [
         rating: 2.8,
         private:{
           price: 800,
-          note: "hiii",
+          note: "Private lessons available for EGP 800 per hour. Flexible scheduling to accommodate student needs.",
+        },
+        offer: {
+          percentage: 20,
+          from: "2025-01-01",
+          to: "2025-06-30",
+          description: "20% off for new students until June 30, 2025",
+          for: "private",
         },
         Groups: [
             {
@@ -102,6 +109,13 @@ export const mockTutors = [
         lecturesPerWeek: 3,
         yearsExp: 9,
         price: 200,
+        offer: {
+          percentage: 20,
+          from: "2025-01-01",
+          to: "2025-06-30",
+          description: "20% off for new students until June 30, 2025",
+          for: "group",
+        },
         rating: 3.8,
         Groups: [
           {
@@ -140,6 +154,11 @@ export const mockTutors = [
         yearsExp: 4,
         price: 150,
         rating: 1.8,
+        offer: {
+          percentage: 20,
+          from: "2025-01-01",
+          to: "2025-06-30",
+        },
         Groups: [
           {
             groupName: "Group A",

@@ -28,7 +28,6 @@ import {
 const socialIcons = {
   facebook: FaFacebookF,
   instagram: FaInstagram,
-  twitter: FaTwitter,
   linkedin: FaLinkedinIn,
   youtube: FaYoutube,
   tiktok: FaTiktok,
@@ -174,7 +173,7 @@ const TutorProfileHeader = ({ tutor }) => {
                 <GraduationCap size={12} />
                 <span>{subject.subject} - {subject.grade}</span>
                 {subject.type && (
-                  <span className="px-1 py-0.5 text-secondary border border-secondary bg-secondary/10 rounded-sm">
+                  <span className="px-1 py-0.5 text-green-700 border border-green-300 bg-green-200 rounded-sm">
                     {subject.type}
                   </span>
                 )}

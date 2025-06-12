@@ -98,29 +98,38 @@ const TutorProfilePage = () => {
     >
       <TutorProfileHeader tutor={tutor} selectedSubject={selectedSubject} />
 
-      <div className="mb-4 ">
-        <Select
-          value={selectedSubjectIndex.toString()}
-          onValueChange={(val) => setSelectedSubjectIndex(parseInt(val))}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder={t('chooseSubjects')} />
-          </SelectTrigger>
-          <SelectContent>
-            {subjectOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="space-y-3 mb-6">
+        <p className="text-base font-medium">{t('selectSubjectToView') || 'Select a subject to view'}</p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          {tutor.subjects.map((subj, idx) => {
+            const isActive = selectedSubjectIndex === idx;
+            return (
+              <Button
+                key={idx}
+                variant={isActive ? 'default' : 'outline'}
+                onClick={() => setSelectedSubjectIndex(idx)}
+                className={`whitespace-nowrap text-sm sm:text-base px-4 py-2 rounded-full flex-shrink-0 transition-all ${
+                  isActive ? 'ring-2 ring-primary bg-primary text-white' : ''
+                }`}
+              >
+                {t(subj.subject)} - {subj.grade} ({t(subj.type)})
+              </Button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
+
+
+      {/* Desktop layout */}
+      <div className="hidden lg:grid grid-cols-3 gap-8">
+        <div className="col-span-2 space-y-8">
           <SubjectPricingInfo
             price={selectedSubject?.price}
             privatePricing={selectedSubject?.private}
+            subjectBio={selectedSubject?.bio}
+            subjectRating={selectedSubject?.rating}
+            offer={selectedSubject?.offer}
           />
           <TutorVideoManager
             introVideoUrl={selectedSubject?.introVideoUrl}
@@ -131,22 +140,52 @@ const TutorProfilePage = () => {
             tutorId={id}
             comments={selectedSubject?.comments}
           />
-          
         </div>
-
-        <div className="lg:col-span-1 space-y-8">
+        <div className="space-y-8">
           <TutorCourseInfo
             courseContent={selectedSubject?.courseContent}
             duration={selectedSubject?.duration}
             lecturesPerWeek={selectedSubject?.lecturesPerWeek}
             isEditing={false}
           />
-          {selectedSubject && selectedSubject.Groups && (
+          {selectedSubject?.Groups && (
             <TutorGroupsCard subject={selectedSubject} />
           )}
-
         </div>
       </div>
+
+      {/* ✅ Mobile layout (custom order) */}
+      <div className="block lg:hidden space-y-8">
+        <SubjectPricingInfo
+          price={selectedSubject?.price}
+          privatePricing={selectedSubject?.private}
+          subjectBio={selectedSubject?.bio}
+          subjectRating={selectedSubject?.rating}
+          offer={selectedSubject?.offer}
+        />
+
+        <TutorCourseInfo
+          courseContent={selectedSubject?.courseContent}
+          duration={selectedSubject?.duration}
+          lecturesPerWeek={selectedSubject?.lecturesPerWeek}
+          isEditing={false}
+        />
+        {selectedSubject?.Groups && (
+          <TutorGroupsCard subject={selectedSubject} />
+        )}
+
+        <TutorVideoManager
+          introVideoUrl={selectedSubject?.introVideoUrl}
+          otherVideos={selectedSubject?.otherVideos}
+          isOwner={false}
+        />
+
+        <TutorReviews
+          tutorId={id}
+          comments={selectedSubject?.comments}
+        />
+      </div>
+
     </motion.div>
   );
 };

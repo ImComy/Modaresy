@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -92,6 +92,26 @@ const Navbar = () => {
   return () => mediaQuery.removeEventListener('change', handleResize);
 }, []);
 
+  const menuRef = useRef(null);
+  const toggleRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        isMobileMenuOpen &&
+        menuRef.current &&
+        !menuRef.current.contains(event.target) &&
+        toggleRef.current &&
+        !toggleRef.current.contains(event.target)
+      ) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobileMenuOpen]);
+
   return (
     <motion.nav
       initial={{ y: -70, opacity: 0 }}
@@ -119,10 +139,8 @@ const Navbar = () => {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-1 text-sm font-medium transition-colors hover:text-white",
-                  isActive ? "text-white border-b-2 border-white pb-0.5" : "text-muted-foreground"
-                )}
-              >
+                  "flex items-center gap-1 text-sm font-medium transition-colors hover:text-foreground",
+                  isActive ? "text-foreground border-b-2 border-foreground pb-0.5" : "text-muted-foreground")}>
                 {item.icon} {item.label}
               </Link>
             );
@@ -242,6 +260,7 @@ const Navbar = () => {
           )}
 
           <Button
+            ref={toggleRef}
             variant="ghost"
             size="icon"
             className="md:hidden"
@@ -256,6 +275,7 @@ const Navbar = () => {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
+            ref={menuRef}
             key="mobile-menu"
             variants={mobileMenuVariants}
             initial="closed"
