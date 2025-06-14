@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 import { useWishlist } from '@/context/WishlistContext';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
+import NotificationDropdown from '@/components/ui/notification';
 
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
@@ -150,7 +151,7 @@ const Navbar = () => {
         <div className="flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
           {isLoggedIn && (
             <Link to="/wishlist" className="relative hidden sm:inline-flex">
-              <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-[#ffffff]">
+              <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-red-500 ">
                 <Heart size={20} />
                 {wishlist.length > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">
@@ -162,9 +163,7 @@ const Navbar = () => {
           )}
 
           {isLoggedIn && (
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-secondary hidden sm:inline-flex">
-              <Bell size={20} />
-            </Button>
+            <NotificationDropdown className='visible'/>
           )}
 
           <DropdownMenu>

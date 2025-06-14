@@ -48,7 +48,7 @@ const SubjectPricingInfo = ({
 
   const renderOfferSection = () =>
     offer?.percentage && (
-      <div className="p-4 border border-green-300 bg-green-50 rounded-xl space-y-2">
+      <div className="p-4 border border-green-300 bg-lime-200 rounded-xl space-y-2">
         <div className="flex items-center gap-2 text-green-700 font-medium">
           <Percent size={18} />
           <span>{offer.percentage}% Off</span>
@@ -65,7 +65,7 @@ const SubjectPricingInfo = ({
         )}
 
         {offer.description && (
-          <div className="flex items-start gap-2 text-sm text-green-900 bg-white/60 border border-green-200 rounded-md p-2">
+          <div className="flex items-start gap-2 text-sm text-green-900 bg-white/70 border border-green-200 rounded-md p-2">
             <Info size={14} className="mt-0.5 text-green-700" />
             <span>{offer.description}</span>
           </div>

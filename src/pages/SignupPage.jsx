@@ -10,17 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import MultiSelect from '@/components/ui/multi-select'; // Import MultiSelect
+import MultiSelect from '@/components/ui/multi-select';
 import { grades, sectors, locations, subjects as allSubjectsList } from '@/data/formData';
-import PfpUploadWithCrop from '@/components/pfpSignup'; 
-import BannerUploadWithCrop from '@/components/bannerSignup'; // Import BannerUploadWithCrop
+import PfpUploadWithCrop from '@/components/pfpSignup';
+import BannerUploadWithCrop from '@/components/bannerSignup';
 
 const subjectOptions = allSubjectsList.map(subject => ({
   value: subject.toLowerCase().replace(/\s+/g, '-'),
   label: subject
 }));
-const gradeOptions = grades.map(g => ({ value: g.value, label: g.labelKey })); // Use labelKey for translation
-const sectorOptions = sectors.map(s => ({ value: s.value, label: s.labelKey })); // Use labelKey for translation
+const gradeOptions = grades.map(g => ({ value: g.value, label: g.labelKey }));
+const sectorOptions = sectors.map(s => ({ value: s.value, label: s.labelKey }));
 
 const SignupPage = () => {
   const { t } = useTranslation();
@@ -29,19 +29,20 @@ const SignupPage = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     role: 'student',
-    grade: '', // Student specific (single select)
-    sector: '', // Student specific (single select)
-    location: '', // Teacher specific (single select)
-    subjects: [], // Teacher specific (multi-select - array of values)
-    targetGrades: [], // Teacher specific (multi-select)
-    targetSectors: [], // Teacher specific (multi-select)
-    photoUrl: '', // Teacher specific
+    grade: '',
+    sector: '',
+    location: '',
+    subjects: [],
+    targetGrades: [],
+    targetSectors: [],
+    photoUrl: '',
     agreedToTerms: false,
-    banner: "",
-    pfp: "",
+    banner: '',
+    pfp: '',
   });
   const [errors, setErrors] = useState({});
 
@@ -61,25 +62,28 @@ const SignupPage = () => {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
-  // Handler for MultiSelect components
   const handleMultiSelectChange = (name, selectedValues) => {
     setFormData(prev => ({ ...prev, [name]: selectedValues }));
-      if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
+
+  const validatePhone = (phone) => /^\+?\d{10,15}$/.test(phone);
 
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name) newErrors.name = t('nameRequired');
     if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = t('emailInvalid');
+    if (!formData.phone || !validatePhone(formData.phone)) newErrors.phone = t('phoneInvalid');
     if (!formData.password || formData.password.length < 6) newErrors.password = t('passwordLengthError');
     if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = t('passwordMismatch');
     if (!formData.agreedToTerms) newErrors.agreedToTerms = t('termsRequired');
 
+    if (!formData.location) newErrors.location = t('locationRequired');
+
     if (formData.role === 'teacher') {
-      if (!formData.location) newErrors.location = t('locationRequired');
-      if (formData.subjects.length === 0) newErrors.subjects = t('subjectsRequired'); // Check array length
-      if (formData.targetGrades.length === 0) newErrors.targetGrades = t('targetGradesRequired'); // Add this key
-      if (formData.targetSectors.length === 0) newErrors.targetSectors = t('targetSectorsRequired'); // Add this key
+      if (formData.subjects.length === 0) newErrors.subjects = t('subjectsRequired');
+      if (formData.targetGrades.length === 0) newErrors.targetGrades = t('targetGradesRequired');
+      if (formData.targetSectors.length === 0) newErrors.targetSectors = t('targetSectorsRequired');
     }
 
     setErrors(newErrors);
@@ -97,7 +101,6 @@ const SignupPage = () => {
     navigate('/login');
   };
 
-  // Translate options for MultiSelect
   const translatedGradeOptions = gradeOptions.map(opt => ({ ...opt, label: t(opt.label) }));
   const translatedSectorOptions = sectorOptions.map(opt => ({ ...opt, label: t(opt.label) }));
 
@@ -145,6 +148,19 @@ const SignupPage = () => {
               <Input id="confirmPassword" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleInputChange} error={errors.confirmPassword} />
               {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
             </div>
+            <div className="space-y-1">
+              <Label htmlFor="phone">{t('phone')}</Label>
+              <Input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} error={errors.phone} placeholder="+201234567890" />
+              {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="location">{t('location')}</Label>
+              <Select name="location" value={formData.location} onValueChange={(value) => handleSelectChange('location', value)}>
+                <SelectTrigger id="location" error={errors.location}><SelectValue placeholder={t('selectLocation')} /></SelectTrigger>
+                <SelectContent>{locations.map(loc => (<SelectItem key={loc.value} value={loc.value} className="capitalize">{loc.label}</SelectItem>))}</SelectContent>
+              </Select>
+              {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
+            </div>
 
             {/* Student Specific Fields */}
             {formData.role === 'student' && (
@@ -169,14 +185,6 @@ const SignupPage = () => {
             {/* Teacher Specific Fields */}
             {formData.role === 'teacher' && (
               <>
-                <div className="space-y-1">
-                  <Label htmlFor="location">{t('location')}</Label>
-                  <Select name="location" value={formData.location} onValueChange={(value) => handleSelectChange('location', value)}>
-                    <SelectTrigger id="location" error={errors.location}><SelectValue placeholder={t('selectLocation')} /></SelectTrigger>
-                    <SelectContent>{locations.map(loc => (<SelectItem key={loc.value} value={loc.value} className="capitalize">{loc.label}</SelectItem>))}</SelectContent>
-                  </Select>
-                  {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
-                </div>
                 <div className="space-y-1">
                     <Label htmlFor="subjects">{t('subjects')}</Label>
                     <MultiSelect
