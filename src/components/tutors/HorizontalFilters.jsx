@@ -124,24 +124,24 @@ const HorizontalFilters = ({ searchTerm, setSearchTerm, filters, setFilters, sor
     </div>
 
     {/* Toggle Button */}
-<button
-  onClick={() => setShowAdditional(prev => !prev)}
-  className={`group inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 transition-all duration-300 border text-sm font-medium shadow-sm w-full md:w-auto
-    ${showAdditional
-      ? 'bg-primary text-primary-foreground border-primary'
-      : 'bg-muted hover:bg-muted/80 text-muted-foreground border-border'}`}
->
-  <motion.span
-    animate={{ rotate: showAdditional ? 180 : 0 }}
-    transition={{ duration: 0.3 }}
-    className="inline-flex"
-  >
-    <Filter className="w-4 h-4 transition-transform duration-300" />
-  </motion.span>
-  <span className="transition-all duration-300">
-    {showAdditional ? t('hideAdditionalFilters') : t('additionalFilters')}
-  </span>
-</button>
+    <button
+      onClick={() => setShowAdditional(prev => !prev)}
+      className={`group inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 md:py-3 transition-all duration-300 border text-sm font-medium shadow-sm w-full md:w-auto
+        ${showAdditional
+          ? 'bg-primary text-primary-foreground border-primary'
+          : 'bg-muted hover:bg-muted/80 text-muted-foreground border-border'}`}
+    >
+      <motion.span
+        animate={{ rotate: showAdditional ? 180 : 0 }}
+        transition={{ duration: 0.3 }}
+        className="inline-flex"
+      >
+        <Filter className="w-4 h-4 transition-transform duration-300" />
+      </motion.span>
+      <span className="transition-all duration-300">
+        {showAdditional ? t('hideAdditionalFilters') : t('additionalFilters')}
+      </span>
+    </button>
 
   </div>
 

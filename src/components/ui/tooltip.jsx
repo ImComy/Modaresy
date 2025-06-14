@@ -1,7 +1,7 @@
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import { cn } from "@/lib/utils"; // or just use clsx
+import { cn } from "@/lib/utils"; // or clsx
 
-export const Tooltip = ({ children, content, className }) => (
+const Tooltip = ({ children, content, className }) => (
   <TooltipPrimitive.Provider delayDuration={150}>
     <TooltipPrimitive.Root>
       <TooltipPrimitive.Trigger asChild>
@@ -22,3 +22,5 @@ export const Tooltip = ({ children, content, className }) => (
     </TooltipPrimitive.Root>
   </TooltipPrimitive.Provider>
 );
+
+export default Tooltip;

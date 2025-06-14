@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import SubjectPricingInfo from '@/components/profile/Subject';
+import TutorAchievements from '@/components/profile/badges';
 
 const getTutorData = (id) => {
   const numericId = parseInt(id);
@@ -118,8 +119,7 @@ const TutorProfilePage = () => {
           })}
         </div>
       </div>
-
-
+      <TutorAchievements tutor={tutor} />
 
       {/* Desktop layout */}
       <div className="hidden lg:grid grid-cols-3 gap-8">
@@ -131,6 +131,7 @@ const TutorProfilePage = () => {
             subjectRating={selectedSubject?.rating}
             offer={selectedSubject?.offer}
           />
+
           <TutorVideoManager
             introVideoUrl={selectedSubject?.introVideoUrl}
             otherVideos={selectedSubject?.otherVideos}

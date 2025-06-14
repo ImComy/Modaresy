@@ -140,7 +140,7 @@ const TutorCard = ({ tutor, filters }) => {
           <div className="flex flex-wrap gap-2">
             {selectedSubject?.grade && (
               <Badge
-                className="bg-primary/10 border border-primary text-primary text-xs px-2 py-0.5"
+                className="bg-primary/10 border border-primary text-primary text-xs px-2 py-0.5 hover:bg-primary/20 transition-colors" 
               >
                 <GraduationCap size={12} className="mr-1" />
                 {getGradeLabel(selectedSubject.grade, t)}
@@ -148,7 +148,7 @@ const TutorCard = ({ tutor, filters }) => {
             )}
             {selectedSubject?.type && (
               <Badge
-                className="bg-secondary/10 border border-secondary text-secondary text-xs px-2 py-0.5"
+                className="text-green-700 border border-green-300 bg-green-200 text-xs px-2 py-0.5 hover:bg-green-300 transition-colors"
               >
                 <Users size={12} className="mr-1" />
                 {selectedSubject.type}

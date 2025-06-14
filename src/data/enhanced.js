@@ -9,6 +9,11 @@ export const mockTutors = [
     phone: "01234567890",
     isTopRated: true,
     GeneralBio: "Experienced Mathematics tutor with over 8 years of teaching high school and university students. Passionate about making complex concepts understandable and helping students build strong problem-solving skills. Proven track record of improving grades and boosting confidence. My approach focuses on identifying individual student needs and tailoring lessons accordingly. I utilize various teaching methods, including visual aids and real-world examples, to ensure comprehension and retention.",
+    achievements: [
+      { type: 'topRated', label: 'Top Rated', isCurrent: true },
+      { type: 'monthlyTop', label: 'Top Tutor - May', isCurrent: true },
+      { type: 'studentFav', label: 'Student Favorite', isCurrent: false },
+    ],
     socials: {
       facebook: "https://www.facebook.com/ahmed.hassan",
       instagram: "https://www.instagram.com/ahmed.hassan",

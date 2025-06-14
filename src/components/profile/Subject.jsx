@@ -11,7 +11,7 @@ import {
   BadgePercent,
 } from "lucide-react";
 import { format } from "date-fns";
-import { Tooltip } from "@/components/ui/tooltip";
+import  Tooltip  from "@/components/ui/tooltip";
 
 const SubjectPricingInfo = ({
   price,

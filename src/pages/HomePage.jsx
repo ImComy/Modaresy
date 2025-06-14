@@ -10,6 +10,7 @@ import { useTutorFilterSort } from '@/hooks/useTutorFilterSort';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { GeneralTutorGrid } from '../components/tutors/GeneralTutorGrid';
+import TopTutors from '../components/tutors/topTutors';
 
 const HomePage = () => {
   const { t } = useTranslation();
@@ -147,7 +148,11 @@ const HomePage = () => {
         </div>
       </section>
       <section className="space-y-6 container mx-auto px-4">
-        <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center">{t('RecommendedTutors')}</motion.h2>
+        <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center">{t('TopTutors')}</motion.h2>
+        <TopTutors tutors={mockTutors} />
+      </section>
+      <section className="space-y-6 container mx-auto px-4">
+        <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center mt-20">{t('RecommendedTutors')}</motion.h2>
         <GeneralTutorGrid tutors={mockTutors} />
       </section>
     </div>

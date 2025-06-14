@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, BookOpen, MessageSquare, Heart, Award, Building, GraduationCap } from 'lucide-react';
+import { MapPin, BookOpen, MessageSquare, Heart, Award, Building, GraduationCap,   Star,} from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import renderStars from '@/components/ui/renderStars';
 import { useWishlist } from '@/context/WishlistContext';
@@ -24,6 +24,7 @@ import {
   FaEnvelope,
   FaGlobe,
 } from 'react-icons/fa';
+import TutorBadges from '@/components/profile/badges';
 
 const socialIcons = {
   facebook: FaFacebookF,
@@ -76,13 +77,37 @@ const TutorProfileHeader = ({ tutor }) => {
 
   return (
     <Card className=" shadow-xl bg-gradient-to-br from-primary/5 to-primary/10">
-      <div className="relative h-48 md:h-64 rounded-t-lg overflow-hidden">
-        <img
-          src={tutor.bannerimg || 'https://placehold.co/600x400'}
-          alt={tutor.name}
-          className="w-full h-full object-cover"
-        />
-      </div>
+    <div className="relative h-48 md:h-64 rounded-t-lg overflow-hidden">
+  <img
+    src={tutor.bannerimg || 'https://placehold.co/600x400'}
+    alt={tutor.name}
+    className="w-full h-full object-cover"
+  />
+
+  {/* Current Achievements on banner */}
+  <div className="absolute top-2 left-2 z-20 flex flex-wrap gap-2">
+    {tutor.achievements
+      ?.filter(a => a.isCurrent)
+      .map((achievement, index) => (
+        <motion.div
+          key={index}
+          initial={{ y: -8, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: index * 0.1 }}
+          className={cn(
+            "flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full shadow border backdrop-blur",
+            achievement.type === 'topRated'
+              ? "bg-yellow-100 text-yellow-900 border-yellow-300"
+              : "bg-purple-100 text-purple-900 border-purple-300"
+          )}
+        >
+          {achievement.type === 'topRated' && <Star size={14} className="text-yellow-500" />}
+          {achievement.type === 'monthlyTop' && <Award size={14} className="text-purple-500" />}
+          <span>{achievement.label}</span>
+        </motion.div>
+      ))}
+  </div>
+</div>
       <CardContent className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
