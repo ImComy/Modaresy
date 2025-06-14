@@ -78,33 +78,6 @@ export const TopTutors = ({ tutors }) => {
     currentPage * TUTORS_PER_PAGE
   );
 
-  // Auth CTA
-  if (!authState.isLoggedIn) {
-    return (
-      <div className="max-w-full mx-auto bg-muted/40 border border-border rounded-2xl shadow-md p-8 text-center space-y-5">
-        <div className="flex justify-center">
-          <div className="bg-primary/10 text-primary rounded-full p-4">
-            <LogIn size={32} />
-          </div>
-        </div>
-        <h2 className="text-2xl font-bold text-foreground">{t('getPersonalizedTutors', 'Discover Your Ideal Tutor')}</h2>
-        <p className="text-muted-foreground text-sm leading-relaxed">
-          {t(
-            'signInToSeeRecommendations',
-            'Sign in to receive personalized tutor recommendations based on your preferences.'
-          )}
-        </p>
-        <a
-          href="/login"
-          className="inline-flex items-center justify-center px-6 py-2 rounded-full text-white bg-primary hover:bg-primary/90 transition font-medium"
-        >
-          {t('signIn')}
-        </a>
-      </div>
-    );
-  }
-
-
   return (
     <>
       <AnimatePresence>

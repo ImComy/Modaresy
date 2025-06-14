@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import ReportButton from '@/components/report';
 
 const renderStars = (rating, size = 14) => {
   if (typeof rating !== 'number' || !isFinite(rating) || rating < 0) {
@@ -108,28 +109,40 @@ const TutorReviews = ({ tutorId, comments = [], onSubmitReview }) => { // Accept
 
                 {/* Existing Comments */}
                 {comments.length > 0 ? (
-                  comments.map((comment) => (
-                    <motion.div
-                      key={comment.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="border-b pb-4 last:border-b-0"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-sm">{comment.user}</span>
-                        <span className="text-xs text-muted-foreground">{comment.date}</span>
-                      </div>
-                      <div className="flex items-center mb-2">
-                        {typeof comment.rating === 'number' && isFinite(comment.rating)
-                          ? renderStars(comment.rating, 14)
-                          : t('noRating')}
-                      </div>
-                      <p className="text-sm text-foreground/90">{comment.text}</p>
-                    </motion.div>
-                  ))
+                  <div className="space-y-4">
+                    {comments.map((comment) => (
+                      <motion.div
+                        key={comment.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="rounded-xl p-4 bg-muted/50 border border-border shadow-sm"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4 mb-2">
+                          {/* Left: User, Rating, Text */}
+                          <div className="flex-1">
+                            <span className="font-semibold text-sm text-primary">{comment.user}</span>
+                            <div className="mt-1 mb-2">
+                              {typeof comment.rating === 'number' && isFinite(comment.rating) ? (
+                                renderStars(comment.rating, 14)
+                              ) : (
+                                <span className="text-xs text-muted-foreground">{t('noRating')}</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-foreground">{comment.text}</p>
+                          </div>
+
+                          {/* Right: Date + Report */}
+                          <div className="flex sm:flex-col items-end justify-between sm:items-end gap-2 sm:gap-4">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">{comment.date}</span>
+                            <ReportButton />
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
                 ) : (
-                  <p className="text-muted-foreground text-center text-sm py-4">{t('noReviewsYet')}</p>
+                  <p className="text-muted-foreground text-center text-sm py-6 italic">{t('noReviewsYet')}</p>
                 )}
               </CardContent>
             </Card>

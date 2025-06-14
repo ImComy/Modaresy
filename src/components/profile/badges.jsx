@@ -101,7 +101,7 @@ const TutorAchievements = ({ tutor }) => {
         {open && (
           <>
             <motion.div
-              className="fixed inset-0 bg-black/40 z-40"
+              className="fixed inset-0 z-40 backdrop-blur-sm bg-black/40"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -113,9 +113,9 @@ const TutorAchievements = ({ tutor }) => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 250, damping: 30 }}
-              className="fixed top-0 right-0 h-full w-full sm:w-[420px] z-50 bg-background text-foreground border-l border-muted shadow-lg flex flex-col"
+              className="fixed top-8 right-0 h-full w-full sm:w-[420px] z-50 bg-background text-foreground border-l border-muted shadow-lg flex flex-col  rounded-none md:rounded-l-lg"
             >
-              <div className="flex items-center justify-between p-4 border-b border-muted">
+              <div className="flex items-center justify-between p-4 border-b border-muted ">
                 <h2 className="text-xl font-bold flex items-center gap-2">🌟 Achievements</h2>
                 <button onClick={togglePanel}>
                   <X size={22} className="text-muted-foreground" />
