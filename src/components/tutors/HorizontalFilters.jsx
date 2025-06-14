@@ -1,306 +1,186 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { Search, MapPin, BookOpen, Star, GraduationCap, Users, XCircle, CheckCircle } from 'lucide-react';
+import {
+  Select, SelectTrigger, SelectContent, SelectItem, SelectValue
+} from '@/components/ui/select';
+import {
+  Search, Filter, ArrowDownAZ, ArrowUpAZ, Star, DollarSign, Users, MapPin, BookText
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { mockTutors } from '@/data/enhanced';
 
-function areFiltersEqual(a, b) {
-  return (
-    a.subject === b.subject &&
-    a.location === b.location &&
-    a.grade === b.grade &&
-    a.sector === b.sector &&
-    a.minRating === b.minRating &&
-    a.sortBy === b.sortBy &&
-    JSON.stringify(a.rateRange) === JSON.stringify(b.rateRange)
-  );
-}
-
-const allGrades = mockTutors.flatMap(t => t.subjects?.map(s => s.grade) || []);
-const uniqueGradesSimple = ['none', ...Array.from(new Set(allGrades))].map(grade => {
-  return { value: grade, label: grade === 'none' ? 'None' : grade };
-});
-
-const allSubjects = mockTutors.flatMap(t => t.subjects?.map(s => s.subject) || []);
-const uniqueSubjectsSimple = ['all', ...Array.from(new Set(allSubjects))];
-
-const allLocations = mockTutors.map(t => t.location);
-const uniqueLocationsSimple = ['all', ...Array.from(new Set(allLocations))];
-
-const allTypes = mockTutors.flatMap(tutor =>
-  tutor.subjects.map(subject => subject.type)
+// Extracted label with icon
+const LabelWithIcon = ({ icon: Icon, text, error = false }) => (
+  <label className={`text-xs font-medium flex items-center gap-1 mb-1 ${error ? 'text-red-500' : 'text-muted-foreground'}`}>
+    <Icon size={12} className={`${error ? 'text-red-500' : 'text-muted-foreground'}`} />
+    {text}
+  </label>
 );
 
-const uniqueTypes = ['all', ...Array.from(new Set(allTypes))];
-const uniqueSectorsSimple = uniqueTypes.map(type => ({
-  value: type,
-  labelKey: type === 'all' ? 'allSectors' : type
-}));
+// Extract unique values
+const allSubjects = mockTutors.flatMap(t => t.subjects?.map(s => s.subject) || []);
+const uniqueSubjects = Array.from(new Set(allSubjects));
+const uniqueLocations = Array.from(new Set(mockTutors.map(t => t.location).filter(Boolean)));
+const uniqueGrades = Array.from(new Set(mockTutors.flatMap(t => t.subjects?.map(s => s.grade) || [])));
+const uniqueSectors = Array.from(new Set(mockTutors.flatMap(t => t.subjects?.map(s => s.type) || [])));
 
-
-const FILTER_KEYS = [
-  'subject',
-  'location',
-  'grade',
-  'sector',
-  'minRating',
-  'rateRange',
-  'sortBy'
+const SORT_OPTIONS = [
+  { value: 'ratingDesc', icon: <Star className="w-5 h-5" />, label: 'sortByRatingDesc' },
+  { value: 'rateAsc', icon: <DollarSign className="w-5 h-5" />, label: 'sortByRateAsc' },
+  { value: 'nameAsc', icon: <ArrowDownAZ className="w-5 h-5" />, label: 'sortByNameAsc' },
+  { value: 'nameDesc', icon: <ArrowUpAZ className="w-5 h-5" />, label: 'sortByNameDesc' },
 ];
 
-const getDefaultFilters = () => ({
-  subject: 'none',
-  location: 'all',
-  grade: 'none',
-  sector: 'all',
-  minRating: 0,
-  rateRange: [50, 2000],
-});
-
-const HorizontalFilters = ({
-  searchTerm,
-  setSearchTerm,
-  filters,
-  setFilters, 
-  sortBy,
-  setSortBy,
-  triggerFilterUpdate
-}) => {
+const HorizontalFilters = ({ searchTerm, setSearchTerm, filters, setFilters, sortBy, setSortBy, triggerFilterUpdate }) => {
   const { t } = useTranslation();
-  const subjectOptions = uniqueSubjectsSimple;
-  const locationOptions = uniqueLocationsSimple;
-  const gradeOptions = uniqueGradesSimple;
-  const sectorOptions = uniqueSectorsSimple;
+  const [showAdditional, setShowAdditional] = useState(false);
+  const [localFilters, setLocalFilters] = useState(filters);
+  const [sortIndex, setSortIndex] = useState(SORT_OPTIONS.findIndex(opt => opt.value === sortBy));
 
-  const didInit = useRef(false);
-  const [tempFilters, setTempFilters] = useState(filters);
+  useEffect(() => setLocalFilters(filters), [filters]);
+  useEffect(() => setSortIndex(SORT_OPTIONS.findIndex(opt => opt.value === sortBy)), [sortBy]);
 
-  const filtersChanged = !areFiltersEqual(tempFilters, filters);
-
-  useEffect(() => {
-    setTempFilters(filters); 
-  }, [filters]);
- 
-  const onTempFilterChange = (key, value) => {
-    setTempFilters(prev => ({ ...prev, [key]: value }));
+  const handleInputChange = (key, value) => {
+    const updated = { ...localFilters, [key]: value };
+    setLocalFilters(updated);
+    setFilters(updated);
+    triggerFilterUpdate?.();
   };
 
-  const onTempRateChange = (value) => {
-    setTempFilters(prev => ({ ...prev, rateRange: value }));
+  const handleSortCycle = () => {
+    const nextIndex = (sortIndex + 1) % SORT_OPTIONS.length;
+    setSortIndex(nextIndex);
+    setSortBy(SORT_OPTIONS[nextIndex].value);
+    triggerFilterUpdate?.();
   };
 
-  const applyFilters = () => {
-    setFilters(tempFilters);
-    if (typeof triggerFilterUpdate === 'function') triggerFilterUpdate();
-  };
-
-  useEffect(() => {
-    if (didInit.current) return;
-    didInit.current = true;
-
-    // Load from localStorage
-    const stored = {};
-    FILTER_KEYS.forEach(key => {
-      let val = localStorage.getItem(`filter-${key}`);
-      if (val !== null) {
-        if (key === 'rateRange') {
-          try {
-            val = JSON.parse(val);
-          } catch {
-            val = [50, 2000];
-          }
-        } else if (key === 'minRating') {
-          val = Number(val);
-        }
-        stored[key] = val;
-      }
-    });
-
-    // Ensure subject and grade default to "none" if not set
-    if (!stored.subject) {
-      stored.subject = 'none';
-      localStorage.setItem('filter-subject', 'none');
-    }
-    if (!stored.grade) {
-      stored.grade = 'none';
-      localStorage.setItem('filter-grade', 'none');
-    }
-
-    const merged = { ...getDefaultFilters(), ...stored };
-    setFilters(merged);
-    if (stored.sortBy) setSortBy(stored.sortBy);
-
-    if (typeof triggerFilterUpdate === 'function') triggerFilterUpdate();
-  }, []);
-
-  useEffect(() => {
-    FILTER_KEYS.forEach(key => {
-      let val = filters[key];
-      if (key === 'rateRange') {
-        localStorage.setItem(`filter-rateRange`, JSON.stringify(val));
-      } else if (val !== undefined) {
-        localStorage.setItem(`filter-${key}`, val);
-      }
-    });
-    localStorage.setItem('filter-sortBy', sortBy);
-  }, [filters, sortBy]);
-
-  const handleReset = () => {
-    const defaultFilters = getDefaultFilters();
-    setFilters(defaultFilters);
-    setTempFilters(defaultFilters);
-    setSortBy('ratingDesc');
-    setSearchTerm('');
-    FILTER_KEYS.forEach(key => localStorage.removeItem(`filter-${key}`));
-    localStorage.removeItem('filter-sortBy');
-    if (typeof triggerFilterUpdate === 'function') triggerFilterUpdate();
-  };
-
-  const placeholders = {
-    subject: t('none'),
-    location: t('allLocations'),
-    grade: t('none'),
-    sector: t('allSectors'),
-    minRating: t('anyRating'),
-    sortBy: t('sortBy'),
+  const handleSliderChange = (value) => {
+    const updated = { ...localFilters, rateRange: value };
+    setLocalFilters(updated);
+    setFilters(updated);
+    triggerFilterUpdate?.();
   };
 
   return (
+    <>
+<motion.div
+  initial={{ y: -20, opacity: 0 }}
+  animate={{ y: 0, opacity: 1 }}
+  transition={{ duration: 0.3, delay: 0.1 }}
+  className="mb-6 p-4 rounded-xl shadow-sm bg-card/80 backdrop-blur-sm border border-border/20"
+>
+<div className="flex flex-col gap-4">
+
+  {/* Basic Filters */}
+  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
+    {/* Name Search */}
+    <div className="relative col-span-1">
+      <LabelWithIcon icon={Search} text={t('searchByName')} />
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder={t('searchByName')}
+          value={localFilters.name || ''}
+          onChange={e => handleInputChange('name', e.target.value)}
+          className="pl-10 h-10 text-sm"
+        />
+      </div>
+    </div>
+
+    {/* Subject Filter */}
+    <div className="col-span-1">
+      <LabelWithIcon icon={BookText} text={t('subject')} error={localFilters.subject === 'none'} />
+      <Select value={localFilters.subject || 'none'} onValueChange={value => handleInputChange('subject', value)}>
+        <SelectTrigger className={`h-10 text-sm w-full ${localFilters.subject === 'none' ? 'border-red-500' : ''}`}>
+          <SelectValue placeholder={t('searchBySubject')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">{t('none')}</SelectItem>
+          {uniqueSubjects.map(subject => (
+            <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+
+    {/* Grade Filter */}
+    <div className="col-span-1">
+      <LabelWithIcon icon={Users} text={t('grade')} error={localFilters.grade === 'none'} />
+      <Select value={localFilters.grade || 'none'} onValueChange={value => handleInputChange('grade', value)}>
+        <SelectTrigger className={`h-10 text-sm w-full ${localFilters.grade === 'none' ? 'border-red-500' : ''}`}>
+          <SelectValue placeholder={t('searchByGrade')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">{t('none')}</SelectItem>
+          {uniqueGrades.map(grade => (
+            <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+
+    {/* Toggle Button */}
+<button
+  onClick={() => setShowAdditional(prev => !prev)}
+  className={`group inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 transition-all duration-300 border text-sm font-medium shadow-sm w-full md:w-auto
+    ${showAdditional
+      ? 'bg-primary text-primary-foreground border-primary'
+      : 'bg-muted hover:bg-muted/80 text-muted-foreground border-border'}`}
+>
+  <motion.span
+    animate={{ rotate: showAdditional ? 180 : 0 }}
+    transition={{ duration: 0.3 }}
+    className="inline-flex"
+  >
+    <Filter className="w-4 h-4 transition-transform duration-300" />
+  </motion.span>
+  <span className="transition-all duration-300">
+    {showAdditional ? t('hideAdditionalFilters') : t('additionalFilters')}
+  </span>
+</button>
+
+  </div>
+
+  {/* Additional Filters */}
+  {showAdditional && (
     <motion.div
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.3, delay: 0.1 }}
-      className="mb-8 p-4 rounded-lg shadow-sm bg-card/80 backdrop-blur-sm border border-border/20"
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      transition={{ duration: 0.2 }}
+      className="overflow-hidden bg-muted/20 p-4 rounded-md border border-border/50 shadow-inner"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 items-end">
-        {/* Search input remains controlled by searchTerm / setSearchTerm */}
-        <div className="relative md:col-span-2 lg:col-span-1 xl:col-span-2">
-          <Search className="absolute left-3 rtl:left-auto rtl:right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder={t('searchPlaceholder')}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 rtl:pr-10 rtl:pl-3 h-10 text-sm"
-          />
-        </div>
-
-        {/* Subject Filter */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Location */}
         <div>
-          <label
-            className={`text-xs font-medium flex items-center mb-1 ${
-              tempFilters.subject === 'none'
-                ? 'text-red-600'
-                : 'text-muted-foreground'
-            }`}
-          >
-            <BookOpen size={12} className="mr-1 rtl:ml-1" />{t('subject')}
-          </label>
-          <Select
-            value={tempFilters.subject}
-            onValueChange={(value) => onTempFilterChange('subject', value)}
-          >
-            <SelectTrigger
-              className={`h-10 text-sm w-full ${
-                tempFilters.subject === 'none' ? 'border-red-600 focus:ring-red-600' : ''
-              }`}
-            >
-              <SelectValue placeholder={placeholders.subject} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">{t('none')}</SelectItem>
-              {subjectOptions
-                .filter(subject => subject.toLowerCase() !== 'all' && subject.toLowerCase() !== 'none')
-                .map(subject => (
-                  <SelectItem key={subject} value={subject} className="capitalize">
-                    {subject}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Location Filter */}
-        <div>
-          <label className="text-xs font-medium text-muted-foreground flex items-center mb-1">
-            <MapPin size={12} className="mr-1 rtl:ml-1" />{t('location')}
-          </label>
-          <Select
-            value={tempFilters.location}
-            onValueChange={(value) => onTempFilterChange('location', value)}
-          >
-            <SelectTrigger className="h-10 text-sm w-full">
-              <SelectValue placeholder={placeholders.location} />
+          <LabelWithIcon icon={MapPin} text={t('location')} />
+          <Select value={localFilters.location || 'all'} onValueChange={value => handleInputChange('location', value)}>
+            <SelectTrigger className="h-10 text-sm">
+              <SelectValue placeholder={t('searchByLocation')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('allLocations')}</SelectItem>
-              {locationOptions
-                .filter(location => location.toLowerCase() !== 'all')
-                .map(location => (
-                  <SelectItem key={location} value={location} className="capitalize">
-                    {location}
-                  </SelectItem>
-                ))}
+              {uniqueLocations.map(location => (
+                <SelectItem key={location} value={location}>{location}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Grade Filter */}
+        {/* Sector */}
         <div>
-          <label
-            className={`text-xs font-medium flex items-center mb-1 ${
-              tempFilters.grade === 'none'
-                ? 'text-red-600'
-                : 'text-muted-foreground'
-            }`}
-          >
-            <GraduationCap size={12} className="mr-1 rtl:ml-1" />{t('grade')}
-          </label>
-          <Select
-            value={tempFilters.grade}
-            onValueChange={(value) => onTempFilterChange('grade', value)}
-          >
-            <SelectTrigger
-              className={`h-10 text-sm w-full ${
-                tempFilters.grade === 'none' ? 'border-red-600 focus:ring-red-600' : ''
-              }`}
-            >
-            <SelectValue placeholder={placeholders.grade} />
+          <LabelWithIcon icon={Users} text={t('sector')} />
+          <Select value={localFilters.sector || 'all'} onValueChange={value => handleInputChange('sector', value)}>
+            <SelectTrigger className="h-10 text-sm">
+              <SelectValue placeholder={t('searchBySector')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">{t('none')}</SelectItem>
-              {gradeOptions
-                .filter(grade => grade.value !== 'none')
-                .map(grade => (
-                  <SelectItem key={grade.value} value={grade.value}>
-                    {grade.value}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Sector Filter */}
-        <div>
-          <label className="text-xs font-medium text-muted-foreground flex items-center mb-1">
-            <Users size={12} className="mr-1 rtl:ml-1" />{t('sector')}
-          </label>
-          <Select
-            value={tempFilters.sector}
-            onValueChange={(value) => onTempFilterChange('sector', value)}
-          >
-            <SelectTrigger className="h-10 text-sm w-full">
-              <SelectValue placeholder={placeholders.sector} />
-            </SelectTrigger>
-            <SelectContent>
-              {sectorOptions.map(sector => (
-                <SelectItem key={sector.value} value={sector.value}>
-                  {t(sector.labelKey)}
-                </SelectItem>
+              <SelectItem value="all">{t('allSectors')}</SelectItem>
+              {uniqueSectors.map(sector => (
+                <SelectItem key={sector} value={sector}>{sector}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -308,80 +188,62 @@ const HorizontalFilters = ({
 
         {/* Min Rating */}
         <div>
-          <label className="text-xs font-medium text-muted-foreground flex items-center mb-1">
-            <Star size={12} className="mr-1 rtl:ml-1" />{t('minRating')}
-          </label>
-          <Select
-            value={String(tempFilters.minRating)}
-            onValueChange={(value) => onTempFilterChange('minRating', Number(value))}
-          >
-            <SelectTrigger className="h-10 text-sm w-full">
-              <SelectValue placeholder={placeholders.minRating} />
+          <LabelWithIcon icon={Star} text={t('minRating')} />
+          <Select value={String(localFilters.minRating ?? 0)} onValueChange={value => handleInputChange('minRating', Number(value))}>
+            <SelectTrigger className="h-10 text-sm">
+              <SelectValue placeholder={t('anyRating')} />
             </SelectTrigger>
             <SelectContent>
               {[0, 1, 2, 3, 4, 5].map(num => (
                 <SelectItem key={num} value={String(num)}>
-                  {num === 0 ? t('anyRating') : `${num}+`} <Star size={12} className="inline ml-1 fill-secondary text-secondary" />
+                  {num === 0 ? t('anyRating') : `${num}+`} <Star className="inline ml-1 fill-secondary text-secondary" size={12} />
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Sort By */}
-        <div>
-          <label className="text-xs font-medium text-muted-foreground">{t('sortBy')}</label>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="h-10 text-sm w-full">
-              <SelectValue placeholder={placeholders.sortBy} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ratingDesc">{t('sortByRatingDesc')}</SelectItem>
-              <SelectItem value="rateAsc">{t('sortByRateAsc')}</SelectItem>
-              <SelectItem value="nameAsc">{t('sortByNameAsc')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Rate Slider */}
-        <div className="col-span-full md:col-span-2">
-          <label className="text-xs font-medium text-muted-foreground">
-            {t('monthlyRate', { min: tempFilters.rateRange[0], max: tempFilters.rateRange[1] })}
-          </label>
+        {/* Rate Range Slider */}
+        <div className="flex flex-col gap-2">
+          <LabelWithIcon icon={DollarSign} text={t('monthlyRateRange')} />
           <Slider
             min={50}
             max={2000}
             step={50}
-            value={tempFilters.rateRange}
-            onValueChange={onTempRateChange}
-            className="mt-3 mb-1"
+            value={localFilters.rateRange || [50, 2000]}
+            onValueChange={handleSliderChange}
+            className="w-full"
           />
+          <div className="text-xs text-muted-foreground">
+            {t('from')} {localFilters.rateRange?.[0] || 50} - {t('to')} {localFilters.rateRange?.[1] || 2000}
+          </div>
         </div>
-
-        {/* Apply and Reset Buttons */}
-        <Button
-          onClick={applyFilters}
-          variant="outline"
-          className={`w-full border-green-600 flex items-center justify-center gap-2 py-2 rounded-md font-semibold transition-colors duration-200
-            ${filtersChanged
-              ? 'text-white bg-green-600 shadow-lg'
-              : 'text-green-600 bg-transparent hover:bg-green-600 hover:text-white'
-            }`}
-        >
-          <CheckCircle size={18} />
-          {filtersChanged ? t('applyFilters') : t('filtersApplied')}
-        </Button>
-
-        <Button
-          variant="outline"
-          onClick={handleReset}
-          className="w-full text-red-600 border-red-600 hover:bg-red-600 hover:text-white transition-colors duration-200 flex items-center justify-center gap-2 py-2 rounded-md font-semibold"
-        >
-          <XCircle size={18} />
-          {t('resetFilters')}
-        </Button>
       </div>
     </motion.div>
+  )}
+
+</div>
+
+</motion.div>
+
+{/* Detached Sort & Rate Slider Section */}
+<div className="mt-4 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+  <div className="flex items-center gap-2">
+    <span className="font-semibold text-3xl">{t('Results')}</span>
+    <Button
+      variant="ghost"
+      size="icon"
+      className="rounded-full border border-border"
+      onClick={handleSortCycle}
+      title={t(SORT_OPTIONS[sortIndex].label)}
+    >
+      {SORT_OPTIONS[sortIndex].icon}
+    </Button>
+    <span className="text-sm text-muted-foreground">{t(SORT_OPTIONS[sortIndex].label)}</span>
+  </div>
+</div>
+
+        </>
   );
 };
 

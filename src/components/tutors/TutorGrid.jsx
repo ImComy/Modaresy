@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import TutorCard from './TutorCard';
 import { useTranslation } from 'react-i18next';
 
-const TutorGrid = ({ tutors, filters }) => {
+const TutorGrid = ({ tutors, filters, sortBy }) => {
   const { t } = useTranslation();
 
   // Show custom message if subject or grade is not selected

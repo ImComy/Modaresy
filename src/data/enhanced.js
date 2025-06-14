@@ -32,7 +32,7 @@ export const mockTutors = [
         lecturesPerWeek: 2,
         yearsExp: 8,
         price: 100,
-        rating: 2.8,
+        rating: 4.8,
         private:{
           price: 800,
           note: "Private lessons available for EGP 800 per hour. Flexible scheduling to accommodate student needs.",

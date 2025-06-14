@@ -73,7 +73,7 @@ const HomePage = () => {
               variants={fadeInUp} initial="hidden" animate="visible" custom={4}
               className="pt-3"
             >
-              <Button size="lg" onClick={() => navigate('/signup')} className="shadow-lg hover:shadow-primary/40 transition-shadow duration-300">
+              <Button size="lg" onClick={() => navigate('/filters')} className="shadow-lg hover:shadow-primary/40 transition-shadow duration-300">
                 {t('getStarted')} <Search size={18} className="ml-2 rtl:mr-2 rtl:ml-0" />
               </Button>
             </motion.div>

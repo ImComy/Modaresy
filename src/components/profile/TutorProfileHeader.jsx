@@ -186,9 +186,26 @@ const TutorProfileHeader = ({ tutor }) => {
               <MapPin size={16} className="text-primary" />
               <span className="font-medium text-foreground">{t('basedInLocation', { location: tutor.location })}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Building size={16} className="text-primary" />
-              <span className="font-medium text-foreground">{tutor.detailedLocation || t('detailedLocationNotSet')}</span>
+            <div className="flex items-start gap-2">
+              <Building size={16} className="mt-1 text-primary shrink-0" />
+              {Array.isArray(tutor.detailedLocation) ? (
+                tutor.detailedLocation.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {tutor.detailedLocation.map((location, index) => (
+                      <span
+                        key={index}
+                        className="px-2 py-0.5 rounded-full bg-muted text-sm text-muted-foreground border border-border"
+                      >
+                        {location}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">{t('detailedLocationNotSet')}</span>
+                )
+              ) : (
+                <span className="font-medium text-foreground">{tutor.detailedLocation || t('detailedLocationNotSet')}</span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Award size={16} className="text-primary" />

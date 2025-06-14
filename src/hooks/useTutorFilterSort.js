@@ -1,17 +1,66 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { mockTutors } from '@/data/enhanced';
 
+const LS_KEYS = {
+  searchTerm: 'filter-searchTerm',
+  sortBy: 'filter-sortBy',
+  filters: {
+    subject: 'filter-subject',
+    location: 'filter-location',
+    grade: 'filter-grade',
+    sector: 'filter-sector',
+    rateRange: 'filter-rateRange',
+    minRating: 'filter-minRating',
+  },
+};
+
+const getStoredValue = (key, fallback) => {
+  try {
+    const item = localStorage.getItem(key);
+    if (item === null) return fallback;
+    if (Array.isArray(fallback)) return JSON.parse(item);
+    if (typeof fallback === 'number') return parseFloat(item);
+    return item;
+  } catch {
+    return fallback;
+  }
+};
+
+const getInitialSearchTerm = () =>
+  getStoredValue(LS_KEYS.searchTerm, '');
+
+const getInitialFilters = () => ({
+  subject: getStoredValue(LS_KEYS.filters.subject, 'none'),
+  location: getStoredValue(LS_KEYS.filters.location, 'all'),
+  grade: getStoredValue(LS_KEYS.filters.grade, 'none'),
+  sector: getStoredValue(LS_KEYS.filters.sector, 'all'),
+  rateRange: getStoredValue(LS_KEYS.filters.rateRange, [50, 5000]),
+  minRating: getStoredValue(LS_KEYS.filters.minRating, 0),
+});
+
+const getInitialSortBy = () =>
+  getStoredValue(LS_KEYS.sortBy, 'ratingDesc');
+
 export const useTutorFilterSort = (initialTutors = mockTutors) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
-    subject: 'none',
-    location: 'all',
-    grade: 'none',
-    sector: 'all',
-    rateRange: [50, 5000],
-    minRating: 0,
-  });
-  const [sortBy, setSortBy] = useState('ratingDesc');
+  const [searchTerm, setSearchTerm] = useState(getInitialSearchTerm);
+  const [filters, setFilters] = useState(getInitialFilters);
+  const [sortBy, setSortBy] = useState(getInitialSortBy);
+
+  // Persist to localStorage
+  useEffect(() => {
+    localStorage.setItem(LS_KEYS.searchTerm, searchTerm);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    Object.entries(filters).forEach(([key, value]) => {
+      const storageKey = LS_KEYS.filters[key];
+      localStorage.setItem(storageKey, Array.isArray(value) ? JSON.stringify(value) : value.toString());
+    });
+  }, [filters]);
+
+  useEffect(() => {
+    localStorage.setItem(LS_KEYS.sortBy, sortBy);
+  }, [sortBy]);
 
   const handleFilterChange = (filterName, value) => {
     setFilters(prev => ({ ...prev, [filterName]: value }));
@@ -33,7 +82,6 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
 
   const filteredTutors = useMemo(() => {
     return initialTutors.filter(tutor => {
-      // Search by tutor name or any subject name
       const nameMatch = (tutor.name || '').toLowerCase().includes(searchTerm.toLowerCase());
       const subjectSearchMatch = Array.isArray(tutor.subjects)
         ? tutor.subjects.some(s =>
@@ -42,7 +90,6 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
         : false;
       const searchMatch = nameMatch || subjectSearchMatch;
 
-      // Subject filter: skip if 'none'
       const subjectFilterMatch =
         filters.subject === 'none' ||
         (Array.isArray(tutor.subjects) &&
@@ -50,12 +97,10 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
             s => (s.subject || '').toLowerCase() === filters.subject.toLowerCase()
           ));
 
-      // Location filter
       const locationFilterMatch =
         filters.location === 'all' ||
         (tutor.location || '').toLowerCase() === filters.location.toLowerCase();
 
-      // Grade filter: skip if 'none'
       const gradeFilterMatch =
         filters.grade === 'none' ||
         (Array.isArray(tutor.subjects) &&
@@ -63,7 +108,6 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
             s => (s.grade || '') === filters.grade
           ));
 
-      // Sector filter
       const sectorFilterMatch =
         filters.sector === 'all' ||
         (Array.isArray(tutor.subjects) &&
@@ -71,23 +115,23 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
             s => (s.type || '').toLowerCase() === filters.sector.toLowerCase()
           ));
 
-      // Rate filter
       const rateMatch =
-      Array.isArray(tutor.subjects) &&
-      tutor.subjects.some(
-        s =>
-          typeof s.price === 'number' &&
-          s.price >= filters.rateRange[0] &&
-          s.price <= filters.rateRange[1]
-      );
+        Array.isArray(tutor.subjects) &&
+        tutor.subjects.some(
+          s =>
+            typeof s.price === 'number' &&
+            s.price >= filters.rateRange[0] &&
+            s.price <= filters.rateRange[1]
+        );
 
-    const ratingMatch =
-      Array.isArray(tutor.subjects) &&
-      tutor.subjects.some(
-        s =>
-          typeof s.rating === 'number' &&
-          s.rating >= filters.minRating
-      );
+      const ratingMatch =
+        Array.isArray(tutor.subjects) &&
+        tutor.subjects.some(
+          s =>
+            typeof s.rating === 'number' &&
+            s.rating >= filters.minRating
+        );
+
       return (
         searchMatch &&
         subjectFilterMatch &&
@@ -114,6 +158,9 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
         break;
       case 'nameAsc':
         sorted.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'nameDesc':
+        sorted.sort((a, b) => b.name.localeCompare(a.name));
         break;
       default:
         break;
