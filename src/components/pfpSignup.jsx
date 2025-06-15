@@ -2,17 +2,18 @@ import React, { useState, useEffect, useRef } from "react";
 import BannerCropOverlay from "./ui/cropper";
 import { Button } from '@/components/ui/button';
 
-export default function PfpUploadWithCrop({ formData, setFormData }) {
+export default function PfpUploadWithCrop({ formData, setFormData, defaultPfpUrl = null }) {
   const [rawImage, setRawImage] = useState(null);
   const [cropperVisible, setCropperVisible] = useState(false);
   const [fileName, setFileName] = useState("");
-  const fileInputRef = useRef(null); // <-- Add this line
+  const fileInputRef = useRef(null);
 
-  // Cleanup Object URLs
   useEffect(() => {
     return () => {
       if (rawImage) URL.revokeObjectURL(rawImage);
-      if (formData.pfp) URL.revokeObjectURL(URL.createObjectURL(formData.pfp));
+      if (formData.pfp instanceof File) {
+        URL.revokeObjectURL(URL.createObjectURL(formData.pfp));
+      }
     };
   }, [rawImage, formData.pfp]);
 
@@ -29,20 +30,46 @@ export default function PfpUploadWithCrop({ formData, setFormData }) {
   function handleCrop(croppedFile) {
     setFormData((prev) => ({
       ...prev,
-      pfp: croppedFile,
+      img: croppedFile,
     }));
     setCropperVisible(false);
     if (rawImage) URL.revokeObjectURL(rawImage);
     setRawImage(null);
-    if (fileInputRef.current) fileInputRef.current.value = ""; // <-- Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function handleCancel() {
     setCropperVisible(false);
     if (rawImage) URL.revokeObjectURL(rawImage);
     setRawImage(null);
-    if (fileInputRef.current) fileInputRef.current.value = ""; // <-- Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
+
+  const renderImage = () => {
+    if (formData.img instanceof File) {
+      return (
+        <img
+          src={URL.createObjectURL(formData.img)}
+          alt="Profile Preview"
+          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+        />
+      );
+    } else if (defaultPfpUrl) {
+      return (
+        <img
+          src={defaultPfpUrl}
+          alt="Default Profile"
+          className="w-full h-full object-cover opacity-60"
+        />
+      );
+    } else {
+      return (
+        <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+          No image
+        </div>
+      );
+    }
+  };
 
   return (
     <div>
@@ -51,17 +78,7 @@ export default function PfpUploadWithCrop({ formData, setFormData }) {
       </label>
       <div className="flex items-center gap-5 mt-3 ">
         <div className="w-20 h-20 rounded-md overflow-hidden border border-border bg-muted shadow-sm">
-          {formData.pfp ? (
-            <img
-              src={URL.createObjectURL(formData.pfp)}
-              alt="Profile Preview"
-              className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-              No image
-            </div>
-          )}
+          {renderImage()}
         </div>
         <div className="flex flex-col gap-1 cursor-pointer">
           <Button className="cursor-pointer relative max-w-20">
@@ -72,18 +89,17 @@ export default function PfpUploadWithCrop({ formData, setFormData }) {
               id="pfp"
               className="absolute inset-0 opacity-0 cursor-pointer"
               onChange={onFileChange}
-              ref={fileInputRef} // <-- Add this line
+              ref={fileInputRef}
             />
           </Button>
           {(rawImage || formData.pfp) && (
             <span className="text-sm text-muted-foreground truncate max-w-[14rem]">
-              {fileName || (formData.pfp && formData.pfp.name)}
+              {fileName || (formData.pfp?.name || '')}
             </span>
           )}
         </div>
       </div>
 
-      {/* Cropper Overlay */}
       {cropperVisible && (
         <BannerCropOverlay
           rawImage={rawImage}

@@ -81,11 +81,14 @@ const TutorProfileHeader = ({ tutor }) => {
     <Card className=" shadow-xl bg-gradient-to-br from-primary/5 to-primary/10">
     <div className="relative h-48 md:h-64 rounded-t-lg overflow-hidden">
       <img
-        src={tutor.bannerimg || 'https://placehold.co/600x400'}
+        src={
+          tutor.bannerimg instanceof File
+            ? URL.createObjectURL(tutor.bannerimg)
+            : tutor.bannerimg || 'https://placehold.co/600x400'
+        }
         alt={tutor.name}
         className="w-full h-full object-cover"
       />
-
       {/* Current Achievements on banner */}
       <div className="absolute top-2 left-2 z-20 flex flex-wrap gap-2">
         {tutor.achievements
@@ -126,8 +129,15 @@ const TutorProfileHeader = ({ tutor }) => {
           <div className="flex flex-col items-center gap-4 text-center -mt-20 md:mt-0 z-10">
             <div className="w-40 h-40 border-2 border-primary rounded-md shadow">
               <Avatar className="w-full h-full rounded-sm ">
-                <AvatarImage src={tutor.img} alt={tutor.name} />
-                <AvatarFallback className="text-3xl">
+                <AvatarImage
+                  src={
+                    tutor.img instanceof File
+                      ? URL.createObjectURL(tutor.img)
+                      : tutor.img
+                  }
+                  alt={tutor.name}
+                />
+                <AvatarFallback className="text-3xl rounded-sm">
                   {tutor.name?.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>

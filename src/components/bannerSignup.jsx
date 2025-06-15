@@ -2,11 +2,11 @@ import React, { useState, useRef } from "react";
 import BannerCropOverlay from "./ui/cropper";
 import { Button } from '@/components/ui/button';
 
-export default function BannerUploadWithCrop({ formData, setFormData }) {
+export default function BannerUploadWithCrop({ formData, setFormData, defaultBannerUrl = null }) {
   const [rawImage, setRawImage] = useState(null);
   const [cropperVisible, setCropperVisible] = useState(false);
   const [fileName, setFileName] = useState("");
-  const fileInputRef = useRef(null); // <-- Add this line
+  const fileInputRef = useRef(null);
 
   function onFileChange(e) {
     const file = e.target.files?.[0];
@@ -21,20 +21,46 @@ export default function BannerUploadWithCrop({ formData, setFormData }) {
   function handleCrop(croppedFile) {
     setFormData((prev) => ({
       ...prev,
-      banner: croppedFile,
+      bannerimg: croppedFile,
     }));
     setCropperVisible(false);
     if (rawImage) URL.revokeObjectURL(rawImage);
     setRawImage(null);
-    if (fileInputRef.current) fileInputRef.current.value = ""; // <-- Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function handleCancel() {
     setCropperVisible(false);
     if (rawImage) URL.revokeObjectURL(rawImage);
     setRawImage(null);
-    if (fileInputRef.current) fileInputRef.current.value = ""; // <-- Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
+
+  const renderBannerPreview = () => {
+    if (formData.bannerimg instanceof File) {
+      return (
+        <img
+          src={URL.createObjectURL(formData.bannerimg)}
+          alt="Banner Preview"
+          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+        />
+      );
+    } else if (defaultBannerUrl) {
+      return (
+        <img
+          src={defaultBannerUrl}
+          alt="Default Banner"
+          className="w-full h-full object-cover opacity-60"
+        />
+      );
+    } else {
+      return (
+        <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
+          No banner uploaded
+        </div>
+      );
+    }
+  };
 
   return (
     <div>
@@ -42,20 +68,10 @@ export default function BannerUploadWithCrop({ formData, setFormData }) {
         Banner Image
       </label>
       <div className="mt-3 rounded-lg overflow-hidden border border-border bg-muted h-40 shadow-sm">
-        {formData.banner ? (
-          <img
-            src={URL.createObjectURL(formData.banner)}
-            alt="Banner Preview"
-            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
-            No banner uploaded
-          </div>
-        )}
+        {renderBannerPreview()}
       </div>
       <div className="flex items-center gap-3 mt-3">
-        <Button className="">
+        <Button className="relative">
           Upload Banner
           <input
             type="file"
@@ -63,7 +79,7 @@ export default function BannerUploadWithCrop({ formData, setFormData }) {
             id="banner"
             className="absolute inset-0 opacity-0 cursor-pointer"
             onChange={onFileChange}
-            ref={fileInputRef} // <-- Add this line
+            ref={fileInputRef}
           />
         </Button>
         {(rawImage || formData.banner) && (

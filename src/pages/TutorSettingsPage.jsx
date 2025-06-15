@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Card, CardHeader, CardTitle, CardContent,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Mail, Phone, MapPin, User } from 'lucide-react';
-import clsx from 'clsx';
-import TutorProfileHeader from '@/components/profile/TutorProfileHeader';
 import { Save } from 'lucide-react';
+import NavigationCard from '@/components/tutorSettings/nav';
+import AccountSection from '@/components/tutorSettings/account';
+import GeneralSection from '@/components/tutorSettings/general';
+import SubjectsSection from '@/components/tutorSettings/subjects';
+import SocialsSection from '@/components/tutorSettings/social';
+import TutorProfileHeader from '@/components/profile/TutorProfileHeader';
+import { Button } from '@/components/ui/button';
 
 const defaultForm = {
   name: 'Ahmed Hassan',
@@ -18,21 +16,26 @@ const defaultForm = {
   password: '',
   confirmPassword: '',
   location: 'Cairo',
-  generalBio: 'Experienced Mathematics tutor with over 8 years...',
-};  
+  generalBio: "Experienced Mathematics tutor with over 8 years of teaching high school and university students. Passionate about making complex concepts understandable and helping students build strong problem-solving skills. Proven track record of improving grades and boosting confidence. My approach focuses on identifying individual student needs and tailoring lessons accordingly. I utilize various teaching methods, including visual aids and real-world examples, to ensure comprehension and retention.",
+  detailedLocation: ['Dokki, Giza', 'elMansoura, Dakahlia'],
+  img: "/pfp.png",
+  bannerimg: "/52e7d04b4a52a814f1dc8460962e33791c3ad6e04e5074417d2d73dc934fcc_640.jpg",
+};
 
 const requiredFields = {
   account: ['name', 'email', 'phone'],
-  general: ['location', 'generalBio'],
+  general: ['location', 'generalBio', 'detailedLocation'],
+};
+const optionalFields = {
+  account: ['password', 'confirmPassword'],
+  general: ['img', 'bannerimg'],
 };
 
 const navItems = [
   { id: 'account', label: 'Account & Security' },
   { id: 'general', label: 'General Info' },
   { id: 'subjects', label: 'Subjects' },
-  { id: 'videos', label: 'Videos' },
   { id: 'socials', label: 'Social Links' },
-  { id: 'groups', label: 'Groups' },
 ];
 
 const TutorSettingsPage = () => {
@@ -121,21 +124,29 @@ const TutorSettingsPage = () => {
         ]
       }
     ]
-  });
+  }); 
+const [subjects, setSubjects] = useState([]);
+
+useEffect(() => {
+  setSubjects(tutor.subjects || []);
+}, [tutor]);
   const [form, setForm] = useState(defaultForm);
-    const liveTutor = {
+  const [touched, setTouched] = useState({});
+  const [selectedSection, setSelectedSection] = useState('account');
+  const [isSaving, setIsSaving] = useState(false);
+
+
+  const liveTutor = {
     ...tutor,
     name: form.name,
     email: form.email,
     phone: form.phone,
     location: form.location,
     GeneralBio: form.generalBio,
-    };
-
-
-  
-  const [touched, setTouched] = useState({});
-  const [selectedSection, setSelectedSection] = useState('account');
+    detailedLocation: form.detailedLocation || [],
+    img: form.pfp || form.img,
+    bannerimg: form.banner || form.bannerimg,
+  };
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -143,50 +154,118 @@ const TutorSettingsPage = () => {
     setTouched((prev) => ({ ...prev, [id]: true }));
   };
 
-  const hasUnsavedChanges = (tabId) => {
-    return requiredFields[tabId]?.some((key) => touched[key]);
-  };
+const hasUnsavedChanges = (tabId) => {
+  const required = requiredFields[tabId] || [];
+  const optional = optionalFields[tabId] || [];
+  const keys = [...required, ...optional];
 
-    const hasMissingRequired = (tabId) => {
-    return requiredFields[tabId]?.some((key) => touched[key] && !form[key]?.trim());
-    };
+  return keys.some((key) => {
+    const original = defaultForm[key];
+    const current = form[key];
 
-  const renderNavItem = (item) => {
-    const hasChanges = hasUnsavedChanges(item.id);
-    const hasErrors = hasMissingRequired(item.id);
+    if (typeof original === 'string' && typeof current === 'string') {
+      return original.trim() !== current.trim();
+    }
 
-    return (
-      <Button
-        key={item.id}
-        variant={selectedSection === item.id ? 'default' : 'ghost'}
-        onClick={() => setSelectedSection(item.id)}
-        className={clsx(
-          'w-full justify-between relative group',
-          hasErrors && 'text-red-600'
-        )}
-      >
-        <span>{item.label}</span>
-        {hasChanges && !hasErrors && (
-          <span className="w-2 h-2 bg-yellow-500 rounded-full absolute right-3 top-2" />
-        )}
-        {hasErrors && (
-          <span className="w-2 h-2 bg-red-600 rounded-full absolute right-3 top-2 animate-ping" />
-        )}
-      </Button>
-    );
-  };
+    if (Array.isArray(original) && Array.isArray(current)) {
+      return (
+        original.length !== current.length ||
+        original.some((val, i) => val.trim() !== current[i]?.trim())
+      );
+    }
 
-      const [isSaving, setIsSaving] = useState(false); // At top of component
+    return original !== current;
+  });
+};
+
+const hasMissingRequired = (tabId) => {
+  return requiredFields[tabId]?.some((key) => {
+    const value = form[key];
+    if (key === 'detailedLocation') {
+      return !value?.length || value.some((loc) => !loc?.trim());
+    }
+    return !value?.trim();
+  });
+};
 
 const handleSubmit = (e) => {
   e.preventDefault();
+
+  const currentRequired = requiredFields[selectedSection];
+  let invalid = false;
+
+  const updatedTouched = { ...touched };
+  currentRequired?.forEach((field) => {
+    updatedTouched[field] = true;
+
+    if (field === 'detailedLocation') {
+      if (!form.detailedLocation?.length || form.detailedLocation.some((loc) => !loc.trim())) {
+        invalid = true;
+      }
+    } else if (!form[field]?.trim()) {
+      invalid = true;
+    }
+  });
+
+  setTouched(updatedTouched);
+
+  if (invalid) return; // block submit
+
   setIsSaving(true);
-  // Simulate save delay
   setTimeout(() => {
     setIsSaving(false);
-    // Add your save logic here
+    // Perform save
   }, 2000);
 };
+
+
+const getFieldErrorClasses = (field) => {
+  const value = form[field];
+  const isEmpty =
+    touched[field] &&
+    (
+      typeof value === 'string'
+        ? !value.trim()
+        : Array.isArray(value)
+        ? value.length === 0 || value.every((v) => !v.trim?.())
+        : !value
+    );
+
+  return {
+    label: isEmpty ? 'text-red-600' : '',
+    input: isEmpty ? 'border-red-500' : '',
+  };
+};
+
+
+const handleAddDetailedLocation = () => {
+  if (form.detailedLocation.length < 3) {
+    setForm((prev) => ({
+      ...prev,
+      detailedLocation: [...prev.detailedLocation, ''],
+    }));
+    setTouched((prev) => ({ ...prev, detailedLocation: true })); // ✅
+  }
+};
+
+const handleRemoveDetailedLocation = (index) => {
+  setForm((prev) => ({
+    ...prev,
+    detailedLocation: prev.detailedLocation.filter((_, i) => i !== index),
+  }));
+  setTouched((prev) => ({ ...prev, detailedLocation: true })); // ✅
+};
+
+const handleDetailedLocationChange = (index, value) => {
+  const updated = [...form.detailedLocation];
+  updated[index] = value;
+  setForm((prev) => ({
+    ...prev,
+    detailedLocation: updated,
+  }));
+  setTouched((prev) => ({ ...prev, detailedLocation: true })); // ✅ mark as touched
+};
+
 
   return (
     <motion.div
@@ -195,134 +274,57 @@ const handleSubmit = (e) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      {/* Sidebar Nav */}
-      <div className="order-1 lg:order-2 space-y-4 lg:sticky lg:top-24 h-fit">
-        <Card className="bg-muted/40 border">
-          <CardHeader>
-            <CardTitle className="text-lg">Navigation</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {navItems.map(renderNavItem)}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Section Area */}
-      <form className="order-2 lg:order-1 space-y-6" onSubmit={handleSubmit} >
+      <NavigationCard
+        navItems={navItems}
+        selectedSection={selectedSection}
+        setSelectedSection={setSelectedSection}
+        hasUnsavedChanges={hasUnsavedChanges}
+        hasMissingRequired={hasMissingRequired}
+      />
+      <form className="order-2 lg:order-1 space-y-6" onSubmit={handleSubmit}>
         <h1 className="text-3xl font-bold mb-4">Tutor Settings</h1>
-
         {selectedSection === 'account' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5 text-primary" /> Account & Security
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="name">Name *</Label>
-                <Input id="name" value={form.name} onChange={handleChange} />
-              </div>
-              <div>
-                <Label htmlFor="email">Email *</Label>
-                <Input id="email" value={form.email} onChange={handleChange} />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone *</Label>
-                <Input id="phone" value={form.phone} onChange={handleChange} />
-              </div>
-              <div>
-                <Label htmlFor="password">Password *</Label>
-                <Input id="password" value={form.password} onChange={handleChange} />
-              </div>
-              <div>
-                <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                <Input id="confirmPassword" value={form.confirmPassword} onChange={handleChange} />
-              </div>
-            </CardContent>
-          </Card>
+          <AccountSection form={form} handleChange={handleChange} getFieldErrorClasses={getFieldErrorClasses} />
         )}
-
         {selectedSection === 'general' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5 text-primary" /> General Info
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="relative">
-                <Label htmlFor="location">Location *</Label>
-                <Input id="location" value={form.location} onChange={handleChange} />
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="generalBio">General Bio *</Label>
-                <textarea
-                  id="generalBio"
-                  rows={5}
-                  value={form.generalBio}
-                  onChange={handleChange}
-                  className="w-full border rounded-md p-3 text-sm bg-background text-foreground"
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <GeneralSection
+            form={form}
+            handleChange={handleChange}
+            getFieldErrorClasses={getFieldErrorClasses}
+            handleAddDetailedLocation={handleAddDetailedLocation}
+            handleDetailedLocationChange={handleDetailedLocationChange}
+            handleRemoveDetailedLocation={handleRemoveDetailedLocation}
+            touched={touched} 
+            setForm={setForm}
+            defaultForm={defaultForm} 
+          />
         )}
-
-        {selectedSection === 'subjects' && (
-          <Card>
-            <CardHeader><CardTitle>Subjects</CardTitle></CardHeader>
-            <CardContent>Subject editing component goes here.</CardContent>
-          </Card>
+        {selectedSection === 'subjects' && <SubjectsSection subjects={subjects} onChange={setSubjects} />}
+        {selectedSection === 'socials' && <SocialsSection />}
+        {['account', 'general'].includes(selectedSection) && (
+            <>
+          <h3 className="text-xl font-bold mt-20">Live Tutor Profile</h3>
+          <TutorProfileHeader tutor={liveTutor} />
+          </>
         )}
-
-        {selectedSection === 'videos' && (
-          <Card>
-            <CardHeader><CardTitle>Videos</CardTitle></CardHeader>
-            <CardContent>Video manager component goes here.</CardContent>
-          </Card>
-        )}
-
-        {selectedSection === 'socials' && (
-          <Card>
-            <CardHeader><CardTitle>Social Links</CardTitle></CardHeader>
-            <CardContent>Social links form goes here.</CardContent>
-          </Card>
-        )}
-
-        {selectedSection === 'groups' && (
-          <Card>
-            <CardHeader><CardTitle>Groups</CardTitle></CardHeader>
-            <CardContent>Group management UI goes here.</CardContent>
-          </Card>
-        )}
-
-        {/* preview */}
-        {['account', 'general', 'subjects'].includes(selectedSection) && (
-        <>
-            <h3 className="text-3xl font-bold mb-4">Live Preview</h3>
-            <TutorProfileHeader tutor={liveTutor} />
-        </>
-        )}
-
         <div className="pt-6 flex justify-start">
-            <Button
+          <Button
             type="submit"
             disabled={isSaving}
             className="gap-2 px-6 py-2 text-sm font-semibold transition-colors bg-primary hover:bg-primary/90"
-            >
+          >
             {isSaving ? (
-                <>
+              <>
                 <span className="animate-spin rounded-full border-2 border-white border-t-transparent w-4 h-4" />
                 Saving...
-                </>
+              </>
             ) : (
-                <>
+              <>
                 <Save className="w-4 h-4" />
                 Save Changes
-                </>
+              </>
             )}
-            </Button>
+          </Button>
         </div>
       </form>
     </motion.div>
