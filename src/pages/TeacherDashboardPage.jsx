@@ -24,14 +24,15 @@ const TeacherDashboardPage = () => {
   ];
 
   return (
-    <div className="space-y-8 p-6">
+    <div className="p-3 md:p-6 lg:p-8 space-y-6">
+      {/* Header Section */}
       <section className="space-y-2">
         <h1 className="text-4xl font-extrabold tracking-tight text-primary">{t('teacherDashboard')}</h1>
         <p className="text-lg text-muted-foreground">{t('dashboardOverview')}</p>
       </section>
 
       {/* Navigation Buttons */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 p-10 bg-muted/20 rounded-lg shadow-lg">
         {sections.map((section) => (
           <motion.button
             key={section.id}

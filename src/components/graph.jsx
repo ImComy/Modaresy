@@ -46,7 +46,7 @@ const BasicLineChart = ({
     const updateDimensions = () => {
       const newWidth = containerRef.current?.offsetWidth || 300;
       const screenHeight = window.innerHeight;
-      const newHeight = Math.max(350, Math.min(500, screenHeight * 0.3));
+      const newHeight = Math.max(290, Math.min(500, screenHeight * 0.3));
       setWidth(newWidth);
       setHeight(newHeight);
     };
