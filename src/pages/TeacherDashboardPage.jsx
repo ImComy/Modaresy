@@ -32,7 +32,7 @@ const TeacherDashboardPage = () => {
       </section>
 
       {/* Navigation Buttons */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 p-10 bg-muted/20 rounded-lg shadow-lg">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 p-3 bg-muted/20 rounded-lg shadow-lg">
         {sections.map((section) => (
           <motion.button
             key={section.id}
