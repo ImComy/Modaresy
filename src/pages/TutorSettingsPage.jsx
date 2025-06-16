@@ -73,68 +73,22 @@ const TutorSettingsPage = () => {
         grade: "11",
         type: "General - scientific",
         bio: "Experienced Mathematics tutor...",
-        duration: 60,
-        lecturesPerWeek: 2,
         yearsExp: 8,
-        price: 100,
-        rating: 4.8,
-        private: {
-          price: 800,
-          note: "Private lessons available...",
-        },
-        offer: {
-          percentage: 20,
-          from: "2025-01-01",
-          to: "2025-06-30",
-          description: "20% off for new students until June 30, 2025",
-          for: "private",
-        },
-        Groups: [
-          {
-            groupName: "Group A",
-            days: ["Monday", "Wednesday"],
-            time: "5:00 PM - 6:30 PM",
-            isFull: false,
-            note: "Available for new students",
-          },
-          {
-            groupName: "Group B",
-            days: ["Saturday"],
-            time: "2:00 PM - 3:30 PM",
-            isFull: true,
-          },
-        ],
-        introVideoUrl: "https://www.youtube.com/embed/tgbNymZ7vqY",
-        otherVideos: [
-          { id: 'v1a', title: "Solving Quadratic Equations", url: "https://www.youtube.com/embed/tgbNymZ7vqY" },
-          { id: 'v1b', title: "Introduction to Calculus", url: "https://www.youtube.com/embed/tgbNymZ7vqY" },
-        ],
-        comments: [
-          { id: 1, user: "Student A", rating: 5, text: "1", date: "2025-04-15" },
-          { id: 2, user: "Parent B", rating: 4, text: "Very patient...", date: "2025-03-20" },
-          { id: 3, user: "Student C", rating: 5, text: "Highly recommended...", date: "2025-02-10" },
-        ],
-        courseContent: [
-          "Algebra I & II",
-          "Geometry",
-          "Trigonometry",
-          "Pre-Calculus",
-          "Calculus I",
-          "Exam Preparation (Thanaweya Amma, SAT)"
-        ]
-      }
-    ]
-  }); 
-const [subjects, setSubjects] = useState([]);
+      },
+    ],
+  });
 
-useEffect(() => {
-  setSubjects(tutor.subjects || []);
-}, [tutor]);
   const [form, setForm] = useState(defaultForm);
+  const [subjects, setSubjects] = useState([]);
+  const [socialLinks, setSocialLinks] = useState(tutor.socials || {});
   const [touched, setTouched] = useState({});
   const [selectedSection, setSelectedSection] = useState('account');
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    setSubjects(tutor.subjects || []);
+    setSocialLinks(tutor.socials || {});
+  }, [tutor]);
 
   const liveTutor = {
     ...tutor,
@@ -154,118 +108,191 @@ useEffect(() => {
     setTouched((prev) => ({ ...prev, [id]: true }));
   };
 
-const hasUnsavedChanges = (tabId) => {
-  const required = requiredFields[tabId] || [];
-  const optional = optionalFields[tabId] || [];
-  const keys = [...required, ...optional];
+  const handleSocialChange = (platform, value) => {
+    setSocialLinks((prev) => ({
+      ...prev,
+      [platform]: value,
+    }));
+    setTouched((prev) => ({ ...prev, socials: true }));
+  };
 
-  return keys.some((key) => {
-    const original = defaultForm[key];
-    const current = form[key];
-
-    if (typeof original === 'string' && typeof current === 'string') {
-      return original.trim() !== current.trim();
+  const handleAddDetailedLocation = () => {
+    if (form.detailedLocation.length < 3) {
+      setForm((prev) => ({
+        ...prev,
+        detailedLocation: [...prev.detailedLocation, ''],
+      }));
+      setTouched((prev) => ({ ...prev, detailedLocation: true }));
     }
+  };
 
-    if (Array.isArray(original) && Array.isArray(current)) {
+  const handleRemoveDetailedLocation = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      detailedLocation: prev.detailedLocation.filter((_, i) => i !== index),
+    }));
+    setTouched((prev) => ({ ...prev, detailedLocation: true }));
+  };
+
+  const handleDetailedLocationChange = (index, value) => {
+    const updated = [...form.detailedLocation];
+    updated[index] = value;
+    setForm((prev) => ({
+      ...prev,
+      detailedLocation: updated,
+    }));
+    setTouched((prev) => ({ ...prev, detailedLocation: true }));
+  };
+
+  const hasUnsavedChanges = (tabId) => {
+    if (tabId === 'subjects') {
+      const initialSubjects = tutor.subjects || [];
+      const currentSubjects = subjects || [];
+      if (initialSubjects.length !== currentSubjects.length) return true;
+      return initialSubjects.some((initial, i) => {
+        const current = currentSubjects[i] || {};
+        // Normalize values to handle undefined/null and ensure accurate comparison
+        const normalize = (val) => (val == null ? '' : String(val).trim());
+        return (
+          normalize(initial.subject) !== normalize(current.subject) ||
+          normalize(initial.grade) !== normalize(current.grade) ||
+          normalize(initial.type) !== normalize(current.type) ||
+          normalize(initial.bio) !== normalize(current.bio) ||
+          normalize(initial.yearsExp) !== normalize(current.yearsExp)
+        );
+      });
+    } else if (tabId === 'socials') {
+      const initialSocials = tutor.socials || {};
+      const currentSocials = socialLinks || {};
+      const normalize = (val) => (val == null ? '' : String(val).trim());
       return (
-        original.length !== current.length ||
-        original.some((val, i) => val.trim() !== current[i]?.trim())
+        normalize(initialSocials.youtube) !== normalize(currentSocials.youtube) ||
+        normalize(initialSocials.twitter) !== normalize(currentSocials.twitter) ||
+        normalize(initialSocials.facebook) !== normalize(currentSocials.facebook) ||
+        normalize(initialSocials.linkedin) !== normalize(currentSocials.linkedin) ||
+        normalize(initialSocials.instagram) !== normalize(currentSocials.instagram)
       );
     }
 
-    return original !== current;
-  });
-};
+    const required = requiredFields[tabId] || [];
+    const optional = optionalFields[tabId] || [];
+    const keys = [...required, ...optional];
 
-const hasMissingRequired = (tabId) => {
-  return requiredFields[tabId]?.some((key) => {
-    const value = form[key];
-    if (key === 'detailedLocation') {
-      return !value?.length || value.some((loc) => !loc?.trim());
+    return keys.some((key) => {
+      const original = defaultForm[key];
+      const current = form[key];
+      if (typeof original === 'string' && typeof current === 'string') {
+        return original.trim() !== current.trim();
+      }
+      if (Array.isArray(original) && Array.isArray(current)) {
+        return (
+          original.length !== current.length ||
+          original.some((val, i) => val.trim() !== (current[i] || '').trim())
+        );
+      }
+      return original !== current;
+    });
+  };
+
+  const isMissing = (val) => typeof val !== 'string' || val.trim() === '' || val == null;
+
+  const hasMissingRequired = (tabId) => {
+    if (tabId === 'subjects') {
+      if (subjects.length === 0) return true;
+      const firstSubject = subjects[0] || {};
+      return (
+        isMissing(firstSubject.subject) ||
+        isMissing(firstSubject.grade) ||
+        isMissing(firstSubject.type) ||
+        isMissing(firstSubject.bio) ||
+        isMissing(firstSubject.yearsExp)
+      );
     }
-    return !value?.trim();
-  });
-};
 
-const handleSubmit = (e) => {
-  e.preventDefault();
+    if (tabId === 'socials') {
+      return (
+        isMissing(socialLinks.youtube) &&
+        isMissing(socialLinks.twitter) &&
+        isMissing(socialLinks.facebook) &&
+        isMissing(socialLinks.linkedin) &&
+        isMissing(socialLinks.instagram)
+      );
+    }
 
-  const currentRequired = requiredFields[selectedSection];
-  let invalid = false;
+    return requiredFields[tabId]?.some((key) => {
+      const value = form[key];
+      if (key === 'detailedLocation') {
+        return !Array.isArray(value) || value.some((loc) => isMissing(loc));
+      }
+      return isMissing(value);
+    });
+  };
 
-  const updatedTouched = { ...touched };
-  currentRequired?.forEach((field) => {
-    updatedTouched[field] = true;
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const currentRequired = requiredFields[selectedSection] || [];
+    let invalid = false;
 
-    if (field === 'detailedLocation') {
-      if (!form.detailedLocation?.length || form.detailedLocation.some((loc) => !loc.trim())) {
+    const updatedTouched = { ...touched };
+    currentRequired.forEach((field) => {
+      updatedTouched[field] = true;
+      if (field === 'detailedLocation') {
+        if (!form.detailedLocation?.length || form.detailedLocation.some((loc) => !loc.trim())) {
+          invalid = true;
+        }
+      } else if (!form[field]?.trim()) {
         invalid = true;
       }
-    } else if (!form[field]?.trim()) {
-      invalid = true;
+    });
+
+    if (selectedSection === 'subjects') {
+      if (subjects.length === 0) {
+        invalid = true;
+      } else {
+        const firstSubject = subjects[0] || {};
+        if (
+          isMissing(firstSubject.subject) ||
+          isMissing(firstSubject.grade) ||
+          isMissing(firstSubject.type) ||
+          isMissing(firstSubject.bio) ||
+          isMissing(firstSubject.yearsExp)
+        ) {
+          invalid = true;
+        }
+      }
+      updatedTouched.subjects = true;
     }
-  });
 
-  setTouched(updatedTouched);
+    setTouched(updatedTouched);
+    if (invalid) return;
 
-  if (invalid) return; // block submit
+    setIsSaving(true);
+    setTimeout(() => {
+      setTutor((prev) => ({
+        ...prev,
+        ...form,
+        subjects: subjects,
+        socials: socialLinks,
+      }));
+      setIsSaving(false);
+    }, 2000);
+  };
 
-  setIsSaving(true);
-  setTimeout(() => {
-    setIsSaving(false);
-    // Perform save
-  }, 2000);
-};
-
-
-const getFieldErrorClasses = (field) => {
-  const value = form[field];
-  const isEmpty =
-    touched[field] &&
-    (
-      typeof value === 'string'
+  const getFieldErrorClasses = (field) => {
+    const value = form[field];
+    const isEmpty =
+      touched[field] &&
+      (typeof value === 'string'
         ? !value.trim()
         : Array.isArray(value)
         ? value.length === 0 || value.every((v) => !v.trim?.())
-        : !value
-    );
+        : !value);
 
-  return {
-    label: isEmpty ? 'text-red-600' : '',
-    input: isEmpty ? 'border-red-500' : '',
+    return {
+      label: isEmpty ? 'text-red-600' : '',
+      input: isEmpty ? 'border-red-500' : '',
+    };
   };
-};
-
-
-const handleAddDetailedLocation = () => {
-  if (form.detailedLocation.length < 3) {
-    setForm((prev) => ({
-      ...prev,
-      detailedLocation: [...prev.detailedLocation, ''],
-    }));
-    setTouched((prev) => ({ ...prev, detailedLocation: true })); // ✅
-  }
-};
-
-const handleRemoveDetailedLocation = (index) => {
-  setForm((prev) => ({
-    ...prev,
-    detailedLocation: prev.detailedLocation.filter((_, i) => i !== index),
-  }));
-  setTouched((prev) => ({ ...prev, detailedLocation: true })); // ✅
-};
-
-const handleDetailedLocationChange = (index, value) => {
-  const updated = [...form.detailedLocation];
-  updated[index] = value;
-  setForm((prev) => ({
-    ...prev,
-    detailedLocation: updated,
-  }));
-  setTouched((prev) => ({ ...prev, detailedLocation: true })); // ✅ mark as touched
-};
-
 
   return (
     <motion.div
@@ -284,7 +311,11 @@ const handleDetailedLocationChange = (index, value) => {
       <form className="order-2 lg:order-1 space-y-6" onSubmit={handleSubmit}>
         <h1 className="text-3xl font-bold mb-4">Tutor Settings</h1>
         {selectedSection === 'account' && (
-          <AccountSection form={form} handleChange={handleChange} getFieldErrorClasses={getFieldErrorClasses} />
+          <AccountSection
+            form={form}
+            handleChange={handleChange}
+            getFieldErrorClasses={getFieldErrorClasses}
+          />
         )}
         {selectedSection === 'general' && (
           <GeneralSection
@@ -294,17 +325,42 @@ const handleDetailedLocationChange = (index, value) => {
             handleAddDetailedLocation={handleAddDetailedLocation}
             handleDetailedLocationChange={handleDetailedLocationChange}
             handleRemoveDetailedLocation={handleRemoveDetailedLocation}
-            touched={touched} 
+            touched={touched}
             setForm={setForm}
-            defaultForm={defaultForm} 
+            defaultForm={defaultForm}
           />
         )}
-        {selectedSection === 'subjects' && <SubjectsSection subjects={subjects} onChange={setSubjects} />}
-        {selectedSection === 'socials' && <SocialsSection />}
+        {selectedSection === 'subjects' && (
+          <SubjectsSection
+            subjects={subjects}
+            onChange={setSubjects}
+            errors={subjects.map((subj, idx) =>
+              idx === 0
+                ? {
+                    subject: touched.subjects && isMissing(subj.subject),
+                    grade: touched.subjects && isMissing(subj.grade),
+                    type: touched.subjects && isMissing(subj.type),
+                    bio: touched.subjects && isMissing(subj.bio),
+                    yearsExp: touched.subjects && isMissing(subj.yearsExp),
+                  }
+                : {}
+            )}
+          />
+        )}
+        {selectedSection === 'socials' && (
+          <SocialsSection
+            socialLinks={socialLinks}
+            onSocialChange={handleSocialChange}
+            getFieldErrorClasses={getFieldErrorClasses}
+            touched={touched}
+            setTouched={setTouched}
+            
+          />
+        )}
         {['account', 'general'].includes(selectedSection) && (
-            <>
-          <h3 className="text-xl font-bold mt-20">Live Tutor Profile</h3>
-          <TutorProfileHeader tutor={liveTutor} />
+          <>
+            <h3 className="text-xl font-bold mt-20">Live Tutor Profile</h3>
+            <TutorProfileHeader tutor={liveTutor} />
           </>
         )}
         <div className="pt-6 flex justify-start">
