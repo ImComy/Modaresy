@@ -24,7 +24,7 @@ const TeacherDashboardPage = () => {
   ];
 
   return (
-    <div className="p-3 md:p-6 lg:p-8 space-y-6">
+    <div className="space-y-6">
       {/* Header Section */}
       <section className="space-y-2">
         <h1 className="text-4xl font-extrabold tracking-tight text-primary">{t('teacherDashboard')}</h1>
