@@ -1,9 +1,15 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import clsx from 'clsx';
 
-const NavigationCard = ({ navItems, selectedSection, setSelectedSection, hasUnsavedChanges, hasMissingRequired }) => {
+const NavigationCard = ({
+  navItems,
+  selectedSection,
+  setSelectedSection,
+  hasUnsavedChanges,
+  hasMissingRequired,
+}) => {
   const renderNavItem = (item) => {
     const hasChanges = hasUnsavedChanges(item.id);
     const hasErrors = hasMissingRequired(item.id);
@@ -11,33 +17,35 @@ const NavigationCard = ({ navItems, selectedSection, setSelectedSection, hasUnsa
     return (
       <Button
         key={item.id}
-        variant={selectedSection === item.id ? 'default' : 'ghost'}
+        variant="ghost"
         onClick={() => setSelectedSection(item.id)}
         className={clsx(
-          'w-full justify-between relative group',
+          'relative flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-md text-md sm:text-lg font-medium',
+          selectedSection === item.id
+            ? 'bg-primary/10 text-primary'
+            : 'hover:bg-muted/50 text-muted-foreground hover:text-primary',
           hasErrors && 'text-red-600'
         )}
       >
+        {item.icon}
         <span>{item.label}</span>
+
         {hasChanges && !hasErrors && (
-          <span className="w-2 h-2 bg-yellow-500 rounded-full absolute right-3 top-2" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-500 rounded-full" />
         )}
         {hasErrors && (
-          <span className="w-2 h-2 bg-red-600 rounded-full absolute right-3 top-2 animate-ping" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-600 rounded-full animate-ping" />
         )}
       </Button>
     );
   };
 
   return (
-    <div className="order-1 lg:order-2 space-y-4 lg:sticky lg:top-24 h-fit">
-      <Card className="bg-muted/40 border">
-        <CardHeader>
-          <CardTitle className="text-lg">Navigation</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+    <div className="sticky top-20 z-30 bg-background">
+      <Card className="bg-muted/50 border-none shadow-sm px-2 py-3 rounded-lg">
+        <div className="flex flex-wrap justify-between sm:justify-center gap-1 sm:gap-2">
           {navItems.map(renderNavItem)}
-        </CardContent>
+        </div>
       </Card>
     </div>
   );

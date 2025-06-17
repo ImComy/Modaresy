@@ -8,6 +8,7 @@ import SubjectsSection from '@/components/tutorSettings/subjects';
 import SocialsSection from '@/components/tutorSettings/social';
 import TutorProfileHeader from '@/components/profile/TutorProfileHeader';
 import { Button } from '@/components/ui/button';
+import { User, Settings, BookOpen, Share2 } from 'lucide-react';
 
 const defaultForm = {
   name: 'Ahmed Hassan',
@@ -32,11 +33,12 @@ const optionalFields = {
 };
 
 const navItems = [
-  { id: 'account', label: 'Account & Security' },
-  { id: 'general', label: 'General Info' },
-  { id: 'subjects', label: 'Subjects' },
-  { id: 'socials', label: 'Social Links' },
+  { id: 'account', label: 'Account', icon: <User className="w-4 h-4" /> },
+  { id: 'general', label: 'General', icon: <Settings className="w-4 h-4" /> },
+  { id: 'subjects', label: 'Subjects', icon: <BookOpen className="w-4 h-4" /> },
+  { id: 'socials', label: 'Socials', icon: <Share2 className="w-4 h-4" /> },
 ];
+
 
 const TutorSettingsPage = () => {
   const [tutor, setTutor] = useState({
@@ -295,95 +297,109 @@ const TutorSettingsPage = () => {
   };
 
   return (
-    <motion.div
-      className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8"
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <NavigationCard
-        navItems={navItems}
-        selectedSection={selectedSection}
-        setSelectedSection={setSelectedSection}
-        hasUnsavedChanges={hasUnsavedChanges}
-        hasMissingRequired={hasMissingRequired}
-      />
-      <form className="order-2 lg:order-1 space-y-6" onSubmit={handleSubmit}>
-        <h1 className="text-3xl font-bold mb-4">Tutor Settings</h1>
-        {selectedSection === 'account' && (
-          <AccountSection
-            form={form}
-            handleChange={handleChange}
-            getFieldErrorClasses={getFieldErrorClasses}
+    <>
+      {/* Horizontal Floating Nav Bar */}
+      <div className="sticky top-20 z-30">
+        <div className="max-w-xl mx-auto px-4">
+          <NavigationCard
+            navItems={navItems}
+            selectedSection={selectedSection}
+            setSelectedSection={setSelectedSection}
+            hasUnsavedChanges={hasUnsavedChanges}
+            hasMissingRequired={hasMissingRequired}
           />
-        )}
-        {selectedSection === 'general' && (
-          <GeneralSection
-            form={form}
-            handleChange={handleChange}
-            getFieldErrorClasses={getFieldErrorClasses}
-            handleAddDetailedLocation={handleAddDetailedLocation}
-            handleDetailedLocationChange={handleDetailedLocationChange}
-            handleRemoveDetailedLocation={handleRemoveDetailedLocation}
-            touched={touched}
-            setForm={setForm}
-            defaultForm={defaultForm}
-          />
-        )}
-        {selectedSection === 'subjects' && (
-          <SubjectsSection
-            subjects={subjects}
-            onChange={setSubjects}
-            errors={subjects.map((subj, idx) =>
-              idx === 0
-                ? {
-                    subject: touched.subjects && isMissing(subj.subject),
-                    grade: touched.subjects && isMissing(subj.grade),
-                    type: touched.subjects && isMissing(subj.type),
-                    bio: touched.subjects && isMissing(subj.bio),
-                    yearsExp: touched.subjects && isMissing(subj.yearsExp),
-                  }
-                : {}
-            )}
-          />
-        )}
-        {selectedSection === 'socials' && (
-          <SocialsSection
-            socialLinks={socialLinks}
-            onSocialChange={handleSocialChange}
-            getFieldErrorClasses={getFieldErrorClasses}
-            touched={touched}
-            setTouched={setTouched}
-            
-          />
-        )}
-        {['account', 'general'].includes(selectedSection) && (
-          <>
-            <h3 className="text-xl font-bold mt-20">Live Tutor Profile</h3>
-            <TutorProfileHeader tutor={liveTutor} />
-          </>
-        )}
-        <div className="pt-6 flex justify-start">
-          <Button
-            type="submit"
-            disabled={isSaving}
-            className="gap-2 px-6 py-2 text-sm font-semibold transition-colors bg-primary hover:bg-primary/90"
-          >
-            {isSaving ? (
-              <>
-                <span className="animate-spin rounded-full border-2 border-white border-t-transparent w-4 h-4" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                Save Changes
-              </>
-            )}
-          </Button>
         </div>
-      </form>
-    </motion.div>
+      </div>
+
+      {/* Main Content */}
+      <motion.div
+        className="max-w-7xl mx-auto px-4 py-10 felx flex-row gap-8"
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          <h1 className="text-3xl font-bold mb-4">Tutor Settings</h1>
+
+          {selectedSection === 'account' && (
+            <AccountSection
+              form={form}
+              handleChange={handleChange}
+              getFieldErrorClasses={getFieldErrorClasses}
+            />
+          )}
+          {selectedSection === 'general' && (
+            <GeneralSection
+              form={form}
+              handleChange={handleChange}
+              getFieldErrorClasses={getFieldErrorClasses}
+              handleAddDetailedLocation={handleAddDetailedLocation}
+              handleDetailedLocationChange={handleDetailedLocationChange}
+              handleRemoveDetailedLocation={handleRemoveDetailedLocation}
+              touched={touched}
+              setForm={setForm}
+              defaultForm={defaultForm}
+            />
+          )}
+          {selectedSection === 'subjects' && (
+            <SubjectsSection
+              subjects={subjects}
+              onChange={setSubjects}
+              errors={subjects.map((subj, idx) =>
+                idx === 0
+                  ? {
+                      subject: touched.subjects && isMissing(subj.subject),
+                      grade: touched.subjects && isMissing(subj.grade),
+                      type: touched.subjects && isMissing(subj.type),
+                      bio: touched.subjects && isMissing(subj.bio),
+                      yearsExp: touched.subjects && isMissing(subj.yearsExp),
+                    }
+                  : {}
+              )}
+            />
+          )}
+          {selectedSection === 'socials' && (
+            <SocialsSection
+              socialLinks={socialLinks}
+              onSocialChange={handleSocialChange}
+              getFieldErrorClasses={getFieldErrorClasses}
+              touched={touched}
+              setTouched={setTouched}
+            />
+          )}
+
+          {['account', 'general'].includes(selectedSection) && (
+            <>
+              <h3 className="text-xl font-bold mt-20">Live Tutor Profile</h3>
+              <TutorProfileHeader tutor={liveTutor} />
+            </>
+          )}
+
+          <div className="pt-6 flex justify-start">
+            <Button
+              type="submit"
+              disabled={isSaving}
+              className="gap-2 px-6 py-2 text-sm font-semibold transition-colors bg-primary hover:bg-primary/90"
+            >
+              {isSaving ? (
+                <>
+                  <span className="animate-spin rounded-full border-2 border-white border-t-transparent w-4 h-4" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+
+        {/* Optional Sidebar Placeholder */}
+        <div className="order-1 lg:order-2" />
+      </motion.div>
+    </>
   );
 };
 
