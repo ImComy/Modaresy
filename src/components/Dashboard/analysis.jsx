@@ -6,9 +6,9 @@ import { chartdata, ActionTypes, mockLogs, actionShortLabels } from '@/data/mock
 import BasicLineChart from '@/components/graph';
 import StudentsPieChartSwitcher from '@/components/switcherPieChart';
 import HalfRatingGauge from '@/components/circleGague';
-import ActivityLogs from '@/components/dashboard/logs';
-import SettingsCompletionCard from '@/components/Dashboard/CompletionCard'
-
+import ActivityLogs from './logs';
+import SettingsCompletionCard from './CompletionCard'
+ 
 const AnalysisSection = () => {
   const { t } = useTranslation();
   const uData = [11, 12, 13, 24, 5, 6, 17];
