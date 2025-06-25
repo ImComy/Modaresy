@@ -14,6 +14,7 @@ import MultiSelect from '@/components/ui/multi-select';
 import { grades, sectors, locations, subjects as allSubjectsList } from '@/data/formData';
 import PfpUploadWithCrop from '@/components/pfpSignup';
 import BannerUploadWithCrop from '@/components/bannerSignup';
+import { SearchableSelectContent } from '@/components/ui/searchSelect';
 
 const subjectOptions = allSubjectsList.map(subject => ({
   value: subject.toLowerCase().replace(/\s+/g, '-'),
@@ -156,8 +157,13 @@ const SignupPage = () => {
             <div className="space-y-1">
               <Label htmlFor="location">{t('location')}</Label>
               <Select name="location" value={formData.location} onValueChange={(value) => handleSelectChange('location', value)}>
-                <SelectTrigger id="location" error={errors.location}><SelectValue placeholder={t('selectLocation')} /></SelectTrigger>
-                <SelectContent>{locations.map(loc => (<SelectItem key={loc.value} value={loc.value} className="capitalize">{loc.label}</SelectItem>))}</SelectContent>
+                <SelectTrigger id="location" error={errors.location}>
+                  <SelectValue placeholder={t('selectLocation')} />
+                </SelectTrigger>
+                <SearchableSelectContent
+                  items={locations.map(loc => ({ value: loc.value, label: loc.label }))}
+                  searchPlaceholder={t('searchLocation')}
+                />
               </Select>
               {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
             </div>
@@ -168,15 +174,25 @@ const SignupPage = () => {
                 <div className="space-y-1">
                   <Label htmlFor="grade">{t('grade')}</Label>
                   <Select name="grade" value={formData.grade} onValueChange={(value) => handleSelectChange('grade', value)}>
-                    <SelectTrigger id="grade"><SelectValue placeholder={t('selectGradeOptional')} /></SelectTrigger>
-                    <SelectContent>{grades.map(grade => (<SelectItem key={grade.value} value={grade.value}>{t(grade.labelKey)}</SelectItem>))}</SelectContent>
+                    <SelectTrigger id="grade">
+                      <SelectValue placeholder={t('selectGradeOptional')} />
+                    </SelectTrigger>
+                    <SearchableSelectContent
+                      items={grades.map(grade => ({ value: grade.value, label: t(grade.labelKey) }))}
+                      searchPlaceholder={t('searchGrade')}
+                    />
                   </Select>
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="sector">{t('sector')}</Label>
                   <Select name="sector" value={formData.sector} onValueChange={(value) => handleSelectChange('sector', value)}>
-                    <SelectTrigger id="sector"><SelectValue placeholder={t('selectSectorOptional')} /></SelectTrigger>
-                    <SelectContent>{sectors.map(sector => (<SelectItem key={sector.value} value={sector.value}>{t(sector.labelKey)}</SelectItem>))}</SelectContent>
+                    <SelectTrigger id="sector">
+                      <SelectValue placeholder={t('selectSectorOptional')} />
+                    </SelectTrigger>
+                    <SearchableSelectContent
+                      items={sectors.map(sector => ({ value: sector.value, label: t(sector.labelKey) }))}
+                      searchPlaceholder={t('searchSector')}
+                    />
                   </Select>
                 </div>
               </>
@@ -185,50 +201,8 @@ const SignupPage = () => {
             {/* Teacher Specific Fields */}
             {formData.role === 'teacher' && (
               <>
-                <div className="space-y-1">
-                    <Label htmlFor="subjects">{t('subjects')}</Label>
-                    <MultiSelect
-                      options={subjectOptions}
-                      selected={formData.subjects}
-                      onChange={(selected) => handleMultiSelectChange('subjects', selected)}
-                      placeholder={t('selectSubjectsPlaceholder')}
-                      searchPlaceholder={t('searchSubjectsPlaceholder')} // Add this key
-                      emptyPlaceholder={t('noSubjectsFoundPlaceholder')} // Add this key
-                      error={errors.subjects}
-                    />
-                    {errors.subjects && <p className="text-xs text-destructive">{errors.subjects}</p>}
-                </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="targetGrades">{t('targetGrades')}</Label> {/* Add this key */}
-                    <MultiSelect
-                      id="targetGrades"
-                      options={translatedGradeOptions}
-                      selected={formData.targetGrades}
-                      onChange={(selected) => handleMultiSelectChange('targetGrades', selected)}
-                      placeholder={t('selectTargetGradesPlaceholder')} // Add this key
-                      searchPlaceholder={t('searchGradesPlaceholder')} // Add this key
-                      emptyPlaceholder={t('noGradesFoundPlaceholder')} // Add this key
-                      error={errors.targetGrades}
-                    />
-                    {errors.targetGrades && <p className="text-xs text-destructive">{errors.targetGrades}</p>}
-                </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="targetSectors">{t('targetSectors')}</Label> {/* Add this key */}
-                    <MultiSelect
-                      id="targetSectors"
-                      options={translatedSectorOptions}
-                      selected={formData.targetSectors}
-                      onChange={(selected) => handleMultiSelectChange('targetSectors', selected)}
-                      placeholder={t('selectTargetSectorsPlaceholder')} // Add this key
-                      searchPlaceholder={t('searchSectorsPlaceholder')} // Add this key
-                      emptyPlaceholder={t('noSectorsFoundPlaceholder')} // Add this key
-                      error={errors.targetSectors}
-                    />
-                    {errors.targetSectors && <p className="text-xs text-destructive">{errors.targetSectors}</p>}
-                </div>
                 <div className="space-y-6">
                   <PfpUploadWithCrop formData={formData} setFormData={setFormData} />
-
                   <BannerUploadWithCrop formData={formData} setFormData={setFormData} />
                 </div>
               </>

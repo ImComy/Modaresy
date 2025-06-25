@@ -13,23 +13,37 @@ import {
 } from '@/components/ui/select';
 import PfpUploadWithCrop from '@/components/pfpSignup';
 import BannerUploadWithCrop from '@/components/bannerSignup';
+import {SearchableSelectContent} from '@/components/ui/searchSelect';
 
 const cities = ['Cairo', 'Giza', 'Alexandria', 'Mansoura', 'Tanta', 'Zagazig', 'Asyut'];
 
-const GeneralSection = ({
-  form,
-  handleChange,
-  getFieldErrorClasses,
-  handleAddDetailedLocation,
-  handleDetailedLocationChange,
-  handleRemoveDetailedLocation,
-  touched,
-  setForm,
-  defaultForm,
-}) => {
-  const locationError = getFieldErrorClasses('location');
-  const generalBioError = getFieldErrorClasses('generalBio');
-  const detailedLocationError = getFieldErrorClasses('detailedLocation'); // ✅ Add this line
+const GeneralSection = ({ form, setForm, defaultForm }) => {
+  const handleChange = (e) => {
+    const { id, value } = e.target;
+    setForm((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleAddDetailedLocation = () => {
+    setForm((prev) => ({
+      ...prev,
+      detailedLocation: [...(prev.detailedLocation || []), ''],
+    }));
+  };
+
+  const handleDetailedLocationChange = (index, value) => {
+    setForm((prev) => {
+      const updatedLocations = [...(prev.detailedLocation || [])];
+      updatedLocations[index] = value;
+      return { ...prev, detailedLocation: updatedLocations };
+    });
+  };
+
+  const handleRemoveDetailedLocation = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      detailedLocation: prev.detailedLocation.filter((_, i) => i !== index),
+    }));
+  };
 
   return (
     <Card>
@@ -39,52 +53,46 @@ const GeneralSection = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* City dropdown */}
+        {/* City dropdown with smart search */}
         <div className="relative">
-          <Label htmlFor="location" className={locationError.label}>City *</Label>
+          <Label htmlFor="location">City</Label>
           <Select
-            onValueChange={(value) => handleChange({ target: { id: 'location', value } })}
+            onValueChange={(value) => setForm((prev) => ({ ...prev, location: value }))}
             value={form.location}
           >
-            <SelectTrigger className={locationError.input}>
+            <SelectTrigger>
               <SelectValue placeholder="Select a city" />
             </SelectTrigger>
-            <SelectContent>
-              {cities.map((city) => (
-                <SelectItem key={city} value={city}>
-                  {city}
-                </SelectItem>
-              ))}
-            </SelectContent>
+            <SearchableSelectContent
+              searchPlaceholder="Search city..."
+              items={cities.map(city => ({
+                value: city,
+                label: city,
+              }))}
+            />
           </Select>
         </div>
 
         {/* Detailed Location list */}
         <div className="md:col-span-2 space-y-2">
-          <Label className={detailedLocationError.label}>
-            Detailed Locations (Max 3) *
-          </Label>
-          {form.detailedLocation?.map((loc, index) => {
-            const error = touched.detailedLocation && !loc.trim();
-            return (
-              <div key={index} className="flex gap-2 items-center">
-                <Input
-                  value={loc}
-                  placeholder={`Location ${index + 1}`}
-                  onChange={(e) => handleDetailedLocationChange(index, e.target.value)}
-                  className={`w-full ${error ? 'border-red-500' : ''}`}
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => handleRemoveDetailedLocation(index)}
-                >
-                  <X className="w-4 h-4 text-destructive" />
-                </Button>
-              </div>
-            );
-          })}
+          <Label>Detailed Locations (Max 3)</Label>
+          {form.detailedLocation?.map((loc, index) => (
+            <div key={index} className="flex gap-2 items-center">
+              <Input
+                value={loc}
+                placeholder={`Location ${index + 1}`}
+                onChange={(e) => handleDetailedLocationChange(index, e.target.value)}
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => handleRemoveDetailedLocation(index)}
+              >
+                <X className="w-4 h-4 text-destructive" />
+              </Button>
+            </div>
+          ))}
           {form.detailedLocation?.length < 3 && (
             <Button
               type="button"
@@ -96,17 +104,11 @@ const GeneralSection = ({
               <Plus className="w-4 h-4" /> Add Location
             </Button>
           )}
-
-          {detailedLocationError.message && (
-            <p className="text-sm text-destructive">{detailedLocationError.message}</p>
-          )}
         </div>
 
         {/* Bio */}
         <div className="md:col-span-2">
-          <Label htmlFor="generalBio" className={generalBioError.label}>
-            General Bio *
-          </Label>
+          <Label htmlFor="generalBio">General Bio</Label>
           <textarea
             id="generalBio"
             rows={5}

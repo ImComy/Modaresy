@@ -72,15 +72,19 @@ const TutorCard = ({ tutor }) => {
         <Card className="relative h-full flex flex-col rounded-xl overflow-hidden border bg-muted">
           <div className="relative w-full h-32 rounded-t-xl">
             <img
-              src={tutor.bannerimg}
+              src={tutor.bannerimg || 'https://placehold.co/600x400'}
               alt="Banner"
               className="w-full h-full object-cover rounded-t-xl"
+              onError={(e) => {
+                e.currentTarget.onerror = null; 
+                e.currentTarget.src = 'https://placehold.co/600x400';
+              }}
             />
             <div className="absolute left-1/2 transform -translate-x-1/2 top-full -mt-14">
               <div className="h-24 w-24 border-2 border-primary rounded-md bg-background z-50">
                 <Avatar className="h-full w-full rounded-sm">
                   <AvatarImage src={tutor.img} alt={tutor.name} className="object-cover" />
-                  <AvatarFallback>
+                  <AvatarFallback className='rounded-sm'>
                     {tutor.name?.split(' ').map((n) => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
@@ -113,28 +117,29 @@ const TutorCard = ({ tutor }) => {
                 </div>
                 <div className="flex items-center gap-1">
                   <MapPin size={14} />
-                  <span>{tutor.location}</span>
+                  <span>{tutor.location || 'not specified'}</span>
                 </div>
               </div>
             </div>
-
             <div className="flex flex-wrap justify-center gap-2 mt-3">
-                {tutor.subjects.map((subject, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-2 px-2 py-1 rounded-md border text-xs text-primary border-primary bg-primary/10"
-                  >
-                    <GraduationCap size={12} />
-                    <span>{subject.subject} - {subject.grade}</span>
-                    {subject.type && (
-                      <span className="px-1 py-0.5 text-green-700 border border-green-300 bg-green-200 rounded-sm">
-                        {subject.type}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-
+              {tutor.subjects.map((subject, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-1 px-2 py-1 rounded-md border text-xs text-primary border-primary bg-primary/10 max-w-xs truncate"
+                  title={`${subject.subject} - ${subject.grade}${subject.type ? ` (${subject.type})` : ''}`}
+                >
+                  <GraduationCap size={12} className="flex-shrink-0" />
+                  <span className="truncate">
+                    {subject.subject} - {subject.grade}
+                  </span>
+                  {subject.type && (
+                    <span className="ml-1 px-2 py-0.5 text-green-700 border border-green-300 bg-green-100 rounded-full text-[10px] font-medium whitespace-nowrap">
+                      {subject.type}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
             <div className="mt-4 space-y-2">
               <p className="text-xs text-muted-foreground line-clamp-3 text-center">
                 {tutor.GeneralBio}

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { mockTutors } from '@/data/enhanced';
+import { SearchableSelectContent } from '@/components/ui/searchSelect';
 
 // Extracted label with icon
 const LabelWithIcon = ({ icon: Icon, text, error = false }) => (
@@ -63,6 +64,7 @@ const HorizontalFilters = ({ searchTerm, setSearchTerm, filters, setFilters, sor
     setFilters(updated);
     triggerFilterUpdate?.();
   };
+  
 
   return (
     <>
@@ -84,8 +86,11 @@ const HorizontalFilters = ({ searchTerm, setSearchTerm, filters, setFilters, sor
         <Input
           type="text"
           placeholder={t('searchByName')}
-          value={localFilters.name || ''}
-          onChange={e => handleInputChange('name', e.target.value)}
+          value={searchTerm}
+          onChange={e => {
+            setSearchTerm(e.target.value);
+            triggerFilterUpdate?.();
+          }}
           className="pl-10 h-10 text-sm"
         />
       </div>
@@ -94,32 +99,44 @@ const HorizontalFilters = ({ searchTerm, setSearchTerm, filters, setFilters, sor
     {/* Subject Filter */}
     <div className="col-span-1">
       <LabelWithIcon icon={BookText} text={t('subject')} error={localFilters.subject === 'none'} />
-      <Select value={localFilters.subject || 'none'} onValueChange={value => handleInputChange('subject', value)}>
-        <SelectTrigger className={`h-10 text-sm w-full ${localFilters.subject === 'none' ? 'border-red-500' : ''}`}>
+      <Select
+        value={localFilters.subject || 'none'}
+        onValueChange={(value) => handleInputChange('subject', value)}
+      >
+        <SelectTrigger
+          className={`h-10 text-sm w-full ${localFilters.subject === 'none' ? 'border-red-500' : ''}`}
+          error={localFilters.subject === 'none'}
+        >
           <SelectValue placeholder={t('searchBySubject')} />
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">{t('none')}</SelectItem>
-          {uniqueSubjects.map(subject => (
-            <SelectItem key={subject} value={subject}>{subject}</SelectItem>
-          ))}
-        </SelectContent>
+        <SearchableSelectContent
+          items={[
+            { value: 'none', label: t('none') },
+            ...uniqueSubjects.map((subject) => ({ value: subject, label: subject })),
+          ]}
+        />
       </Select>
     </div>
 
     {/* Grade Filter */}
     <div className="col-span-1">
       <LabelWithIcon icon={Users} text={t('grade')} error={localFilters.grade === 'none'} />
-      <Select value={localFilters.grade || 'none'} onValueChange={value => handleInputChange('grade', value)}>
-        <SelectTrigger className={`h-10 text-sm w-full ${localFilters.grade === 'none' ? 'border-red-500' : ''}`}>
+      <Select
+        value={localFilters.grade || 'none'}
+        onValueChange={(value) => handleInputChange('grade', value)}
+      >
+        <SelectTrigger
+          className={`h-10 text-sm w-full ${localFilters.grade === 'none' ? 'border-red-500' : ''}`}
+          error={localFilters.grade === 'none'}
+        >
           <SelectValue placeholder={t('searchByGrade')} />
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">{t('none')}</SelectItem>
-          {uniqueGrades.map(grade => (
-            <SelectItem key={grade} value={grade}>{grade}</SelectItem>
-          ))}
-        </SelectContent>
+        <SearchableSelectContent
+          items={[
+            { value: 'none', label: t('none') },
+            ...uniqueGrades.map((grade) => ({ value: grade, label: grade })),
+          ]}
+        />
       </Select>
     </div>
 
@@ -154,37 +171,43 @@ const HorizontalFilters = ({ searchTerm, setSearchTerm, filters, setFilters, sor
       className="overflow-hidden bg-muted/20 p-4 rounded-md border border-border/50 shadow-inner"
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Location */}
-        <div>
-          <LabelWithIcon icon={MapPin} text={t('location')} />
-          <Select value={localFilters.location || 'all'} onValueChange={value => handleInputChange('location', value)}>
-            <SelectTrigger className="h-10 text-sm">
-              <SelectValue placeholder={t('searchByLocation')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('allLocations')}</SelectItem>
-              {uniqueLocations.map(location => (
-                <SelectItem key={location} value={location}>{location}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Location */}
+      <div>
+        <LabelWithIcon icon={MapPin} text={t('location')} />
+        <Select
+          value={localFilters.location || 'all'}
+          onValueChange={(value) => handleInputChange('location', value)}
+        >
+          <SelectTrigger className="h-10 text-sm">
+            <SelectValue placeholder={t('searchByLocation')} />
+          </SelectTrigger>
+          <SearchableSelectContent
+            items={[
+              { value: 'all', label: t('allLocations') },
+              ...uniqueLocations.map((location) => ({ value: location, label: location })),
+            ]}
+          />
+        </Select>
+      </div>
 
-        {/* Sector */}
-        <div>
-          <LabelWithIcon icon={Users} text={t('sector')} />
-          <Select value={localFilters.sector || 'all'} onValueChange={value => handleInputChange('sector', value)}>
-            <SelectTrigger className="h-10 text-sm">
-              <SelectValue placeholder={t('searchBySector')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('allSectors')}</SelectItem>
-              {uniqueSectors.map(sector => (
-                <SelectItem key={sector} value={sector}>{sector}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Sector */}
+      <div>
+        <LabelWithIcon icon={Users} text={t('sector')} />
+        <Select
+          value={localFilters.sector || 'all'}
+          onValueChange={(value) => handleInputChange('sector', value)}
+        >
+          <SelectTrigger className="h-10 text-sm">
+            <SelectValue placeholder={t('searchBySector')} />
+          </SelectTrigger>
+          <SearchableSelectContent
+            items={[
+              { value: 'all', label: t('allSectors') },
+              ...uniqueSectors.map((sector) => ({ value: sector, label: sector })),
+            ]}
+          />
+        </Select>
+      </div>
 
         {/* Min Rating */}
         <div>

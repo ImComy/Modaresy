@@ -78,27 +78,6 @@ const LoginPage = () => {
             </Link>
           </p>
         </CardFooter>
-        <div className="flex flex-col px-6 mb-4">
-          <div className="flex items-center my-6">
-            <hr className="flex-grow border-t border-gray-300 dark:border-gray-600" />
-            <span className="mx-3 text-gray-500 dark:text-gray-400 font-semibold select-none">
-              {t("or")}
-            </span>
-            <hr className="flex-grow border-t border-gray-300 dark:border-gray-600" />
-          </div>
-          <button
-            onClick={() => alert(t("Sign Up with Google clicked"))}
-            className={`${buttonClasses} bg-red-500 flex items-center justify-center gap-2`}
-          >
-            <FaGoogle />{t("Sign Up with Google")}
-          </button>
-          <button
-            onClick={() => alert(t("Sign Up with Facebook clicked"))}
-            className={`${buttonClasses} bg-[#1877F2] flex items-center justify-center gap-2`}
-          >
-            <FaFacebookF /> {t("Sign Up with Facebook")}
-          </button>
-        </div>
       </Card>
     </motion.div>
   );

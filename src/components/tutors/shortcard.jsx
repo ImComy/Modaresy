@@ -72,15 +72,19 @@ const ShortTutorCard = ({ tutor }) => {
         <Card className="relative h-full flex flex-col rounded-xl overflow-hidden border bg-muted">
           <div className="relative w-full h-32 rounded-t-xl">
             <img
-              src={tutor.bannerimg}
+              src={tutor.bannerimg || 'https://placehold.co/600x400'}
               alt="Banner"
               className="w-full h-full object-cover rounded-t-xl"
+              onError={(e) => {
+                e.currentTarget.onerror = null; 
+                e.currentTarget.src = 'https://placehold.co/600x400';
+              }}
             />
-            <div className="absolute left-1/2 transform -translate-x-1/2 top-full -mt-14">
+            <div className="absolute left-1/2 transform -translate-x-1/2 top-full -mt-14 rounded-md">
               <div className="h-24 w-24 border-2 border-primary rounded-md bg-background z-50">
                 <Avatar className="h-full w-full rounded-sm">
                   <AvatarImage src={tutor.img} alt={tutor.name} className="object-cover" />
-                  <AvatarFallback>
+                  <AvatarFallback className='rounded-sm'>
                     {tutor.name?.split(' ').map((n) => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>

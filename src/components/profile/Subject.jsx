@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import  Tooltip  from "@/components/ui/tooltip";
+import { useTranslation } from 'react-i18next';
 
 const SubjectPricingInfo = ({
   price,
@@ -20,6 +21,7 @@ const SubjectPricingInfo = ({
   subjectRating,
   offer,
 }) => {
+  const { t } = useTranslation();
   const renderStars = (rating) => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -114,16 +116,24 @@ const SubjectPricingInfo = ({
 
         {/* Pricing Section */}
         <div className="flex flex-col sm:flex-row gap-4 mt-2">
-          {/* Group Pricing */}
-          <div className="flex-1 bg-muted/40 rounded-lg px-4 py-3 flex items-start gap-3">
-            <Banknote size={20} className="text-green-500 mt-0.5" />
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Group Pricing</p>
-              {offer?.for === "group" && offer?.percentage ? (
-                renderPriceWithOffer(price)
-              ) : (
-                <p className="text-sm font-semibold text-primary">EGP {price} / month</p>
-              )}
+          <div className="flex-1 bg-muted/40 rounded-lg px-4 py-3 flex items-start gap-3 ">
+            {/* Group Pricing */}
+            <div className=" flex-1 flex items-start gap-3">
+              <Banknote size={20} className="text-green-500 mt-0.5" />
+              <div className="flex flex-col">
+                <p className="text-sm text-muted-foreground mb-1">Group Pricing</p>
+                {typeof price !== 'number' || price <= 0 ? (
+                  <p className="text-sm font-medium text-muted-foreground italic min-h-[1.25rem]">
+                    {t('noPriceSpecified', 'No price has been specified')}
+                  </p>
+                ) : offer?.for === 'group' && offer?.percentage ? (
+                  renderPriceWithOffer(price)
+                ) : (
+                  <p className="text-sm font-semibold text-primary min-h-[1.25rem]">
+                    EGP {price} / month
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 

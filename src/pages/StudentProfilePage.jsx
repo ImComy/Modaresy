@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Mail, Phone, MapPin, User, Lock, GraduationCap, Layers } from 'lucide-react';
+import { SearchableSelectContent } from '@/components/ui/searchSelect';
 
 const initialUserData = {
   name: 'Student User',
@@ -26,6 +27,9 @@ const StudentProfilePage = () => {
   const { toast } = useToast();
   const [userData, setUserData] = useState(initialUserData);
   const [errors, setErrors] = useState({});
+
+  const cities = ['Cairo', 'Giza', 'Alexandria', 'Aswan', 'Luxor'];
+
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
@@ -91,10 +95,23 @@ const StudentProfilePage = () => {
               <Input id="phone" value={userData.phone} onChange={handleInputChange} className="pl-10" />
               {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
             </div>
-            <div className="relative">
+            <div className="relative flex  flex-col gap-2">
+              <div className='flex items-center gap-2'>
               <Label htmlFor="location">{t('location')}</Label>
-              <MapPin className="absolute left-3 top-9 w-4 h-4 text-muted-foreground" />
-              <Input id="location" value={userData.location} onChange={handleInputChange} className="pl-10" />
+              <MapPin className=" w-4 h-4 text-muted-foreground" />
+              </div>  
+              <Select value={userData.location} onValueChange={(v) => handleSelectChange('location', v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your city" />
+                </SelectTrigger>
+                <SearchableSelectContent
+                  searchPlaceholder="Search cities..."
+                  items={cities.map(city => ({
+                    value: city,
+                    label: city,
+                  }))}
+                />
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -121,25 +138,39 @@ const StudentProfilePage = () => {
         {/* Education */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><GraduationCap className="w-5 h-5 text-primary" /> {t('education')}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <GraduationCap className="w-5 h-5 text-primary" /> {t('education')}
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label>{t('grade')}</Label>
               <Select value={userData.grade} onValueChange={(v) => handleSelectChange('grade', v)}>
-                <SelectTrigger><SelectValue placeholder={t('selectGrade')} /></SelectTrigger>
-                <SelectContent>
-                  {grades.map(g => <SelectItem key={g.value} value={g.value}>{t(g.labelKey)}</SelectItem>)}
-                </SelectContent>
+                <SelectTrigger>
+                  <SelectValue placeholder={t('selectGrade')} />
+                </SelectTrigger>
+                <SearchableSelectContent
+                  searchPlaceholder={t('searchGrade')}
+                  items={grades.map(g => ({
+                    value: g.value,
+                    label: t(g.labelKey),
+                  }))}
+                />
               </Select>
             </div>
             <div>
               <Label>{t('sector')}</Label>
               <Select value={userData.sector} onValueChange={(v) => handleSelectChange('sector', v)}>
-                <SelectTrigger><SelectValue placeholder={t('selectSector')} /></SelectTrigger>
-                <SelectContent>
-                  {sectors.map(s => <SelectItem key={s.value} value={s.value}>{t(s.labelKey)}</SelectItem>)}
-                </SelectContent>
+                <SelectTrigger>
+                  <SelectValue placeholder={t('selectSector')} />
+                </SelectTrigger>
+                <SearchableSelectContent
+                  searchPlaceholder={t('searchSector')}
+                  items={sectors.map(s => ({
+                    value: s.value,
+                    label: t(s.labelKey),
+                  }))}
+                />
               </Select>
             </div>
           </CardContent>

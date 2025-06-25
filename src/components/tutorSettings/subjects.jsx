@@ -4,36 +4,71 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { X, Plus, BookOpen, GraduationCap, Type, FileText, UserCheck } from 'lucide-react';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 import CustomAccordion from '@/components/ui/accordion';
+import {SearchableSelectContent} from '@/components/ui/searchSelect';
 
-const SubjectsSection = ({ subjects = [], onChange, errors = {} }) => {
+const SUBJECT_OPTIONS = ['Mathematics', 'Science', 'English', 'History', 'Computer'];
+const GRADE_OPTIONS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+const TYPE_OPTIONS = ['Private', 'Group', 'Online', 'General - scientific'];
+
+const SubjectsSection = ({ subjects = [], onChange }) => {
   const handleFieldChange = (index, field, value) => {
     const updated = [...subjects];
-    updated[index][field] = value;
+    updated[index] = { ...updated[index], [field]: value };
     onChange(updated);
   };
 
   const handleAddSubject = () => {
-    const newSubject = {
-      subject: '',
-      grade: '',
-      type: '',
-      bio: '',
-      yearsExp: '',
-    };
-    onChange([...subjects, newSubject]);
+    onChange([
+      ...subjects,
+      {
+        subject: '',
+        grade: '',
+        type: '',
+        bio: '',
+        yearsExp: '',
+      },
+    ]);
   };
 
   const handleDeleteSubject = (index) => {
-    const updated = subjects.filter((_, i) => i !== index);
-    onChange(updated);
+    onChange(subjects.filter((_, i) => i !== index));
   };
+
+const renderSelect = (label, icon, options, value, onChange) => {
+  return (
+    <div className="space-y-2">
+      <Label className="flex items-center gap-2">
+        {icon} {label}
+      </Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger>
+          <SelectValue placeholder={`Select ${label}`} />
+        </SelectTrigger>
+        <SearchableSelectContent
+          searchPlaceholder={`Search ${label}...`}
+          items={options.map(opt => ({
+            value: opt,
+            label: opt,
+          }))}
+        />
+      </Select>
+    </div>
+  );
+};
 
   const accordionItems = subjects.map((subject, idx) => ({
     title: (
       <div className="flex justify-between items-center w-full">
         <span>
-          {subject.subject || 'Untitled Subject'} – Grade {subject.grade || '?'} - Type {subject.type || '?'}
+          {subject.subject || 'Untitled Subject'} – Grade {subject.grade || '?'} – Type {subject.type || '?'}
         </span>
         <Button
           size="icon"
@@ -49,50 +84,47 @@ const SubjectsSection = ({ subjects = [], onChange, errors = {} }) => {
     ),
     content: (
       <div className="grid gap-6 md:grid-cols-2 p-4 border rounded-lg bg-muted/30">
-        {/* Subject Info */}
-        <div className="space-y-3 col-span-2">
-          <Label className={`flex items-center gap-2 ${errors[idx]?.subject ? 'text-red-600' : ''}`}>
-            <BookOpen size={16} /> Subject {idx === 0 && <span className="text-red-600">*</span>}
-          </Label>
-          <Input
-            value={subject.subject}
-            onChange={(e) => handleFieldChange(idx, 'subject', e.target.value)}
-            className={errors[idx]?.subject ? 'border-red-500' : ''}
-          />
-          <Label className={`flex items-center gap-2 ${errors[idx]?.grade ? 'text-red-600' : ''}`}>
-            <GraduationCap size={16} /> Grade {idx === 0 && <span className="text-red-600">*</span>}
-          </Label>
-          <Input
-            value={subject.grade}
-            onChange={(e) => handleFieldChange(idx, 'grade', e.target.value)}
-            className={errors[idx]?.grade ? 'border-red-500' : ''}
-          />
-          <Label className={`flex items-center gap-2 ${errors[idx]?.type ? 'text-red-600' : ''}`}>
-            <Type size={16} /> Type {idx === 0 && <span className="text-red-600">*</span>}
-          </Label>
-          <Input
-            value={subject.type}
-            onChange={(e) => handleFieldChange(idx, 'type', e.target.value)}
-            className={errors[idx]?.type ? 'border-red-500' : ''}
-          />
-          <Label className={`flex items-center gap-2 ${errors[idx]?.bio ? 'text-red-600' : ''}`}>
-            <FileText size={16} /> Bio {idx === 0 && <span className="text-red-600">*</span>}
-          </Label>
-          <Textarea
-            value={subject.bio}
-            onChange={(e) => handleFieldChange(idx, 'bio', e.target.value)}
-            className={errors[idx]?.bio ? 'border-red-500' : ''}
-          />
+        <div className="space-y-4 col-span-2">
+          {renderSelect(
+            'Subject',
+            <BookOpen size={16} />,
+            SUBJECT_OPTIONS,
+            subject.subject,
+            (val) => handleFieldChange(idx, 'subject', val)
+          )}
+          {renderSelect(
+            'Grade',
+            <GraduationCap size={16} />,
+            GRADE_OPTIONS,
+            subject.grade,
+            (val) => handleFieldChange(idx, 'grade', val)
+          )}
+          {renderSelect(
+            'Type',
+            <Type size={16} />,
+            TYPE_OPTIONS,
+            subject.type,
+            (val) => handleFieldChange(idx, 'type', val)
+          )}
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <FileText size={16} /> Bio
+            </Label>
+            <Textarea
+              value={subject.bio}
+              onChange={(e) => handleFieldChange(idx, 'bio', e.target.value)}
+            />
+          </div>
         </div>
-        <div>
-          <Label className={`flex items-center gap-2 ${errors[idx]?.yearsExp ? 'text-red-600' : ''}`}>
-            <UserCheck size={16} /> Years Experience {idx === 0 && <span className="text-red-600">*</span>}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <UserCheck size={16} /> Years Experience
           </Label>
           <Input
             type="number"
             value={subject.yearsExp}
             onChange={(e) => handleFieldChange(idx, 'yearsExp', e.target.value)}
-            className={errors[idx]?.yearsExp ? 'border-red-500' : ''}
           />
         </div>
       </div>
@@ -107,9 +139,6 @@ const SubjectsSection = ({ subjects = [], onChange, errors = {} }) => {
           <Plus className="w-4 h-4 mr-1" /> Add Subject
         </Button>
       </div>
-      {subjects.length === 0 && (
-        <p className="text-red-600">At least one subject with all fields filled is required.</p>
-      )}
       <CustomAccordion items={accordionItems} />
     </div>
   );
