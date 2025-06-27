@@ -16,11 +16,11 @@ import { Dialog } from '@headlessui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const initialLogs = [
-  { id: 1, type: 'contact', label: 'A student reached out to you', date: '2025-06-22T09:30:00Z', details: 'You have a new message from a student.', read: false },
-  { id: 2, type: 'view', label: 'Someone viewed your profile', date: '2025-06-21T15:45:00Z', details: 'Your profile was viewed recently.', read: false },
-  { id: 3, type: 'review', label: 'You received a new review', date: '2025-06-20T18:00:00Z', details: 'A student left a 5-star review.', read: false },
-  { id: 4, type: 'rating', label: 'Your session was rated', date: '2025-06-19T20:15:00Z', details: 'Great feedback on your last session.', read: true },
-  { id: 5, type: 'booking', label: 'A student booked a lesson', date: '2025-06-18T11:10:00Z', details: 'A new session has been scheduled.', read: true },
+  { id: 1, type: 'contact', labelKey: 'activity.contact.label', detailsKey: 'activity.contact.details', date: '2025-06-22T09:30:00Z', read: false },
+  { id: 2, type: 'view', labelKey: 'activity.view.label', detailsKey: 'activity.view.details', date: '2025-06-21T15:45:00Z', read: false },
+  { id: 3, type: 'review', labelKey: 'activity.review.label', detailsKey: 'activity.review.details', date: '2025-06-20T18:00:00Z', read: false },
+  { id: 4, type: 'rating', labelKey: 'activity.rating.label', detailsKey: 'activity.rating.details', date: '2025-06-19T20:15:00Z', read: true },
+  { id: 5, type: 'booking', labelKey: 'activity.booking.label', detailsKey: 'activity.booking.details', date: '2025-06-18T11:10:00Z', read: true },
 ];
 
 const iconMap = {
@@ -31,18 +31,18 @@ const iconMap = {
   booking: <CalendarDays className="text-primary w-5 h-5" />,
 };
 
-const formatRelativeTime = (isoDate) => {
+const formatRelativeTime = (isoDate, t) => {
   const diff = Date.now() - new Date(isoDate).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins} min${mins !== 1 ? 's' : ''} ago`;
+  if (mins < 60) return t('time.minutesAgo', { count: mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} hour${hrs !== 1 ? 's' : ''} ago`;
+  if (hrs < 24) return t('time.hoursAgo', { count: hrs });
   const days = Math.floor(hrs / 24);
-  return `${days} day${days !== 1 ? 's' : ''} ago`;
+  return t('time.daysAgo', { count: days });
 };
 
 const ActivityLogs = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [logs, setLogs] = useState(initialLogs);
   const [selectedLog, setSelectedLog] = useState(null);
 
@@ -53,16 +53,18 @@ const ActivityLogs = () => {
     );
   };
 
+  const isRTL = i18n.language === 'ar';
+
   return (
     <>
       <div className="w-full bg-gradient-to-br from-muted/10 to-muted/30 border border-border/50 rounded-xl shadow-lg flex flex-col">
         <div className="p-6 border-b border-border/50">
           <h3 className="flex items-center gap-2 text-primary text-lg font-semibold">
             <Bell className="h-5 w-5" />
-            {t('notifications') || 'Notifications'}
+            {t('notifications')}
           </h3>
           <p className="text-muted-foreground text-sm">
-            {t('recentInteractions') || 'Recent student interactions and updates'}
+            {t('recentInteractions')}
           </p>
         </div>
 
@@ -89,12 +91,12 @@ const ActivityLogs = () => {
                     )}
                   </div>
                   <div className="flex justify-between items-start w-full">
-                    <div className="flex gap-2 items-start">
+                    <div className={`flex gap-2 items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
                       {iconMap[log.type]}
                       <div>
-                        <p className="text-sm font-medium text-foreground">{log.label}</p>
+                        <p className="text-sm font-medium text-foreground">{t(log.labelKey)}</p>
                         <p className="text-xs font-medium text-muted-foreground">
-                          {formatRelativeTime(log.date)}
+                          {formatRelativeTime(log.date, t)}
                         </p>
                       </div>
                     </div>
@@ -105,52 +107,53 @@ const ActivityLogs = () => {
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <AlertCircle size={48} className="mb-4 text-primary" />
-              <p>{t('noNotifications') || 'No notifications available.'}</p>
+              <p>{t('noNotifications')}</p>
             </div>
           )}
         </div>
       </div>
 
-        <AnimatePresence>
+      {/* Dialog */}
+      <AnimatePresence>
         {selectedLog && (
-            <Dialog
+          <Dialog
             open={true}
             onClose={() => setSelectedLog(null)}
             className="fixed inset-0 z-50 flex items-center justify-center"
-            >
-            {/* Backdrop */}
+          >
             <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
-
-            {/* Modal Panel with motion */}
-            <Dialog.Panel as={motion.div}
-                initial={{ opacity: 0, y: 90 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 30 }}
-                transition={{ duration: 0.9 }}
-                className="bg-background p-6 w-full max-w-md mx-auto rounded-xl shadow-xl z-50 relative"
+            <Dialog.Panel
+              as={motion.div}
+              initial={{ opacity: 0, y: 90 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 30 }}
+              transition={{ duration: 0.9 }}
+              className="bg-background p-6 w-full max-w-md mx-auto rounded-xl shadow-xl z-50 relative"
             >
-                <button
+              <button
                 onClick={() => setSelectedLog(null)}
-                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-                >
+                className={`absolute top-4 ${
+                  isRTL ? 'left-4' : 'right-4'
+                } text-muted-foreground hover:text-foreground`}
+              >
                 <X className="w-5 h-5" />
-                </button>
-                <div className="space-y-2">
-                <div className="flex items-center gap-2 text-primary">
-                    {iconMap[selectedLog.type]}
-                    <h4 className="text-lg font-semibold">{selectedLog.label}</h4>
+              </button>
+              <div className="space-y-2">
+                <div className={`flex items-center gap-2 text-primary`}>
+                  {iconMap[selectedLog.type]}
+                  <h4 className="text-lg font-semibold">{t(selectedLog.labelKey)}</h4>
                 </div>
                 <p className="text-muted-foreground text-sm">
-                    {formatRelativeTime(selectedLog.date)}
+                  {formatRelativeTime(selectedLog.date, t)}
                 </p>
                 <div className="pt-4 text-sm text-foreground leading-relaxed">
-                    {selectedLog.details}
+                  {t(selectedLog.detailsKey)}
                 </div>
-                </div>
+              </div>
             </Dialog.Panel>
-            </Dialog>
+          </Dialog>
         )}
-        </AnimatePresence>
+      </AnimatePresence>
     </>
   );
 };

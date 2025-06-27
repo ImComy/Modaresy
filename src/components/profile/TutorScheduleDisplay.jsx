@@ -1,7 +1,9 @@
 import React from "react";
 import { Users, Clock, CalendarDays, Info, PhoneCall, AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const TutorGroupsCard = ({ subject, tutor }) => {
+  const { t } = useTranslation();
   const noGroups = !subject || !Array.isArray(subject.Groups) || subject.Groups.length === 0;
 
   return (
@@ -9,18 +11,17 @@ const TutorGroupsCard = ({ subject, tutor }) => {
       <div className="space-y-2 text-center mb-6">
         <div className="flex justify-center items-center gap-2 text-[hsl(var(--primary))]">
           <CalendarDays className="w-6 h-6" />
-          <h2 className="text-2xl font-bold tracking-tight">Booking Schedule</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t("bookingSchedule")}</h2>
         </div>
         <p className="text-lg text-[hsl(var(--foreground))] font-medium">
-          {subject?.subject} – Grade {subject?.grade}
+          {subject?.subject} – {t("grade")} {subject?.grade}
         </p>
       </div>
 
-      {/* Group Cards or Placeholder */}
       {noGroups ? (
         <div className="flex items-center gap-3 text-sm text-[hsl(var(--muted-foreground))] bg-[hsl(var(--muted))] border border-dashed border-[hsl(var(--border))] px-4 py-6 rounded-xl text-center justify-center">
           <AlertTriangle className="w-5 h-5 text-[hsl(var(--muted-foreground))]" />
-          <span>No group sessions have been added by this tutor yet.</span>
+          <span>{t("noGroupsYet")}</span>
         </div>
       ) : (
         <div className="grid gap-5">
@@ -35,7 +36,7 @@ const TutorGroupsCard = ({ subject, tutor }) => {
             >
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-lg font-semibold text-[hsl(var(--foreground))]">
-                  {group.groupName || "Unnamed Group"}
+                  {group.groupName || t("unnamedGroup")}
                 </h3>
                 <span
                   className={`text-xs font-semibold px-2 py-1 rounded-full ${
@@ -44,7 +45,7 @@ const TutorGroupsCard = ({ subject, tutor }) => {
                       : "bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))]"
                   }`}
                 >
-                  {group.isFull ? "Full" : "Available"}
+                  {group.isFull ? t("full") : t("available")}
                 </span>
               </div>
 
@@ -52,13 +53,13 @@ const TutorGroupsCard = ({ subject, tutor }) => {
                 <div className="flex items-center gap-2">
                   <CalendarDays className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
                   <span>
-                    <strong>Days:</strong> {group.days?.join(", ") || "TBA"}
+                    <strong>{t("days")}:</strong> {group.days?.join(", ") || t("tba")}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
                   <span>
-                    <strong>Time:</strong> {group.time || "TBA"}
+                    <strong>{t("time")}:</strong> {group.time || t("tba")}
                   </span>
                 </div>
                 {group.note && (
@@ -73,24 +74,27 @@ const TutorGroupsCard = ({ subject, tutor }) => {
         </div>
       )}
 
-      {/* Weekly Schedule Info */}
       <div className="pt-4 border-t border-[hsl(var(--border))] text-sm text-[hsl(var(--muted-foreground))] flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
           <span>
-            <strong>Weekly Schedule:</strong>{" "}
-            {subject?.lecturesPerWeek ? `${subject.lecturesPerWeek} lectures` : "N/A"} ·{" "}
-            {subject?.duration ? `${subject.duration} mins each` : "N/A"}
+            <strong>{t("weeklySchedule")}:</strong>{" "}
+            {subject?.lecturesPerWeek
+              ? `${subject.lecturesPerWeek} ${t("lectures")}`
+              : t("notAvailable")}{" "}
+            ·{" "}
+            {subject?.duration
+              ? `${subject.duration} ${t("minsEach")}`
+              : t("notAvailable")}
           </span>
         </div>
       </div>
 
-      {/* Personal Communication Availability */}
       {tutor?.personalAvailability ? (
         <div className="rounded-xl p-5 mt-6 border border-[hsl(var(--accent)/0.3)] bg-[hsl(var(--accent)/0.05)] space-y-4">
           <div className="flex items-center gap-2 text-[hsl(var(--accent))] mb-1">
             <PhoneCall className="w-5 h-5" />
-            <h4 className="text-sm font-semibold">Personal Communication Times</h4>
+            <h4 className="text-sm font-semibold">{t("personalComm")}</h4>
           </div>
 
           {tutor.personalAvailability.times?.length > 0 ? (
@@ -106,7 +110,7 @@ const TutorGroupsCard = ({ subject, tutor }) => {
             </div>
           ) : (
             <p className="text-xs italic text-[hsl(var(--muted-foreground))]">
-              No specific times provided.
+              {t("noCommTimes")}
             </p>
           )}
 
@@ -118,7 +122,7 @@ const TutorGroupsCard = ({ subject, tutor }) => {
         </div>
       ) : (
         <div className="text-xs text-[hsl(var(--muted-foreground))] italic text-center pt-4">
-          No personal communication info available.
+          {t("noCommInfo")}
         </div>
       )}
     </div>

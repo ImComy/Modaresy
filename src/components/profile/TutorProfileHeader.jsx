@@ -227,44 +227,44 @@ const TutorProfileHeader = ({ tutor }) => {
               </div>
             ))}
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 text-sm text-muted-foreground w-full">
+            {/* Experience */}
+            <div className="flex items-start gap-2">
+              <Award size={16} className="mt-0.5 text-primary shrink-0" />
+              <span className="font-medium text-foreground break-words">
+                {isFinite(maxYearsExp) && maxYearsExp > 0
+                  ? t('yearsExp', { count: maxYearsExp })
+                  : t('noExperience', 'Experience not specified')}
+              </span>
+            </div>
 
-          <div className="flex flex-col md:flex-row md:justify-start items-center gap-y-2 md:gap-y-0 md:gap-x-8 text-sm text-muted-foreground text-center md:text-left">
-            <div className="flex items-center gap-2">
-              <MapPin size={16} className="text-primary" />
-              <span className="font-medium text-foreground">
+            {/* Location */}
+            <div className="flex items-start gap-2">
+              <MapPin size={16} className="mt-0.5 text-primary shrink-0" />
+              <span className="font-medium text-foreground break-words">
                 {t('basedInLocation', {
                   location: tutor.location || t('noLocation', 'Location not specified'),
                 })}
               </span>
             </div>
+
+            {/* Detailed Locations - Wrap-responsive cloud */}
             <div className="flex items-start gap-2">
-              <Building size={16} className="mt-1 text-primary shrink-0" />
-              {Array.isArray(tutor.detailedLocation) ? (
-                tutor.detailedLocation.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {tutor.detailedLocation.map((location, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-0.5 rounded-full bg-muted text-sm text-muted-foreground border border-border"
-                      >
-                        {location}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground">{t('detailedLocationNotSet')}</span>
-                )
+              <Building size={16} className="mt-0.5 text-primary shrink-0" />
+              {Array.isArray(tutor.detailedLocation) && tutor.detailedLocation.length > 0 ? (
+                <div className="flex flex-wrap gap-2 max-w-full">
+                  {tutor.detailedLocation.map((location, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 rounded-full bg-muted text-xs text-muted-foreground border border-border whitespace-nowrap  transition"
+                    >
+                      {location}
+                    </span>
+                  ))}
+                </div>
               ) : (
-                <span className="font-medium text-foreground">{tutor.detailedLocation || t('detailedLocationNotSet')}</span>
+                <span className="text-muted-foreground">{t('detailedLocationNotSet')}</span>
               )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Award size={16} className="text-primary" />
-              <span className="font-medium text-foreground">
-                {isFinite(maxYearsExp) && maxYearsExp > 0
-                  ? t('yearsExp', { count: maxYearsExp })
-                  : t('noExperience', 'Experience not specified')}
-              </span>
             </div>
           </div>
 

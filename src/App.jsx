@@ -24,6 +24,7 @@ import PrivacyPage from './pages/privacy';
 import Filters from './pages/Filters';
 import NotFoundPage from './pages/notfound';
 import TutorSettingsPage from './pages/TutorSettingsPage';
+import ForgotPasswordPage from './pages/forgot-password';
 
 function App() {
   const { i18n } = useTranslation();
@@ -126,6 +127,7 @@ function RoutesWrapper() {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path='/Filters' element={<Filters />} />
         <Route path="/settings/teacher" element={<TutorSettingsPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage /> } />
         {/* Add more routes as needed */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

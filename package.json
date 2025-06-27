@@ -14,6 +14,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@formkit/auto-animate": "github:formkit/auto-animate",
     "@headlessui/react": "^2.2.4",
     "@mui/material": "^7.1.0",
     "@mui/x-charts": "^8.2.0",

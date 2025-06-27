@@ -5,29 +5,74 @@ import {
 } from '@/components/ui/popover';
 import { Bell, MessageCircle, Users, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 const NotificationDropdown = () => {
+  const { t } = useTranslation();
+
   const notifications = [
     {
       id: 1,
       icon: <MessageCircle className="w-5 h-5 text-blue-500" />,
-      title: 'New message from Ahmed',
-      description: 'Hey! Are you available for a quick chat?',
-      time: '2 min ago',
+      title: t('notification.newMessageTitle', { name: 'Ahmed' }),
+      description: t('notification.newMessageBody'),
+      time: t('notification.time.2min'),
     },
     {
       id: 2,
       icon: <Users className="w-5 h-5 text-green-500" />,
-      title: 'You’ve been added to a group',
-      description: 'Check out the new group: Math Mentors',
-      time: '1 hour ago',
+      title: t('notification.groupAddedTitle'),
+      description: t('notification.groupAddedBody', { group: 'Math Mentors' }),
+      time: t('notification.time.1hour'),
     },
     {
       id: 3,
       icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
-      title: 'Your profile was approved',
-      description: 'Students can now find and contact you.',
-      time: 'Yesterday',
+      title: t('notification.profileApprovedTitle'),
+      description: t('notification.profileApprovedBody'),
+      time: t('notification.time.yesterday'),
+    },
+      {
+      id: 4,
+      icon: <MessageCircle className="w-5 h-5 text-blue-500" />,
+      title: t('notification.newMessageTitle', { name: 'Ahmed' }),
+      description: t('notification.newMessageBody'),
+      time: t('notification.time.2min'),
+    },
+    {
+      id: 5,
+      icon: <Users className="w-5 h-5 text-green-500" />,
+      title: t('notification.groupAddedTitle'),
+      description: t('notification.groupAddedBody', { group: 'Math Mentors' }),
+      time: t('notification.time.1hour'),
+    },
+    {
+      id: 6,
+      icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
+      title: t('notification.profileApprovedTitle'),
+      description: t('notification.profileApprovedBody'),
+      time: t('notification.time.yesterday'),
+    },
+    {
+      id: 7,
+      icon: <MessageCircle className="w-5 h-5 text-blue-500" />,
+      title: t('notification.newMessageTitle', { name: 'Ahmed' }),
+      description: t('notification.newMessageBody'),
+      time: t('notification.time.2min'),
+    },
+    {
+      id: 8,
+      icon: <Users className="w-5 h-5 text-green-500" />,
+      title: t('notification.groupAddedTitle'),
+      description: t('notification.groupAddedBody', { group: 'Math Mentors' }),
+      time: t('notification.time.1hour'),
+    },
+    {
+      id: 9,
+      icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
+      title: t('notification.profileApprovedTitle'),
+      description: t('notification.profileApprovedBody'),
+      time: t('notification.time.yesterday'),
     },
   ];
 
@@ -52,7 +97,7 @@ const NotificationDropdown = () => {
 
       <PopoverContent className="min-w-[22rem] w-[90vw] sm:w-80 p-0 shadow-lg rounded-lg z-[100] max-h-[80vh]">
         <div className="p-4 border-b">
-          <h4 className="text-sm font-semibold text-foreground">Notifications</h4>
+          <h4 className="text-sm font-semibold text-foreground">{t('notification.title')}</h4>
         </div>
 
         {notifications.length > 0 ? (
@@ -73,7 +118,7 @@ const NotificationDropdown = () => {
           </ul>
         ) : (
           <div className="p-4 text-sm text-muted-foreground text-center">
-            No notifications yet.
+            {t('notification.empty')}
           </div>
         )}
       </PopoverContent>

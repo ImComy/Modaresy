@@ -41,11 +41,21 @@ export const mockTutors = [
         lecturesPerWeek: 2,
         yearsExp: 8,
         price: 100,
+        pricePeriod: 1, // Numeric ID: 1=month
         rating: 4.8,
-        private:{
+        private: {
           price: 800,
           note: "Private lessons available for EGP 800 per hour. Flexible scheduling to accommodate student needs.",
+          pricePeriod: 2 // Numeric ID: 2=session
         },
+        additionalPricing: [
+          {
+            name: "مراجعة نهائية ليلة الامتحان",
+            price: 25,
+            period: 2, // Numeric ID: 2=session
+            description: "Intensive review session before the exam"
+          }
+        ],
         offer: {
           percentage: 20,
           from: "2025-01-01",
@@ -53,25 +63,27 @@ export const mockTutors = [
           description: "20% off for new students until June 30, 2025",
           for: "private",
         },
+        paymentTiming: true,
+        paymentMethods: [1, 3, 4], // Numeric IDs: 1=Vodafone Cash, 3=Credit Card, 4=Cash
         Groups: [
-            {
-                groupName: "Group A",
-                days: ["Monday", "Wednesday"],
-                time: "5:00 PM - 6:30 PM",
-                isFull: false,
-                note: "Available for new students",
-            },
-            {
-                groupName: "Group B",
-                days: ["Saturday"],
-                time: "2:00 PM - 3:30 PM",
-                isFull: true,
-            }
+          {
+            groupName: "Group A",
+            days: ["Monday", "Wednesday"],
+            time: "5:00 PM - 6:30 PM",
+            isFull: false,
+            note: "Available for new students",
+          },
+          {
+            groupName: "Group B",
+            days: ["Saturday"],
+            time: "2:00 PM - 3:30 PM",
+            isFull: true,
+          }
         ],
         introVideoUrl: "https://www.youtube.com/embed/tgbNymZ7vqY",
         otherVideos: [
-        { id: 'v1a', title: "Solving Quadratic Equations", url: "https://www.youtube.com/embed/tgbNymZ7vqY" },
-        { id: 'v1b', title: "Introduction to Calculus", url: "https://www.youtube.com/embed/tgbNymZ7vqY" },
+          { id: 'v1a', title: "Solving Quadratic Equations", url: "https://www.youtube.com/embed/tgbNymZ7vqY" },
+          { id: 'v1b', title: "Introduction to Calculus", url: "https://www.youtube.com/embed/tgbNymZ7vqY" },
         ],
         comments: [
           { id: 1, user: "Student A", rating: 5, text: "1", date: "2025-04-15" },
@@ -570,6 +582,7 @@ export const mockTutors = [
       yearsExp: 4,
       price: 80,
       rating: 4.6,
+      
       private: {
         price: 600,
         note: "Private sessions include personalized worksheets."
@@ -1869,7 +1882,121 @@ export const mockTutors = [
     github: ""
   },
   subjects: []
+},
+{
+  id: 16,
+  name: "أ. شيماء سامي",
+  location: "طنطا",
+  detailedLocation: ["شارع البحر", "قرب كلية التربية", "ميدان المحطة"],
+  img: "/tutors/shaimaa-sami.png",
+  bannerimg: "/banners/arabic-literature.jpg",
+  phone: "01099887722",
+  isTopRated: true,
+  personalAvailability: {
+    times: ["الأحد ٤ - ٦ مساءً", "الثلاثاء ٥ - ٧ مساءً", "الخميس ١١ صباحاً - ١ ظهراً"],
+    note: "أُفضل الحصص التفاعلية أونلاين عبر Google Meet، كما أُوفر أوراق تدريب للطلاب بعد كل درس."
+  },
+  GeneralBio: "مدرسة لغة عربية وخبيرة في مهارات التعبير والبلاغة لطلاب الثانوية العامة. أملك خبرة تتجاوز ١٠ سنوات في مساعدة الطلاب على التميز في الامتحانات الرسمية من خلال الشرح المبسط والتمارين المكثفة.",
+  achievements: [
+    { type: "topRated", label: "الأعلى تقييماً", isCurrent: true },
+    { type: "monthlyTop", label: "معلمة الشهر - يونيو", isCurrent: true }
+  ],
+  socials: {
+    facebook: "https://facebook.com/shaimaa.arabic",
+    instagram: "https://instagram.com/shaimaa.language",
+    twitter: "",
+    linkedin: "",
+    youtube: "",
+    tiktok: "",
+    whatsapp: "https://wa.me/01099887722",
+    telegram: "",
+    email: "shaimaa@modaresy.com",
+    website: "",
+    github: ""
+  },
+  subjects: [
+    {
+      subject: "اللغة العربية",
+      grade: "الثانوية العامة - الصف الثالث",
+      type: "الثانوية العامة - أدبي",
+      bio: "منهج شامل يشمل النحو، البلاغة، الأدب، النصوص، والتعبير الوظيفي والإبداعي بطريقة سهلة ومركزة.",
+      duration: 10,
+      lecturesPerWeek: 2,
+      yearsExp: 10,
+      price: 90,
+      rating: 4.8,
+      private: {
+        price: 750,
+        note: "يشمل تدريبات خاصة على التعبير وأسئلة الأعوام السابقة."
+      },
+      offer: {
+        percentage: 20,
+        from: "2025-06-20",
+        to: "2025-08-10",
+        description: "خصم 20% لحجوزات الصيف المبكرة",
+        for: "private"
+      },
+      Groups: [
+        {
+          groupName: "المجموعة الذهبية",
+          days: ["الأحد", "الثلاثاء"],
+          time: "٤:٠٠ م - ٥:٣٠ م",
+          isFull: false,
+          note: "أماكن محدودة. المجموعة تراجع جميع فروع اللغة أسبوعياً."
+        }
+      ],
+      introVideoUrl: "https://www.youtube.com/embed/tgbNymZ7vqY",
+      otherVideos: [
+        {
+          id: "ar1",
+          title: "شرح النعت وأنواعه",
+          url: "https://www.youtube.com/embed/tgbNymZ7vqY"
+        },
+        {
+          id: "ar2",
+          title: "الفرق بين الخبر المفرد والجملة",
+          url: "https://www.youtube.com/embed/tgbNymZ7vqY"
+        }
+      ],
+      comments: [
+        { id: 1, user: "طالبة مريم", rating: 5, text: "أستاذة رائعة، بفضلها فهمت النحو أخيرًا!", date: "2025-05-12" },
+        { id: 2, user: "أم الطالبة سارة", rating: 4, text: "تشرح بطريقة محترمة ومنظمة جداً، شكراً لكِ", date: "2025-04-28" }
+      ],
+      courseContent: [
+        "النحو الكامل",
+        "البلاغة والتذوق الفني",
+        "نصوص القراءة والأدب",
+        "التعبير الوظيفي والإبداعي",
+        "حل نماذج امتحانات الأعوام السابقة"
+      ]
+    },
+    {
+      subject: "التربية الدينية الإسلامية",
+      grade: "الثانوية العامة - الصف الثالث",
+      type: "الثانوية العامة - مشترك",
+      bio: "تدريس مبسط وشامل لفهم المعاني القرآنية والأحاديث وتفسيرها، مع مراجعة دقيقة لأسئلة الامتحانات.",
+      duration: 45,
+      lecturesPerWeek: 1,
+      yearsExp: 8,
+      price: 50,
+      rating: 4.6,
+      private: {
+        price: 400,
+        note: "تُرسل ملخصات مراجعة أسبوعية للطلاب."
+      },
+      offer: null,
+      Groups: [],
+      courseContent: [
+        "تفسير الآيات",
+        "الحديث الشريف",
+        "السيرة النبوية",
+        "القيم الإسلامية",
+        "المراجعة النهائية"
+      ]
+    }
+  ]
 }
+
 
 ];
 

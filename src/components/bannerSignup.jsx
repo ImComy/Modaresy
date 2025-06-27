@@ -1,8 +1,10 @@
 import React, { useState, useRef } from "react";
 import BannerCropOverlay from "./ui/cropper";
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 export default function BannerUploadWithCrop({ formData, setFormData, defaultBannerUrl = null }) {
+  const { t } = useTranslation();
   const [rawImage, setRawImage] = useState(null);
   const [cropperVisible, setCropperVisible] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -41,7 +43,7 @@ export default function BannerUploadWithCrop({ formData, setFormData, defaultBan
       return (
         <img
           src={URL.createObjectURL(formData.bannerimg)}
-          alt="Banner Preview"
+          alt={t('bannerPreview')}
           className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
         />
       );
@@ -49,14 +51,14 @@ export default function BannerUploadWithCrop({ formData, setFormData, defaultBan
       return (
         <img
           src={defaultBannerUrl}
-          alt="Default Banner"
+          alt={t('defaultBanner')}
           className="w-full h-full object-cover opacity-60"
         />
       );
     } else {
       return (
         <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
-          No banner uploaded
+          {t('noBannerUploaded')}
         </div>
       );
     }
@@ -65,14 +67,14 @@ export default function BannerUploadWithCrop({ formData, setFormData, defaultBan
   return (
     <div>
       <label htmlFor="banner" className="text-base font-medium text-foreground">
-        Banner Image
+        {t('bannerImage')}
       </label>
       <div className="mt-3 rounded-lg overflow-hidden border border-border bg-muted h-40 shadow-sm">
         {renderBannerPreview()}
       </div>
       <div className="flex items-center gap-3 mt-3">
         <Button className="relative">
-          Upload Banner
+          {t('uploadBanner')}
           <input
             type="file"
             accept="image/*"

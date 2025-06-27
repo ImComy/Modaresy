@@ -10,7 +10,8 @@ import ContentManagementSection from '@/components/Dashboard/content';
 import SaveButton from '@/components/ui/save';
 
 const TeacherDashboardPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
   const [activeSection, setActiveSection] = useState('analysis');
   const [unsavedSections, setUnsavedSections] = useState({});
   const [isSaving, setIsSaving] = useState(false);
@@ -62,7 +63,7 @@ useEffect(() => {
     { id: 'groupsAndTables', label: t('groupsAndTables'), icon: <Table2 className="h-5 w-5" /> },
     { id: 'pricesAndOffers', label: t('pricesAndOffers'), icon: <Tag className="h-5 w-5" /> },
     { id: 'contentManagement', label: t('contentManagement'), icon: <FileText className="h-5 w-5" /> },
-    { id: 'settings', label: t('settings'), icon: <Settings className="h-5 w-5" /> },
+    { id: 'settings', label: t('settingsNav'), icon: <Settings className="h-5 w-5" /> },
   ];
 
   return (
@@ -74,12 +75,15 @@ useEffect(() => {
         <p className="text-lg text-muted-foreground">{t('dashboardOverview')}</p>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 p-3 bg-muted/20 rounded-lg shadow-lg">
+      <div
+        className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 p-3 bg-muted/20 rounded-lg shadow-lg"
+      >
         {sections.map((section) => (
           <motion.button
             key={section.id}
             whileHover={{ y: -5 }}
             whileTap={{ scale: 0.95 }}
+            dir={i18n.language === 'ar' ? 'rtl' : 'ltr'} 
             onClick={
               section.id === 'settings'
                 ? handleSettingsClick
@@ -91,13 +95,20 @@ useEffect(() => {
                 : ''
             }`}
           >
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <h3 className="text-base font-semibold text-foreground">
-                {section.label}
-              </h3>
-              {section.icon}
+            <div className="flex items-center justify-between pb-2 gap-2">
+              <div className="flex items-center gap-2">
+                {section.icon}
+                <h3 className="text-base font-semibold text-foreground text-[15px]">
+                  {section.label}
+                </h3>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
+
+            <p
+              className={`text-sm text-muted-foreground ${
+                i18n.language === 'ar' ? 'text-right' : 'text-left'
+              }`}
+            >
               {t(`${section.id}Desc`)}
             </p>
           </motion.button>

@@ -163,10 +163,14 @@ const TutorProfilePage = () => {
             <div className="col-span-2 space-y-8">
               <SubjectPricingInfo
                 price={selectedSubject?.price}
+                pricePeriod={selectedSubject?.pricePeriod}
                 privatePricing={selectedSubject?.private}
+                additionalPricing={selectedSubject?.additionalPricing}
                 subjectBio={selectedSubject?.bio}
                 subjectRating={selectedSubject?.rating}
                 offer={selectedSubject?.offer}
+                paymentTiming={selectedSubject?.paymentTiming}
+                paymentMethods={selectedSubject?.paymentMethods}
               />
               <TutorVideoManager
                 introVideoUrl={selectedSubject?.introVideoUrl}
@@ -195,10 +199,14 @@ const TutorProfilePage = () => {
           <div className="block lg:hidden space-y-8">
             <SubjectPricingInfo
               price={selectedSubject?.price}
+              pricePeriod={selectedSubject?.pricePeriod}
               privatePricing={selectedSubject?.private}
+              additionalPricing={selectedSubject?.additionalPricing}
               subjectBio={selectedSubject?.bio}
               subjectRating={selectedSubject?.rating}
               offer={selectedSubject?.offer}
+              paymentTiming={selectedSubject?.paymentTiming}
+              paymentMethods={selectedSubject?.paymentMethods}
             />
             <TutorCourseInfo
               courseContent={selectedSubject?.courseContent}

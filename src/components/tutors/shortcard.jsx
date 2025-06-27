@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 
 const ShortTutorCard = ({ tutor }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { wishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { toast } = useToast();
   const { authState } = useAuth();
@@ -113,7 +113,10 @@ const ShortTutorCard = ({ tutor }) => {
               </p>
             </div>
 
-            <div className="mt-4 w-full flex justify-between items-center pt-4 border-t border-border text-sm">
+            <div
+              className="mt-4 w-full flex justify-between items-center pt-4 border-t border-border text-xs gap-2"
+              dir={i18n.dir()}
+            >
               {authState.isLoggedIn && (
                 <Button
                   variant="ghost"
@@ -121,11 +124,12 @@ const ShortTutorCard = ({ tutor }) => {
                   onClick={handleWishlistToggle}
                   className={cn(
                     'hover:text-destructive text-muted-foreground transition-colors px-2 gap-1',
+                    'whitespace-nowrap',
                     isInWishlist && 'text-destructive'
                   )}
                 >
                   <Heart size={14} fill={isInWishlist ? 'currentColor' : 'none'} />
-                  {isInWishlist ? t('Remove') : t('addToWishlist', 'Add to Wishlist')}
+                  <span>{isInWishlist ? t('Remove') : t('addToWishlist', 'Add to Wishlist')}</span>
                 </Button>
               )}
               <Button
@@ -133,7 +137,7 @@ const ShortTutorCard = ({ tutor }) => {
                 to={`/tutor/${tutor.id}`}
                 size="sm"
                 variant="outline"
-                className="border-primary text-primary hover:bg-primary hover:text-white transition-colors duration-200 px-3 py-1 rounded-md font-semibold"
+                className="border-primary text-primary hover:bg-primary hover:text-white transition-colors duration-200 px-3 py-1 rounded-md font-semibold whitespace-nowrap"
                 onClick={(e) => e.stopPropagation()}
               >
                 {t('viewProfile', 'View Profile')}

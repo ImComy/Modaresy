@@ -7,29 +7,31 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Mail, Phone, MapPin, User, Lock, GraduationCap, Layers } from 'lucide-react';
+import { Select, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Mail, Phone, MapPin, User, Lock, GraduationCap } from 'lucide-react';
 import { SearchableSelectContent } from '@/components/ui/searchSelect';
+import SaveButton from "@/components/ui/save"
 
-const initialUserData = {
-  name: 'Student User',
-  email: 'student@example.com',
-  phone: '',
-  password: '',
-  confirmPassword: '',
-  location: '',
-  grade: 'secondary-2',
-  sector: 'scientific',
-};
 
 const StudentProfilePage = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
+
+  const initialUserData = {
+    name: t("Student User"),
+    email: 'student@example.com',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    location: '',
+    grade: 'secondary-2',
+    sector: 'scientific',
+  };
+
   const [userData, setUserData] = useState(initialUserData);
   const [errors, setErrors] = useState({});
 
   const cities = ['Cairo', 'Giza', 'Alexandria', 'Aswan', 'Luxor'];
-
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
@@ -42,11 +44,11 @@ const StudentProfilePage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!userData.name.trim()) newErrors.name = 'Required';
-    if (!userData.email.includes('@')) newErrors.email = 'Invalid email';
-    if (!userData.phone.trim()) newErrors.phone = 'Required';
-    if (!userData.password || userData.password.length < 6) newErrors.password = 'Too short';
-    if (userData.password !== userData.confirmPassword) newErrors.confirmPassword = 'Does not match';
+    if (!userData.name.trim()) newErrors.name = t('errorRequired');
+    if (!userData.email.includes('@')) newErrors.email = t('errorInvalidEmail');
+    if (!userData.phone.trim()) newErrors.phone = t('errorRequired');
+    if (!userData.password || userData.password.length < 6) newErrors.password = t('errorPasswordShort');
+    if (userData.password !== userData.confirmPassword) newErrors.confirmPassword = t('errorPasswordMismatch');
     return newErrors;
   };
 
@@ -57,8 +59,8 @@ const StudentProfilePage = () => {
     if (Object.keys(validationErrors).length > 0) return;
 
     toast({
-      title: 'Settings saved',
-      description: 'Your changes have been successfully saved.',
+      title: t('toastTitleSaved'),
+      description: t('toastDescSaved'),
     });
   };
 
@@ -70,12 +72,14 @@ const StudentProfilePage = () => {
       transition={{ duration: 0.4 }}
     >
       <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-6">
-        <h1 className="text-3xl font-bold mb-4">{t('settings') || 'Settings'}</h1>
+        <h1 className="text-3xl font-bold mb-4">{t('settings')}</h1>
 
         {/* Account Info */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><User className="w-5 h-5 text-primary" /> {t('accountInfo')}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <User className="w-5 h-5 text-primary" /> {t('accountInfo')}
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -95,21 +99,18 @@ const StudentProfilePage = () => {
               <Input id="phone" value={userData.phone} onChange={handleInputChange} className="pl-10" />
               {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
             </div>
-            <div className="relative flex  flex-col gap-2">
-              <div className='flex items-center gap-2'>
-              <Label htmlFor="location">{t('location')}</Label>
-              <MapPin className=" w-4 h-4 text-muted-foreground" />
-              </div>  
+            <div className="relative flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="location">{t('location')}</Label>
+                <MapPin className="w-4 h-4 text-muted-foreground" />
+              </div>
               <Select value={userData.location} onValueChange={(v) => handleSelectChange('location', v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select your city" />
+                  <SelectValue placeholder={t('selectCity')} />
                 </SelectTrigger>
                 <SearchableSelectContent
-                  searchPlaceholder="Search cities..."
-                  items={cities.map(city => ({
-                    value: city,
-                    label: city,
-                  }))}
+                  searchPlaceholder={t('searchLocation')}
+                  items={cities.map((city) => ({ value: city, label: city }))}
                 />
               </Select>
             </div>
@@ -119,7 +120,9 @@ const StudentProfilePage = () => {
         {/* Security */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Lock className="w-5 h-5 text-primary" /> {t('security')}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-primary" /> {t('security')}
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -151,7 +154,7 @@ const StudentProfilePage = () => {
                 </SelectTrigger>
                 <SearchableSelectContent
                   searchPlaceholder={t('searchGrade')}
-                  items={grades.map(g => ({
+                  items={grades.map((g) => ({
                     value: g.value,
                     label: t(g.labelKey),
                   }))}
@@ -166,7 +169,7 @@ const StudentProfilePage = () => {
                 </SelectTrigger>
                 <SearchableSelectContent
                   searchPlaceholder={t('searchSector')}
-                  items={sectors.map(s => ({
+                  items={sectors.map((s) => ({
                     value: s.value,
                     label: t(s.labelKey),
                   }))}
@@ -177,11 +180,11 @@ const StudentProfilePage = () => {
         </Card>
 
         <div className="pt-4">
-          <Button type="submit" className="w-full md:w-auto">{t('saveChanges') || 'Save Changes'}</Button>
+          <SaveButton />
         </div>
       </form>
 
-      {/* Current Info Summary */}
+      {/* Info Summary */}
       <div className="space-y-4">
         <Card className="bg-muted/40 border sticky top-24">
           <CardHeader>
@@ -203,11 +206,15 @@ const StudentProfilePage = () => {
             </div>
             <div>
               <Label className="text-muted-foreground">{t('grade')}</Label>
-              <p className="font-medium text-foreground">{t(grades.find((g) => g.value === userData.grade)?.labelKey)}</p>
+              <p className="font-medium text-foreground">
+                {t(grades.find((g) => g.value === userData.grade)?.labelKey)}
+              </p>
             </div>
             <div>
               <Label className="text-muted-foreground">{t('sector')}</Label>
-              <p className="font-medium text-foreground">{t(sectors.find((s) => s.value === userData.sector)?.labelKey)}</p>
+              <p className="font-medium text-foreground">
+                {t(sectors.find((s) => s.value === userData.sector)?.labelKey)}
+              </p>
             </div>
           </CardContent>
         </Card>

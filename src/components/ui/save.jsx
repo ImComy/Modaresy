@@ -2,14 +2,17 @@ import React from 'react';
 import { Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 const SaveButton = ({
   isLoading = false,
-  label = 'Save Changes',
-  type = 'submit', // for forms
+  label,
+  type = 'submit',
   onClick,
   className,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="pt-6 flex justify-start">
       <Button
@@ -24,12 +27,12 @@ const SaveButton = ({
         {isLoading ? (
           <>
             <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            Saving...
+            {t('saving')}
           </>
         ) : (
           <>
             <Save className="w-4 h-4" />
-            {label}
+            {label || t('saveChanges')}
           </>
         )}
       </Button>

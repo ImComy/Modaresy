@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Flag, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,14 +7,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 const REPORT_REASONS = [
-  "Inappropriate content",
-  "Misleading information",
-  "Offensive behavior",
-  "Spam or advertisement",
-  "Other",
+  "inappropriate",
+  "misleading",
+  "offensive",
+  "spam",
+  "other",
 ];
 
 const ReportButton = ({ tutorId }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [selectedReason, setSelectedReason] = useState(null);
   const [customReason, setCustomReason] = useState("");
@@ -29,7 +31,7 @@ const ReportButton = ({ tutorId }) => {
   };
 
   const submitReport = () => {
-    const reason = selectedReason === "Other" ? customReason.trim() : selectedReason;
+    const reason = selectedReason === "other" ? customReason.trim() : selectedReason;
 
     if (!reason || reason.length < 3) {
       setStatus("error");
@@ -61,7 +63,6 @@ const ReportButton = ({ tutorId }) => {
       <AnimatePresence>
         {open && (
           <>
-            {/* Backdrop */}
             <motion.div
               className="fixed inset-0 z-40 backdrop-blur-sm bg-black/40"
               initial={{ opacity: 0 }}
@@ -70,45 +71,41 @@ const ReportButton = ({ tutorId }) => {
               onClick={reset}
             />
 
-            {/* Modal */}
             <motion.div
               className="fixed top-1/2 left-1/2 z-50 w-[90%] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-background shadow-xl p-6 space-y-5"
               initial={{ scale: 0.9, opacity: 0, x: "-50%", y: "-50%" }}
               animate={{ scale: 1, opacity: 1, x: "-50%", y: "-50%" }}
               exit={{ scale: 0.9, opacity: 0 }}
             >
-              {/* Header */}
               <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-foreground">Report Tutor</h2>
+                <h2 className="text-lg font-semibold text-foreground">{t("reportTutor")}</h2>
                 <button onClick={reset} disabled={submitting}>
                   <X className="text-muted-foreground" size={20} />
                 </button>
               </div>
 
-              {/* Reason Buttons */}
               <div className="space-y-2">
-                {REPORT_REASONS.map((reason, idx) => (
+                {REPORT_REASONS.map((key) => (
                   <button
-                    key={idx}
+                    key={key}
                     disabled={submitting}
                     onClick={() => {
-                      setSelectedReason(reason);
+                      setSelectedReason(key);
                       setStatus(null);
                     }}
                     className={cn(
                       "w-full text-left px-4 py-2 rounded-lg border text-sm transition-colors",
-                      selectedReason === reason
+                      selectedReason === key
                         ? "bg-destructive/10 border-destructive text-destructive dark:bg-destructive/20"
                         : "border-border text-muted-foreground hover:bg-muted"
                     )}
                   >
-                    {reason}
+                    {t(`reportReasons.${key}`)}
                   </button>
                 ))}
               </div>
 
-              {/* Custom Reason Textarea */}
-              {selectedReason === "Other" && (
+              {selectedReason === "other" && (
                 <Textarea
                   disabled={submitting}
                   value={customReason}
@@ -116,13 +113,12 @@ const ReportButton = ({ tutorId }) => {
                     setCustomReason(e.target.value);
                     setStatus(null);
                   }}
-                  placeholder="Please describe your reason"
+                  placeholder={t("reportPlaceholder")}
                   rows={3}
                   className="mt-2"
                 />
               )}
 
-              {/* Footer Buttons */}
               <div className="flex justify-end gap-3 pt-4">
                 <Button
                   variant="ghost"
@@ -130,18 +126,17 @@ const ReportButton = ({ tutorId }) => {
                   disabled={submitting}
                   className="text-muted-foreground hover:bg-muted"
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
                 <Button
                   onClick={submitReport}
                   disabled={!selectedReason || submitting}
                   className="bg-destructive text-white hover:bg-destructive/90"
                 >
-                  {submitting ? "Submitting..." : "Submit"}
+                  {submitting ? t("submitting") : t("submit")}
                 </Button>
               </div>
 
-              {/* Feedback */}
               <AnimatePresence>
                 {status && (
                   <motion.div
@@ -159,12 +154,12 @@ const ReportButton = ({ tutorId }) => {
                     {status === "success" ? (
                       <>
                         <CheckCircle size={18} />
-                        Report submitted successfully.
+                        {t("reportSubmittedSuccess")}
                       </>
                     ) : (
                       <>
                         <AlertCircle size={18} />
-                        Please select or write a valid reason.
+                        {t("invalidReportReason")}
                       </>
                     )}
                   </motion.div>

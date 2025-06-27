@@ -10,6 +10,7 @@ import TutorProfileHeader from '@/components/profile/TutorProfileHeader';
 import { Button } from '@/components/ui/button';
 import { User, Settings, BookOpen, Share2 } from 'lucide-react';
 import SaveButton from '@/components/ui/save';
+import { useTranslation } from 'react-i18next';
 
 const defaultForm = {
   name: 'Ahmed Hassan',
@@ -25,10 +26,10 @@ const defaultForm = {
 };
 
 const navItems = [
-  { id: 'account', label: 'Account', icon: <User className="w-4 h-4 text-blue-600" /> },
-  { id: 'general', label: 'General', icon: <Settings className="w-4 h-4 text-blue-600" /> },
-  { id: 'subjects', label: 'Subjects', icon: <BookOpen className="w-4 h-4 text-blue-600" /> },
-  { id: 'socials', label: 'Socials', icon: <Share2 className="w-4 h-4 text-blue-600" /> },
+  { id: 'account', labelKey: 'nav.account', defaultLabel: 'Account', icon: <User className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> },
+  { id: 'general', labelKey: 'nav.general', defaultLabel: 'General', icon: <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> },
+  { id: 'subjects', labelKey: 'nav.subjects', defaultLabel: 'Subjects', icon: <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> },
+  { id: 'socials', labelKey: 'nav.socials', defaultLabel: 'Socials', icon: <Share2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> },
 ];
 
 const TutorSettingsPage = () => {
@@ -52,13 +53,6 @@ const TutorSettingsPage = () => {
       instagram: "https://www.instagram.com/ahmed.hassan",
       twitter: "https://twitter.com/ahmed_hassan",
       linkedin: "https://www.linkedin.com/in/ahmed-hassan",
-      youtube: "https://www.youtube.com/channel/ahmed.hassan",
-      tiktok: "https://www.tiktok.com",
-      whatsapp: "https://wa.me/01234567890",
-      telegram: "https://t.me/ahmed_hassan",
-      email: "info@modaresy.com",
-      website: "https://www.modaresy.com",
-      github: "",
     },
     youtubeVideos: [],
     subjects: [
@@ -87,7 +81,7 @@ const TutorSettingsPage = () => {
       setYoutubeVideos(tutor.youtubeVideos || []);
       initialLoadRef.current = false;
     }
-  }, []); // Empty dependency array to run only on mount
+  }, []); 
 
   const liveTutor = {
     ...tutor,
@@ -134,10 +128,11 @@ const TutorSettingsPage = () => {
     setYoutubeVideos((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const { t } = useTranslation();
+
   return (
     <>
-      {/* Horizontal Floating Nav Bar */}
-      <div className="sticky top-20 z-30 ">
+      <div className="sticky top-20 z-30">
         <div className="max-w-xl mx-auto px-4">
           <NavigationCard
             navItems={navItems}
@@ -148,35 +143,26 @@ const TutorSettingsPage = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <motion.div
-        className="max-w-7xl mx-auto px-4 py-10 felx flex-row gap-8"
+        className="max-w-7xl mx-auto px-4 py-10 flex flex-col gap-8"
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
         <form className="space-y-6" onSubmit={handleSubmit}>
-          <h1 className="text-3xl font-bold mb-4 ">Tutor Settings</h1>
 
           {selectedSection === 'account' && (
-            <AccountSection
-              form={form}
-              setForm={setForm}
-            />
+            <AccountSection form={form} setForm={setForm} />
           )}
+
           {selectedSection === 'general' && (
-            <GeneralSection
-              form={form}
-              setForm={setForm}
-              defaultForm={defaultForm}
-            />
+            <GeneralSection form={form} setForm={setForm} defaultForm={defaultForm} />
           )}
+
           {selectedSection === 'subjects' && (
-            <SubjectsSection
-              subjects={subjects}
-              onChange={setSubjects}
-            />
+            <SubjectsSection subjects={subjects} onChange={setSubjects} />
           )}
+
           {selectedSection === 'socials' && (
             <SocialsSection
               socialLinks={socialLinks}
@@ -188,22 +174,10 @@ const TutorSettingsPage = () => {
             />
           )}
 
-          {/* {['account', 'general'].includes(selectedSection) && (
-            <>
-              <h3 className="text-xl font-bold mt-20 text-gray-800">Live Tutor Profile</h3>
-              <TutorProfileHeader tutor={liveTutor} />
-            </>
-          )} */}
-
           <div className="flex justify-end mt-6">
-            <SaveButton
-              isLoading={isSaving}
-              className="w-full max-w-xs"
-            /></div>
+            <SaveButton isLoading={isSaving} className="w-full max-w-xs" />
+          </div>
         </form>
-
-        {/* Optional Sidebar Placeholder */}
-        <div className="order-1 lg:order-2" />
       </motion.div>
     </>
   );

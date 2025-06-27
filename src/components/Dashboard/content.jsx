@@ -17,7 +17,13 @@ import {
 } from '@/components/ui/select';
 import { SearchableSelectContent } from '@/components/ui/searchSelect';
 
-const SUBJECTS = ['Math', 'Science', 'English', 'SAT', 'Thanaweya Amma'];
+const SUBJECTS = [
+  { value: 'Math', label: 'math', defaultLabel: 'Math' },
+  { value: 'Science', label: 'science', defaultLabel: 'Science' },
+  { value: 'English', label: 'english', defaultLabel: 'English' },
+  { value: 'SAT', label: 'sat', defaultLabel: 'SAT' },
+  { value: 'Thanaweya Amma', label: 'thanaweyaAmma', defaultLabel: 'Thanaweya Amma' },
+];
 
 const ContentManagementSection = () => {
   const { t } = useTranslation();
@@ -69,23 +75,23 @@ const ContentManagementSection = () => {
         <CardHeader className="pb-4 -mt-6">
           <CardTitle className="flex items-center gap-2 text-xl font-semibold text-primary">
             <FileText className="w-10 h-10" />
-            {t('Course Content & Format')}
+            {t('courseContentAndFormat', 'Course Content & Format')}
           </CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-6">
           {/* Subject Dropdown */}
           <div className="space-y-1">
-            <Label className="text-base">Subject</Label>
+            <Label className="text-base">{t('subject', 'Subject')}</Label>
             <Select value={subject} onValueChange={setSubject}>
               <SelectTrigger className="rounded-lg" error={!subject}>
-                <SelectValue placeholder="Choose Subject" />
+                <SelectValue placeholder={t('chooseSubjectPlaceholder', 'Choose Subject')} />
               </SelectTrigger>
               <SearchableSelectContent
-                searchPlaceholder="Search subject..."
+                searchPlaceholder={t('searchSubjectPlaceholder', 'Search subject...')}
                 items={SUBJECTS.map((subj) => ({
-                  value: subj,
-                  label: subj,
+                  value: subj.value,
+                  label: t(subj.label, subj.defaultLabel),
                 }))}
               />
             </Select>
@@ -93,10 +99,10 @@ const ContentManagementSection = () => {
 
           {/* Topic stack */}
           <div className="space-y-2">
-            <Label className="text-base">Topics Covered</Label>
+            <Label className="text-base">{t('topicsCovered', 'Topics Covered')}</Label>
             <div className="flex gap-2">
               <Input
-                placeholder="Add a topic (e.g. Trigonometry)"
+                placeholder={t('addTopicPlaceholder', 'Add a topic (e.g. Trigonometry)')}
                 value={newTopic}
                 onChange={(e) => setNewTopic(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddTopic()}
@@ -107,7 +113,7 @@ const ContentManagementSection = () => {
                 className="px-4 rounded-lg text-sm"
               >
                 <Plus className="w-4 h-4 mr-1" />
-                Add
+                {t('add', 'Add')}
               </Button>
             </div>
 
@@ -134,17 +140,17 @@ const ContentManagementSection = () => {
           {/* Duration & Frequency */}
           <div className="grid md:grid-cols-2 gap-6 pt-2">
             <div className="space-y-1">
-              <Label className="text-base">Session Duration</Label>
+              <Label className="text-base">{t('sessionDuration', 'Session Duration')}</Label>
               <Input
-                placeholder="e.g. 60 min / session"
+                placeholder={t('sessionDurationPlaceholder', 'e.g. 60 min / session')}
                 value={content.sessionDuration}
                 onChange={(e) => handleChange('sessionDuration', e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-base">Lectures Per Week</Label>
+              <Label className="text-base">{t('lecturesPerWeek', 'Lectures Per Week')}</Label>
               <Input
-                placeholder="e.g. 2 times"
+                placeholder={t('lecturesPerWeekPlaceholder', 'e.g. 2 times')}
                 value={content.lecturesPerWeek}
                 onChange={(e) => handleChange('lecturesPerWeek', e.target.value)}
               />
@@ -153,9 +159,9 @@ const ContentManagementSection = () => {
 
           {/* Optional note */}
           <div className="space-y-1 pt-2">
-            <Label className="text-base">Additional Notes</Label>
+            <Label className="text-base">{t('additionalNotes', 'Additional Notes')}</Label>
             <Input
-              placeholder="e.g. Flexible scheduling available upon request"
+              placeholder={t('additionalNotesPlaceholder', 'e.g. Flexible scheduling available upon request')}
               value={content.note}
               onChange={(e) => handleChange('note', e.target.value)}
             />

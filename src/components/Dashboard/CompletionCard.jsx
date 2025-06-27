@@ -2,14 +2,16 @@ import React from "react";
 import {
   GaugeCircle,
   UserCog,
-  BarChart,
   AlertTriangle,
   Sparkles,
   Lightbulb,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 const SettingsCompletionCard = ({ completionPercentage = 60 }) => {
+  const { t } = useTranslation();
+
   const getStatusColor = () => {
     if (completionPercentage >= 80) return "text-green-600";
     if (completionPercentage >= 50) return "text-yellow-500";
@@ -23,12 +25,12 @@ const SettingsCompletionCard = ({ completionPercentage = 60 }) => {
   };
 
   const recommendations = [
-    { key: "bio", label: "Add a detailed general bio" },
-    { key: "video", label: "Upload a short introduction video" },
-    { key: "availability", label: "Set weekly availability" },
-    { key: "pricing", label: "Add subject pricing and offers" },
-    { key: "socials", label: "Link social media for more visibility" },
-    { key: "content", label: "Upload sample lesson content" },
+    { key: "bio" },
+    { key: "video" },
+    { key: "availability" },
+    { key: "pricing" },
+    { key: "socials" },
+    { key: "content" },
   ];
 
   const missingItems =
@@ -38,10 +40,10 @@ const SettingsCompletionCard = ({ completionPercentage = 60 }) => {
 
   const encouragement =
     completionPercentage >= 90
-      ? "You're doing great! Your profile is ready to shine 🌟"
+      ? t("encouragementHigh")
       : completionPercentage >= 70
-      ? "Almost there! Just a few tweaks to boost your reach!"
-      : "Let’s level up your profile to reach more students!";
+      ? t("encouragementMid")
+      : t("encouragementLow");
 
   return (
     <div className="relative overflow-hidden border border-border rounded-xl bg-gradient-to-br from-muted/10 to-muted/20 shadow-md p-6 space-y-6">
@@ -49,7 +51,7 @@ const SettingsCompletionCard = ({ completionPercentage = 60 }) => {
         <div className="flex items-center gap-3">
           <UserCog className="w-6 h-6 text-primary" />
           <h2 className="text-lg font-semibold text-foreground">
-            Profile Setup Completion
+            {t("profileSetupTitle")}
           </h2>
         </div>
         <GaugeCircle className="w-8 h-8 text-muted-foreground" />
@@ -67,9 +69,9 @@ const SettingsCompletionCard = ({ completionPercentage = 60 }) => {
 
       <div className="flex items-center justify-between text-sm">
         <span className={`font-medium ${getStatusColor()}`}>
-          {completionPercentage}% completed
+          {t("completed", { value: completionPercentage })}
         </span>
-        <span className="text-muted-foreground">Keep going!</span>
+        <span className="text-muted-foreground">{t("keepGoing")}</span>
       </div>
 
       {/* Encouragement Message */}
@@ -80,28 +82,28 @@ const SettingsCompletionCard = ({ completionPercentage = 60 }) => {
         </div>
       </div>
 
-      {/* Tips or Missing Recommendations */}
+      {/* Suggestions */}
       {missingItems.length > 0 && (
         <div className="space-y-3 text-sm bg-muted/20 border border-dashed border-border rounded-lg p-4">
           <div className="flex items-center gap-2 text-muted-foreground font-medium">
             <Lightbulb className="w-4 h-4 text-yellow-400" />
-            Quick Suggestions to Boost Reach
+            {t("quickSuggestionsTitle")}
           </div>
           <ul className="list-disc list-inside pl-1 text-muted-foreground">
-            {missingItems.map((item, idx) => (
-              <li key={idx} className="text-foreground">
-                {item.label}
+            {missingItems.map((item) => (
+              <li key={item.key} className="text-foreground">
+                {t(`recommendations.${item.key}`)}
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Warning if profile is too empty */}
+      {/* Warning */}
       {completionPercentage < 50 && (
         <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive rounded-lg p-3">
           <AlertTriangle className="w-4 h-4" />
-          Your profile might be hidden from search results until more settings are completed.
+          {t("warningLowCompletion")}
         </div>
       )}
     </div>

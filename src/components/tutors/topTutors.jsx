@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 const TUTORS_PER_PAGE = 4;
 
 // Replace with the tutor IDs you want to show
-const TOP_TUTOR_IDS = [1, 2, 3, 4];
+const TOP_TUTOR_IDS = [1, 16, 14, 4];
 
 export const TopTutors = ({ tutors }) => {
   const { t } = useTranslation();
