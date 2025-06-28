@@ -122,6 +122,7 @@ const AccountManagement = () => {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]">
+                  <th className="p-3 font-medium">{t('id', 'ID')}</th>
                   <th className="p-3 font-medium">{t('name', 'Name')}</th>
                   <th className="p-3 font-medium">{t('email', 'Email')}</th>
                   <th className="p-3 font-medium">{t('role', 'Role')}</th>
@@ -132,13 +133,14 @@ const AccountManagement = () => {
               <tbody>
                 {paginatedUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-4 text-center italic text-[hsl(var(--muted-foreground))]">
+                    <td colSpan={6} className="p-4 text-center italic text-[hsl(var(--muted-foreground))]">
                       {t('noUsersFound', 'No users found')}
                     </td>
                   </tr>
                 ) : (
                   paginatedUsers.map((user) => (
                     <tr key={user.id} className="border-b border-[hsl(var(--border))] last:border-none">
+                      <td className="p-3 font-mono text-xs">{user.id}</td>
                       <td className="p-3">{user.name}</td>
                       <td className="p-3">
                         {user.email || (

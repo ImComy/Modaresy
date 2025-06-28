@@ -62,7 +62,6 @@ const GeneralSection = ({ form, setForm, defaultForm }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-6 px-4 sm:px-0"
     >
       <Card className="shadow-2xl border border-border/20 bg-background/95 backdrop-blur-lg rounded-2xl overflow-hidden">
         <CardHeader className="p-4 sm:p-6 bg-gradient-to-r from-primary/10 to-transparent">

@@ -99,7 +99,6 @@ const SocialsSection = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-6 px-4 sm:px-0"
     >
       <Card className="shadow-2xl border border-border/20 bg-background/95 backdrop-blur-lg rounded-2xl overflow-hidden">
         <CardHeader className="p-4 sm:p-6 bg-gradient-to-r from-primary/10 to-transparent">
@@ -200,19 +199,18 @@ const SocialsSection = ({
                 {youtubeVideos.map((video, index) => {
                   const videoId = getYouTubeVideoId(video.url);
                   return (
-<motion.div
-  key={index}
-  initial={{ opacity: 0, y: 10 }}
-  animate={{ opacity: 1, y: 0 }}
-  exit={{ opacity: 0, y: -10 }}
-  transition={{ duration: 0.3 }}
-  className={clsx(
-    'relative space-y-4 p-4 sm:p-6 bg-muted/50 rounded-xl border border-border/50',
-    'transition-colors duration-300 ring-1 ring-transparent hover:ring-primary/50 hover:ring-offset-2 hover:ring-offset-background',
-    index === 0 && 'ring-2 ring-primary/30 bg-primary/5'
-  )}
->
-
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.3 }}
+                      className={clsx(
+                        'relative space-y-4 p-4 sm:p-6 bg-muted/50 rounded-xl border border-border/50',
+                        'transition-colors duration-300 ring-1 ring-transparent hover:ring-primary/50 hover:ring-offset-2 hover:ring-offset-background',
+                        index === 0 && 'ring-2 ring-primary/30 bg-primary/5'
+                      )}
+                    >
                       {index === 0 && (
                         <div className="absolute -top-3 left-3 bg-primary text-white text-xs font-semibold px-2 sm:px-3 py-1 rounded-full shadow-md">
                           {t('introductionVideo', 'Introduction Video')}

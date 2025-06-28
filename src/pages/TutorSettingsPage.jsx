@@ -144,7 +144,7 @@ const TutorSettingsPage = () => {
       </div>
 
       <motion.div
-        className="max-w-7xl mx-auto px-4 py-10 flex flex-col gap-8"
+        className="max-w-7xl mx-auto py-10 flex flex-col gap-8"
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
