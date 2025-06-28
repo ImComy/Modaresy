@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { mockTutors } from '@/data/enhanced';
-import EditUserForm from '@/components/admin/EditUsers';
+import EditUserForm from './editUsers';
 
 const mockUsers = [
   { id: 'u1', name: 'Sara Ali', email: 'sara.ali@example.com', role: 'student', status: 'active' },
