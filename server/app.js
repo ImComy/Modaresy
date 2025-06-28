@@ -15,7 +15,6 @@ app.use('/tutors', tutors)
 app.use('/students', students)
 app.use('/admins', admins)
 
-
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })
