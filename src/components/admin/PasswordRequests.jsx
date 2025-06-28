@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-const passwordRequests = [
+const initialRequests = [
   {
     id: 'pr1',
     userId: 'u1',
@@ -22,14 +22,19 @@ const passwordRequests = [
 
 const PasswordRequests = () => {
   const { t } = useTranslation();
+  const [requests, setRequests] = useState(initialRequests);
   const [expandedId, setExpandedId] = useState(null);
 
   const handleApprove = (id) => {
     console.log('Approve password request:', id);
+    // Optionally remove after approval too
+    setRequests((prev) => prev.filter((req) => req.id !== id));
   };
 
   const handleReject = (id) => {
     console.log('Reject password request:', id);
+    setRequests((prev) => prev.filter((req) => req.id !== id));
+    if (expandedId === id) setExpandedId(null);
   };
 
   const toggleExpand = (id) => {
@@ -51,7 +56,7 @@ const PasswordRequests = () => {
             </tr>
           </thead>
           <tbody>
-            {passwordRequests.map((request) => (
+            {requests.map((request) => (
               <React.Fragment key={request.id}>
                 <tr className="border-b border-border">
                   <td className="p-3">{request.email}</td>
@@ -85,6 +90,13 @@ const PasswordRequests = () => {
                 )}
               </React.Fragment>
             ))}
+            {requests.length === 0 && (
+              <tr>
+                <td colSpan={3} className="p-4 text-center text-muted-foreground">
+                  {t('noRequests', 'No password change requests.')}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

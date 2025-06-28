@@ -231,25 +231,27 @@ const SocialsSection = ({
                             className="bg-input border border-border/50 focus:ring-2 focus:ring-primary rounded-lg h-10 sm:h-11 text-xs sm:text-sm transition-all duration-300"
                           />
                         </div>
-                        <div className="flex-1 w-full space-y-2">
-                          <Label className="text-xs sm:text-sm font-semibold text-muted-foreground">
-                            {t('videoUrl', 'Video URL')}
-                          </Label>
-                          <Input
-                            placeholder={t('videoUrlPlaceholder', 'https://www.youtube.com/watch?v=...')}
-                            value={video.url}
-                            onChange={(e) => onVideoChange(index, 'url', e.target.value)}
-                            className="bg-input border border-border/50 focus:ring-2 focus:ring-primary rounded-lg h-10 sm:h-11 text-xs sm:text-sm transition-all duration-300"
-                          />
+                        <div className="flex gap-3 items-end">
+                          <div className=" w-full space-y-2">
+                            <Label className="text-xs sm:text-sm font-semibold text-muted-foreground">
+                              {t('videoUrl', 'Video URL')}
+                            </Label>
+                            <Input
+                              placeholder={t('videoUrlPlaceholder', 'https://www.youtube.com/watch?v=...')}
+                              value={video.url}
+                              onChange={(e) => onVideoChange(index, 'url', e.target.value)}
+                              className="bg-input border border-border/50 focus:ring-2 focus:ring-primary rounded-lg h-10 sm:h-11 text-xs sm:text-sm transition-all duration-300"
+                            />
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onRemoveVideo(index)}
+                            className="h-10 w-10 sm:h-11 sm:w-11 hover:bg-destructive/20 transition-colors duration-200"
+                          >
+                            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
+                          </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onRemoveVideo(index)}
-                          className="h-10 w-10 sm:h-11 sm:w-11 mt-6 sm:mt-0 hover:bg-destructive/20 transition-colors duration-200"
-                        >
-                          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
-                        </Button>
                       </div>
                       {videoId && (
                         <motion.div

@@ -55,13 +55,16 @@ const AdminPage = () => {
         <h1 className="text-2xl sm:text-3xl font-bold text-center text-[hsl(var(--primary))]">
           {t('adminDashboardTitle', 'Modaresy Admin Dashboard')}
         </h1>
-
-        <NavigationCard
-          navItems={navItems}
-          selectedSection={selectedSection}
-          setSelectedSection={setSelectedSection}
-          handleSubmit={handleSubmit}
-        />
+        <div className="sticky top-20 z-30">
+          <div className="max-w-xl mx-auto px-4"></div>
+          <NavigationCard
+            navItems={navItems} 
+            selectedSection={selectedSection}
+            setSelectedSection={setSelectedSection}
+            handleSubmit={handleSubmit}
+          />
+        </div>
+      
 
         <div className="rounded-xl p-4 sm:p-6 bg-[hsl(var(--card))] border border-[hsl(var(--border))] shadow-sm mt-4 sm:mt-6">
           {selectedSection === 'accounts' && <AccountManagement />}

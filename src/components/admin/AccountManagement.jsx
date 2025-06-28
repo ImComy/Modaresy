@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,11 @@ const mockUsers = [
   { id: 'u2', name: 'Mohamed Khaled', email: 'mohamed.khaled@example.com', role: 'student', status: 'active' },
 ];
 
+const USERS_PER_PAGE = 10;
+
 const AccountManagement = () => {
   const { t } = useTranslation();
+
   const [users, setUsers] = useState([
     ...mockUsers,
     ...mockTutors.map((tutor) => ({
@@ -33,30 +36,37 @@ const AccountManagement = () => {
 
   const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchBy, setSearchBy] = useState('name');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const handleEdit = (user) => setEditingUser({ ...user });
 
   const handleSave = () => {
     setUsers(users.map((u) => (u.id === editingUser.id ? editingUser : u)));
     setEditingUser(null);
-    console.log('User updated:', editingUser);
   };
 
   const handleBan = (id) => {
     setUsers(users.map((u) =>
       u.id === id ? { ...u, status: u.status === 'active' ? 'banned' : 'active' } : u
     ));
-    console.log('User banned/unbanned:', id);
   };
 
-  const filteredUsers = users.filter((user) => {
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesRole && matchesSearch;
-  });
+  const filteredUsers = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return users.filter((user) => {
+      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+      const fieldValue = user[searchBy]?.toString().toLowerCase() || '';
+      return matchesRole && fieldValue.includes(term);
+    });
+  }, [users, searchTerm, searchBy, roleFilter]);
+
+  const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * USERS_PER_PAGE,
+    currentPage * USERS_PER_PAGE
+  );
 
   return (
     <Card className="p-6 bg-[hsl(var(--card))] text-[hsl(var(--foreground))]">
@@ -74,16 +84,29 @@ const AccountManagement = () => {
       ) : (
         <>
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 flex-wrap">
             <Input
               type="text"
-              placeholder={t('searchPlaceholder', 'Search by name or email')}
+              placeholder={t('searchPlaceholder', { field: t(searchBy) })}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
               className="w-full sm:w-64"
             />
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-full sm:w-48">
+            <Select value={searchBy} onValueChange={(val) => { setSearchBy(val); setCurrentPage(1); }}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder={t('searchBy', 'Search by')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">{t('name', 'Name')}</SelectItem>
+                <SelectItem value="email">{t('email', 'Email')}</SelectItem>
+                <SelectItem value="id">{t('id', 'ID')}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={roleFilter} onValueChange={(val) => { setRoleFilter(val); setCurrentPage(1); }}>
+              <SelectTrigger className="w-full sm:w-40">
                 <SelectValue placeholder={t('filterByRole', 'Filter by Role')} />
               </SelectTrigger>
               <SelectContent>
@@ -107,18 +130,22 @@ const AccountManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.length === 0 ? (
+                {paginatedUsers.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="p-4 text-center italic text-[hsl(var(--muted-foreground))]">
                       {t('noUsersFound', 'No users found')}
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user) => (
+                  paginatedUsers.map((user) => (
                     <tr key={user.id} className="border-b border-[hsl(var(--border))] last:border-none">
                       <td className="p-3">{user.name}</td>
                       <td className="p-3">
-                        {user.email || <span className="italic text-[hsl(var(--muted-foreground))]">{t('notAvailable', 'N/A')}</span>}
+                        {user.email || (
+                          <span className="italic text-[hsl(var(--muted-foreground))]">
+                            {t('notAvailable', 'N/A')}
+                          </span>
+                        )}
                       </td>
                       <td className="p-3 capitalize">{t(user.role)}</td>
                       <td className="p-3 capitalize">{t(user.status)}</td>
@@ -140,6 +167,31 @@ const AccountManagement = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-4">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              >
+                {t('previous', 'Previous')}
+              </Button>
+              <div className="flex items-center text-sm px-2 py-1 rounded-md">
+                {t('pageOf', { current: currentPage, total: totalPages })}
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              >
+                {t('next', 'Next')}
+              </Button>
+            </div>
+          )}
         </>
       )}
     </Card>
