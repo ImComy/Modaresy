@@ -1,5 +1,5 @@
 import express from "express"
-import main from "./authentication.js"
+import main from "./users/authentication.js"
 import tutors from "./tutors.js"
 import students from "./students.js"
 import admins from "./admins.js"
