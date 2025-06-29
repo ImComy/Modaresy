@@ -15,6 +15,9 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@formkit/auto-animate": "github:formkit/auto-animate",
+    "@headlessui/react": "^2.2.4",
+    "@hookform/resolvers": "^5.1.1",
     "@mui/material": "^7.1.0",
     "@mui/x-charts": "^8.2.0",
     "@mui/x-date-pickers": "^8.2.0",
@@ -44,6 +47,8 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "framer-motion": "^10.16.4",
+    "fuse.js": "^7.1.0",
+    "headlessui": "^0.0.0",
     "i18next": "^23.7.11",
     "lucide-react": "^0.292.0",
     "mongodb": "^6.17.0",
@@ -56,11 +61,13 @@
     "react-datepicker": "^8.3.0",
     "react-dom": "^18.2.0",
     "react-easy-crop": "^5.4.2",
+    "react-hook-form": "^7.59.0",
     "react-i18next": "^13.5.0",
     "react-icons": "^5.5.0",
     "react-router-dom": "^6.16.0",
     "tailwind-merge": "^1.14.0",
     "tailwindcss-animate": "^1.0.7",
+    "zod": "^3.25.67",
     "validator": "^13.15.15"
   },
   "devDependencies": {

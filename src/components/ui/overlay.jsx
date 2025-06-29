@@ -6,6 +6,12 @@ import { useTranslation } from 'react-i18next';
 import i18next from 'i18next';
 import { grades, sectors } from '@/data/formData';
 import { useNavigate } from 'react-router-dom';
+import { SearchableSelectContent } from '@/components/ui/searchSelect'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function UserOverlay({ onClose, onSubmit, onFiltersChange }) {
   const { t } = useTranslation();
@@ -35,13 +41,14 @@ export default function UserOverlay({ onClose, onSubmit, onFiltersChange }) {
     return () => document.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
-  function handleGradeChange(e) {
-    setSelectedGrade(e.target.value);
+  function handleGradeChange(value) {
+    setSelectedGrade(value);
   }
 
-  function handleSectorChange(e) {
-    setSelectedSector(e.target.value);
+  function handleSectorChange(value) {
+    setSelectedSector(value);
   }
+
 
   function handleSubmit() {
     if (selectedGrade && selectedSector) {
@@ -53,6 +60,13 @@ export default function UserOverlay({ onClose, onSubmit, onFiltersChange }) {
       onClose();
     }
   }
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   return (
     <AnimatePresence style={{ direction: 'ltr' }}>
@@ -106,34 +120,35 @@ export default function UserOverlay({ onClose, onSubmit, onFiltersChange }) {
 
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">{t("Select your Grade:")}</label>
-            <select
-              id="filter-grade"
-              className="w-full border rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              value={selectedGrade}
-              onChange={handleGradeChange}
-            >
-              {gradeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {t(option.labelKey || option.label)}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedGrade} onValueChange={handleGradeChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select grade" />
+              </SelectTrigger>
+              <SearchableSelectContent
+                value={selectedGrade} 
+                searchPlaceholder="Search grade..."
+                items={gradeOptions.map((option) => ({
+                  value: option.value,
+                  label: t(option.labelKey || option.label), 
+                }))}
+              />
+            </Select>
           </div>
 
           <div className="mb-6">
             <label className="block text-sm font-medium mb-1">{t("Select your Sector:")}</label>
-            <select
-              id="filter-sector"
-              className="w-full border rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              value={selectedSector}
-              onChange={handleSectorChange}
-            >
-              {sectorOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {t(option.labelKey || option.label)}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedSector} onValueChange={handleSectorChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select sector" />
+              </SelectTrigger>
+              <SearchableSelectContent
+                searchPlaceholder="Search sector..."
+                items={sectorOptions.map((option) => ({
+                  value: option.value,
+                  label: t(option.labelKey || option.label),
+                }))}
+              />
+            </Select>
           </div>
 
           <button
@@ -144,7 +159,7 @@ export default function UserOverlay({ onClose, onSubmit, onFiltersChange }) {
             {t("Submit")}
           </button>
 
-          <div className="flex items-center my-6">
+          <div className="flex items-center my-4">
             <hr className="flex-grow border-t border-gray-300 dark:border-gray-600" />
             <span className="mx-3 text-gray-500 dark:text-gray-400 font-semibold select-none">
               {t("or")}
@@ -168,18 +183,6 @@ export default function UserOverlay({ onClose, onSubmit, onFiltersChange }) {
               {t("Sign Up")}
             </Button>
           </div>
-          <button
-            onClick={() => alert(t("Sign Up with Google clicked"))}
-            className={`${buttonClasses} bg-red-500 flex items-center justify-center gap-2`}
-          >
-            <FaGoogle />{t("Sign Up with Google")}
-          </button>
-          <button
-            onClick={() => alert(t("Sign Up with Facebook clicked"))}
-            className={`${buttonClasses} bg-[#1877F2] flex items-center justify-center gap-2`}
-          >
-            <FaFacebookF /> {t("Sign Up with Facebook")}
-          </button>
         </motion.div>
       </motion.div>
     </AnimatePresence>

@@ -80,15 +80,19 @@ const TutorProfileHeader = ({ tutor }) => {
   return (
     <Card className=" shadow-xl bg-gradient-to-br from-primary/5 to-primary/10">
     <div className="relative h-48 md:h-64 rounded-t-lg overflow-hidden">
-      <img
-        src={
-          tutor.bannerimg instanceof File
-            ? URL.createObjectURL(tutor.bannerimg)
-            : tutor.bannerimg || 'https://placehold.co/600x400'
-        }
-        alt={tutor.name}
-        className="w-full h-full object-cover"
-      />
+    <img
+      src={
+        tutor.bannerimg instanceof File
+          ? URL.createObjectURL(tutor.bannerimg)
+          : tutor.bannerimg || 'https://placehold.co/600x400'
+      }
+      alt={tutor.name}
+      className="w-full h-full object-cover"
+      onError={(e) => {
+        e.currentTarget.onerror = null;
+        e.currentTarget.src = 'https://placehold.co/600x400';
+      }}
+    />
       {/* Current Achievements on banner */}
       <div className="absolute top-2 left-2 z-20 flex flex-wrap gap-2">
         {tutor.achievements
@@ -223,45 +227,65 @@ const TutorProfileHeader = ({ tutor }) => {
               </div>
             ))}
           </div>
-
-          <div className="flex flex-col md:flex-row md:justify-start items-center gap-y-2 md:gap-y-0 md:gap-x-8 text-sm text-muted-foreground text-center md:text-left">
-            <div className="flex items-center gap-2">
-              <MapPin size={16} className="text-primary" />
-              <span className="font-medium text-foreground">{t('basedInLocation', { location: tutor.location })}</span>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 text-sm text-muted-foreground w-full">
+            {/* Experience */}
             <div className="flex items-start gap-2">
-              <Building size={16} className="mt-1 text-primary shrink-0" />
-              {Array.isArray(tutor.detailedLocation) ? (
-                tutor.detailedLocation.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {tutor.detailedLocation.map((location, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-0.5 rounded-full bg-muted text-sm text-muted-foreground border border-border"
-                      >
-                        {location}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground">{t('detailedLocationNotSet')}</span>
-                )
-              ) : (
-                <span className="font-medium text-foreground">{tutor.detailedLocation || t('detailedLocationNotSet')}</span>
-              )}
+              <Award size={16} className="mt-0.5 text-primary shrink-0" />
+              <span className="font-medium text-foreground break-words">
+                {isFinite(maxYearsExp) && maxYearsExp > 0
+                  ? t('yearsExp', { count: maxYearsExp })
+                  : t('noExperience', 'Experience not specified')}
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Award size={16} className="text-primary" />
-              <span className="font-medium text-foreground">{t('yearsExp', { count: maxYearsExp })}</span>
+
+            {/* Location */}
+            <div className="flex items-start gap-2">
+              <MapPin size={16} className="mt-0.5 text-primary shrink-0" />
+              <span className="font-medium text-foreground break-words">
+                {t('basedInLocation', {
+                  location: tutor.location || t('noLocation', 'Location not specified'),
+                })}
+              </span>
+            </div>
+
+            {/* Detailed Locations - Wrap-responsive cloud */}
+            <div className="flex items-start gap-2">
+              <Building size={16} className="mt-0.5 text-primary shrink-0" />
+              {Array.isArray(tutor.detailedLocation) && tutor.detailedLocation.length > 0 ? (
+                <div className="flex flex-wrap gap-2 max-w-full">
+                  {tutor.detailedLocation.map((location, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 rounded-full bg-muted text-xs text-muted-foreground border border-border whitespace-nowrap  transition"
+                    >
+                      {location}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-muted-foreground">{t('detailedLocationNotSet')}</span>
+              )}
             </div>
           </div>
 
           <Separator className="my-4" />
 
           <h2 className="text-xl font-semibold mb-2 text-primary">{t('aboutMe')}</h2>
-          <p className="text-foreground/90 leading-relaxed whitespace-pre-wrap bg-muted/50 p-4 rounded-md border border-border max-w-prose">
-            {tutor.GeneralBio || t('noBioAvailable')}
-          </p>
+          {tutor.GeneralBio?.trim() ? (
+            <p className="text-foreground/90 leading-relaxed whitespace-pre-wrap bg-muted/50 p-4 rounded-md border border-border max-w-prose">
+              {tutor.GeneralBio}
+            </p>
+          ) : (
+            <div className="border border-dashed border-border rounded-lg p-5 bg-muted/30 text-muted-foreground flex items-center gap-3 max-w-prose">
+              <span className="text-xl">📝</span>
+              <div>
+                <p className="text-sm font-medium">{t('noBioTitle', 'No bio available')}</p>
+                <p className="text-xs mt-1 text-muted-foreground">
+                  {t('noBioDescription', 'This tutor hasn’t added a personal bio yet.')}
+                </p>
+              </div>
+            </div>
+          )}
         </motion.div>
       </CardContent>
     </Card>

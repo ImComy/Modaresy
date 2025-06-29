@@ -2,14 +2,17 @@ import React, { useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/cropImage';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 
 export default function BannerCropOverlay({ rawImage, onCancel, onCrop, shape = 'banner' }) {
+  const { t } = useTranslation();
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
-  const onCropComplete = useCallback((_, croppedAreaPixels) => {
-    setCroppedAreaPixels(croppedAreaPixels);
+  const onCropComplete = useCallback((_, croppedPixels) => {
+    setCroppedAreaPixels(croppedPixels);
   }, []);
 
   const handleCrop = async () => {
@@ -17,28 +20,28 @@ export default function BannerCropOverlay({ rawImage, onCancel, onCrop, shape = 
       const croppedBlob = await getCroppedImg(rawImage, croppedAreaPixels, 'rect');
       const file = new File([croppedBlob], `cropped-${shape}.png`, { type: 'image/png' });
       onCrop(file);
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  // Determine aspect ratio:
-  const aspectRatio = shape === 'profile' ? 1 : 3 / 1; // square for profile, wide rectangle for banner
+  const aspectRatio = shape === 'profile' ? 1 : 3 / 1;
 
   const overlay = (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black bg-opacity-70">
-      <div className="relative bg-background rounded-lg p-4 w-full max-w-4xl">
-        <p className="mb-2 text-center font-semibold text-foreground">
-          Crop your {shape === 'profile' ? 'profile picture' : 'banner'}
-        </p>
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70">
+      <div className="relative bg-background rounded-xl shadow-xl p-6 w-full max-w-5xl space-y-6">
+        <h2 className="text-center text-lg font-semibold text-foreground">
+          {shape === 'profile' ? t('cropProfilePicture') : t('cropBanner')}
+        </h2>
 
-        <div className="relative w-full h-[60vh] bg-black">
+        <div className="relative w-full h-[60vh] overflow-hidden rounded-lg border border-muted bg-black">
           <Cropper
             image={rawImage}
             crop={crop}
             zoom={zoom}
             aspect={aspectRatio}
             cropShape="rect"
+            showGrid
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={onCropComplete}
@@ -52,16 +55,16 @@ export default function BannerCropOverlay({ rawImage, onCancel, onCrop, shape = 
           step={0.01}
           value={zoom}
           onChange={(e) => setZoom(Number(e.target.value))}
-          className="w-full mt-4"
+          className="w-full accent-primary"
         />
 
-        <div className="mt-4 flex justify-between">
-          <button onClick={onCancel} type="button" className="bg-muted px-4 py-2 rounded hover:bg-muted/80">
-            Cancel
-          </button>
-          <button onClick={handleCrop} type="button" className="bg-primary px-4 py-2 rounded text-white hover:bg-primary/90">
-            Crop & Save
-          </button>
+        <div className="flex justify-end gap-3 pt-2">
+          <Button variant="ghost" onClick={onCancel}>
+            {t('cancel')}
+          </Button>
+          <Button onClick={handleCrop}>
+            {t('cropSave')}
+          </Button>
         </div>
       </div>
     </div>
