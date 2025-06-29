@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
-import { isEmail, isMobilePhone } from 'validator'
+import validator_pkg from 'validator'
+const { isEmail, isMobilePhone } = validator_pkg
 
 const User_Types = ["Teacher", "Student"]
 const Grades = ["Secondary_1", "Secondary_2", "Secondary_3"]
@@ -25,6 +26,8 @@ function Sector_Validation(sector, grades) {
     }
     return false;
 }
+
+export const options = { discriminatorKey: 'type', collection: 'Users' };
 
 const UserSchema = new Schema({
     name: { type: String , trim: true, required: [true, "The Username is missing!"] },
@@ -61,8 +64,11 @@ const UserSchema = new Schema({
             },
             message: props => `District ${props.value} is invalid or doesn't match with the governate`
         }
-    }
-});
+    },
+    verified: { type: Boolean, default: false },
+    verificationCode: { type: String },
+    codeExpiresAt: { type: Date }
+}, options);
 
 const StudentSchema = new Schema({
     language: { type: String, required: [true, "Studying language isn't specified"], enum: Languages },
@@ -124,5 +130,3 @@ const User = mongoose.model("User", UserSchema)
 
 export const Student = User.discriminator("Student", StudentSchema)
 export const Teacher = User.discriminator("Teacher", TeacherSchema)
-
-export const options = { discriminatorKey: 'type', collection: 'users' };
