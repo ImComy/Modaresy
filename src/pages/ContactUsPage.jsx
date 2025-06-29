@@ -10,12 +10,11 @@ import { Mail, Phone, MapPin } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const ContactUsPage = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(); // ⬅️ no namespace
   const { toast } = useToast();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Form submitted');
     toast({
       title: t('messageSentTitle'),
       description: t('messageSentDesc'),
@@ -32,18 +31,17 @@ const ContactUsPage = () => {
     >
       <section className="text-center space-y-4">
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
-          {t('contactPageTitle')}
+          {t('title')}
         </h1>
-        <p className="text-lg md:text-xl text-muted-foreground">
-          {t('contactPageSubtitle')}
-        </p>
+        <p className="text-lg md:text-xl text-muted-foreground">{t('subtitle')}</p>
       </section>
 
       <div className="grid md:grid-cols-2 gap-8">
+        {/* Contact Form */}
         <Card className="shadow-lg glass-effect">
           <CardHeader>
-            <CardTitle>{t('contactFormTitle')}</CardTitle>
-            <CardDescription>{t('contactFormDesc')}</CardDescription>
+            <CardTitle>{t('formTitle')}</CardTitle>
+            <CardDescription>{t('formDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -65,42 +63,43 @@ const ContactUsPage = () => {
                 <Label htmlFor="message">{t('messageLabel')}</Label>
                 <Textarea id="message" placeholder={t('messagePlaceholder')} rows={5} required />
               </div>
-              <Button type="submit" className="w-full">{t('sendMessageButton')}</Button>
+              <Button type="submit" className="w-full">{t('sendButton')}</Button>
             </form>
           </CardContent>
         </Card>
 
+        {/* Contact Info */}
         <div className="space-y-6">
-            <Card className="shadow-lg glass-effect">
-              <CardHeader>
-                <CardTitle>{t('contactInfoTitle')}</CardTitle>
-                <CardDescription>{t('contactInfoDesc')}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Mail size={20} className="text-primary mt-1 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold">{t('emailInfoLabel')}</h4>
-                    <a href="mailto:info@tutorconnect.eg" className="text-muted-foreground hover:text-primary transition-colors">info@tutorconnect.eg</a>
-                  </div>
+          <Card className="shadow-lg glass-effect">
+            <CardHeader>
+              <CardTitle>{t('infoTitle')}</CardTitle>
+              <CardDescription>{t('infoDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-start gap-3">
+                <Mail size={20} className="text-primary mt-1 flex-shrink-0" />
+                <div>
+                  <h4 className="font-semibold">{t('emailInfo')}</h4>
+                  <a href="mailto:info@tutorconnect.eg" className="text-muted-foreground hover:text-primary transition-colors">info@tutorconnect.eg</a>
                 </div>
-                <div className="flex items-start gap-3">
-                  <Phone size={20} className="text-primary mt-1 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold">{t('phoneInfoLabel')}</h4>
-                    <span className="text-muted-foreground">(+20) 123-456-7890</span>
-                  </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Phone size={20} className="text-primary mt-1 flex-shrink-0" />
+                <div>
+                  <h4 className="font-semibold">{t('phoneInfo')}</h4>
+                  <span className="text-muted-foreground">(+20) 123-456-7890</span>
                 </div>
-                <div className="flex items-start gap-3">
-                  <MapPin size={20} className="text-primary mt-1 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold">{t('addressInfoLabel')}</h4>
-                    <span className="text-muted-foreground">123 Learning St, Cairo, Egypt</span>
-                  </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <MapPin size={20} className="text-primary mt-1 flex-shrink-0" />
+                <div>
+                  <h4 className="font-semibold">{t('addressInfo')}</h4>
+                  <span className="text-muted-foreground">123 Learning St, Cairo, Egypt</span>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </motion.div>
   );

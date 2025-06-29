@@ -5,12 +5,14 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { LogIn } from 'lucide-react';
 
-const TUTORS_PER_PAGE = 8;
+const INITIAL_TUTORS_COUNT = 12;
+const LOAD_MORE_COUNT = 8;
+const COLUMN_COUNT = 4; // matches xl:columns-4
 
 export const GeneralTutorGrid = ({ tutors }) => {
   const { t } = useTranslation();
   const { authState } = useAuth();
-  const [currentPage, setCurrentPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_TUTORS_COUNT);
 
   const filters = useMemo(() => {
     try {
@@ -71,14 +73,15 @@ export const GeneralTutorGrid = ({ tutors }) => {
     });
   }, [scoredTutors, filters]);
 
-  // Pagination logic
-  const totalPages = Math.ceil(sortedTutors.length / TUTORS_PER_PAGE);
-  const currentTutors = sortedTutors.slice(
-    (currentPage - 1) * TUTORS_PER_PAGE,
-    currentPage * TUTORS_PER_PAGE
-  );
+  const tutorsToShow = sortedTutors.slice(0, visibleCount);
+  const hasMore = visibleCount < sortedTutors.length;
 
-  // Auth CTA
+  // Distribute evenly across columns
+  const columns = Array.from({ length: COLUMN_COUNT }, () => []);
+  tutorsToShow.forEach((tutor, i) => {
+    columns[i % COLUMN_COUNT].push(tutor);
+  });
+
   if (!authState.isLoggedIn) {
     return (
       <div className="max-w-full mx-auto bg-muted/40 border border-border rounded-2xl shadow-md p-8 text-center space-y-5">
@@ -87,7 +90,9 @@ export const GeneralTutorGrid = ({ tutors }) => {
             <LogIn size={32} />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-foreground">{t('getPersonalizedTutors', 'Discover Your Ideal Tutor')}</h2>
+        <h2 className="text-2xl font-bold text-foreground">
+          {t('getPersonalizedTutors', 'Discover Your Ideal Tutor')}
+        </h2>
         <p className="text-muted-foreground text-sm leading-relaxed">
           {t(
             'signInToSeeRecommendations',
@@ -104,36 +109,35 @@ export const GeneralTutorGrid = ({ tutors }) => {
     );
   }
 
-
   return (
     <>
-      <AnimatePresence>
-        <motion.div
-          layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
-        >
-          {currentTutors.map((tutor) => (
-            <GeneralTutorCard key={tutor.id} tutor={tutor} />
-          ))}
-        </motion.div>
-      </AnimatePresence>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {columns.map((col, colIdx) => (
+          <div key={colIdx} className="flex flex-col gap-4">
+            {col.map((tutor) => (
+              <motion.div
+                key={tutor.id}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.25 }}
+              >
+                <GeneralTutorCard tutor={tutor} />
+              </motion.div>
+            ))}
+          </div>
+        ))}
+      </div>
 
-      {/* Pagination controls */}
-      {totalPages > 1 && (
-        <div className="mt-8 flex justify-center items-center gap-2 flex-wrap">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-            <button
-              key={pageNum}
-              onClick={() => setCurrentPage(pageNum)}
-              className={`px-4 py-2 rounded-md border transition text-sm font-medium ${
-                pageNum === currentPage
-                  ? 'bg-primary text-white shadow'
-                  : 'bg-muted hover:bg-muted/70 text-foreground'
-              }`}
-            >
-              {pageNum}
-            </button>
-          ))}
+      {hasMore && (
+        <div className="mt-8 flex justify-center">
+          <button
+            onClick={() => setVisibleCount((prev) => prev + LOAD_MORE_COUNT)}
+            className="px-6 py-2 rounded-full bg-primary text-white hover:bg-primary/90 transition font-medium shadow"
+          >
+            {t('loadMore', 'Load More')}
+          </button>
         </div>
       )}
     </>

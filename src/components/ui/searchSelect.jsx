@@ -1,0 +1,233 @@
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import * as SelectPrimitive from '@radix-ui/react-select';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { useTranslation } from 'react-i18next';
+import Fuse from 'fuse.js'
+
+const Select = SelectPrimitive.Root;
+const SelectGroup = SelectPrimitive.Group;
+const SelectValue = SelectPrimitive.Value;
+
+const SelectTrigger = React.forwardRef(({ className, children, error, ...props }, ref) => {
+  const { i18n } = useTranslation();
+  const isRTL = i18n.dir() === 'rtl';
+
+  return (
+    <SelectPrimitive.Trigger
+      ref={ref}
+      className={cn(
+        'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 transition-colors',
+        isRTL && 'flex-row-reverse text-right [&>span]:text-right',
+        error && 'border-destructive focus:ring-destructive',
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <SelectPrimitive.Icon asChild>
+        <ChevronDown className="h-4 w-4 opacity-50" />
+      </SelectPrimitive.Icon>
+    </SelectPrimitive.Trigger>
+  );
+});
+SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
+
+const SelectScrollUpButton = React.forwardRef(({ className, ...props }, ref) => (
+  <SelectPrimitive.ScrollUpButton
+    ref={ref}
+    className={cn('flex cursor-default items-center justify-center py-1', className)}
+    {...props}
+  >
+    <ChevronUp className="h-4 w-4" />
+  </SelectPrimitive.ScrollUpButton>
+));
+SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName;
+
+const SelectScrollDownButton = React.forwardRef(({ className, ...props }, ref) => (
+  <SelectPrimitive.ScrollDownButton
+    ref={ref}
+    className={cn('flex cursor-default items-center justify-center py-1', className)}
+    {...props}
+  >
+    <ChevronDown className="h-4 w-4" />
+  </SelectPrimitive.ScrollDownButton>
+));
+SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName;
+
+const SelectLabel = React.forwardRef(({ className, ...props }, ref) => {
+  const { i18n } = useTranslation();
+  const isRTL = i18n.dir() === 'rtl';
+
+  return (
+    <SelectPrimitive.Label
+      ref={ref}
+      className={cn('py-1.5 px-3 text-sm font-semibold', isRTL && 'text-right', className)}
+      {...props}
+    />
+  );
+});
+SelectLabel.displayName = SelectPrimitive.Label.displayName;
+
+const SelectItem = React.forwardRef(({ className, children, ...props }, ref) => {
+  const { i18n } = useTranslation();
+  const isRTL = i18n.dir() === 'rtl';
+
+  return (
+    <SelectPrimitive.Item
+      ref={ref}
+      className={cn(
+        'relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors hover:bg-accent/50',
+        isRTL ? 'pl-8 pr-2 text-right' : 'pr-8 pl-2 text-left',
+        className
+      )}
+      {...props}
+    >
+      <span className={cn('absolute flex h-3.5 w-3.5 items-center justify-center', isRTL ? 'left-2' : 'right-2')}>
+        <SelectPrimitive.ItemIndicator>
+          <Check className="h-4 w-4" />
+        </SelectPrimitive.ItemIndicator>
+      </span>
+      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    </SelectPrimitive.Item>
+  );
+});
+SelectItem.displayName = SelectPrimitive.Item.displayName;
+
+const SelectSeparator = React.forwardRef(({ className, ...props }, ref) => (
+  <SelectPrimitive.Separator
+    ref={ref}
+    className={cn('-mx-1 my-1 h-px bg-muted', className)}
+    {...props}
+  />
+));
+SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
+
+const SearchableSelectContent = React.forwardRef(
+  ({ className, items = [], position = 'popper', searchPlaceholder = 'Search...', ...props }, ref) => {
+    const { i18n, t } = useTranslation();
+    const isRTL = i18n.dir() === 'rtl';
+    const [search, setSearch] = useState('');
+    const inputRef = useRef(null);
+
+    const fuse = useMemo(
+      () => new Fuse(items, { keys: ['label'], threshold: 0.4 }),
+      [items]
+    );
+
+    const filteredItems = useMemo(() => {
+      const selectedValue = props?.value;
+      let results = search ? fuse.search(search).map((r) => r.item) : items;
+
+      if (
+        selectedValue &&
+        !results.some((item) => item.value === selectedValue)
+      ) {
+        const found = items.find((item) => item.value === selectedValue);
+        if (found) results = [found, ...results];
+      }
+
+      return results;
+    }, [search, fuse, props?.value, items]);
+
+    useEffect(() => {
+      const timeout = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
+      return () => clearTimeout(timeout);
+    }, [filteredItems.length]);
+
+    return (
+      <SelectPrimitive.Portal>
+        <SelectPrimitive.Content
+          ref={ref}
+          dir={isRTL ? 'rtl' : 'ltr'}
+          position={position}
+          side="bottom"
+          align={isRTL ? 'end' : 'start'}
+          className={cn(
+            'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md',
+            'data-[state=open]:animate-in data-[state=closed]:animate-out',
+            'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+            'data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2',
+            className
+          )}
+          {...props}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className={cn(
+              'p-2 border-b flex items-center gap-2 bg-background',
+              isRTL && 'flex-row-reverse'
+            )}
+          >
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              ref={inputRef}
+              dir={isRTL ? 'rtl' : 'ltr'}
+              className={cn('h-8 text-sm', isRTL && 'text-right')}
+              placeholder={t(searchPlaceholder)}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              autoFocus
+            />
+          </motion.div>
+          <SelectScrollUpButton />
+          <SelectPrimitive.Viewport
+            className={cn(
+              'p-1',
+              position === 'popper' &&
+                'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]'
+            )}
+          >
+            <AnimatePresence>
+              {filteredItems.length > 0 ? (
+                filteredItems.map((item) => (
+                  <motion.div
+                    key={item.value}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <SelectItem value={item.value} className="hover:bg-accent/50 transition-colors">
+                      {item.label}
+                    </SelectItem>
+                  </motion.div>
+                ))
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className={cn('px-4 py-2 text-sm text-muted-foreground', isRTL && 'text-right')}
+                >
+                  {t('noResultsFound', 'No results found')}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </SelectPrimitive.Viewport>
+          <SelectScrollDownButton />
+        </SelectPrimitive.Content>
+      </SelectPrimitive.Portal>
+    );
+  }
+);
+SearchableSelectContent.displayName = 'SearchableSelectContent';
+
+export {
+  Select,
+  SelectGroup,
+  SelectValue,
+  SelectTrigger,
+  SelectLabel,
+  SelectItem,
+  SelectSeparator,
+  SearchableSelectContent,
+};

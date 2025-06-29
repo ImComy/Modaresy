@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import Fuse from 'fuse.js';
 import { mockTutors } from '@/data/enhanced';
 
 const LS_KEYS = {
@@ -46,6 +47,19 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
   const [filters, setFilters] = useState(getInitialFilters);
   const [sortBy, setSortBy] = useState(getInitialSortBy);
 
+  // 🧠 Create Fuse instance ONCE per tutors change
+  const fuse = useMemo(() => new Fuse(initialTutors, {
+    keys: ['name', 'subjects.subject'],
+    threshold: 0.4,
+    includeScore: true,
+  }), [initialTutors]);
+
+  // 🧠 Smart search results
+  const fuzzySearchResults = useMemo(() => {
+    if (!searchTerm) return initialTutors;
+    return fuse.search(searchTerm).map(result => result.item);
+  }, [fuse, searchTerm, initialTutors]);
+
   // Persist to localStorage
   useEffect(() => {
     localStorage.setItem(LS_KEYS.searchTerm, searchTerm);
@@ -81,39 +95,27 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
   }
 
   const filteredTutors = useMemo(() => {
-    return initialTutors.filter(tutor => {
-      const nameMatch = (tutor.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const subjectSearchMatch = Array.isArray(tutor.subjects)
-        ? tutor.subjects.some(s =>
-            (s.subject || '').toLowerCase().includes(searchTerm.toLowerCase())
-          )
-        : false;
-      const searchMatch = nameMatch || subjectSearchMatch;
-
-      const subjectFilterMatch =
+    return fuzzySearchResults.filter(tutor => {
+      const subjectMatch =
         filters.subject === 'none' ||
         (Array.isArray(tutor.subjects) &&
           tutor.subjects.some(
             s => (s.subject || '').toLowerCase() === filters.subject.toLowerCase()
           ));
 
-      const locationFilterMatch =
+      const locationMatch =
         filters.location === 'all' ||
         (tutor.location || '').toLowerCase() === filters.location.toLowerCase();
 
-      const gradeFilterMatch =
+      const gradeMatch =
         filters.grade === 'none' ||
         (Array.isArray(tutor.subjects) &&
-          tutor.subjects.some(
-            s => (s.grade || '') === filters.grade
-          ));
+          tutor.subjects.some(s => (s.grade || '') === filters.grade));
 
-      const sectorFilterMatch =
+      const sectorMatch =
         filters.sector === 'all' ||
         (Array.isArray(tutor.subjects) &&
-          tutor.subjects.some(
-            s => (s.type || '').toLowerCase() === filters.sector.toLowerCase()
-          ));
+          tutor.subjects.some(s => (s.type || '').toLowerCase() === filters.sector.toLowerCase()));
 
       const rateMatch =
         Array.isArray(tutor.subjects) &&
@@ -133,16 +135,15 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
         );
 
       return (
-        searchMatch &&
-        subjectFilterMatch &&
-        locationFilterMatch &&
-        gradeFilterMatch &&
-        sectorFilterMatch &&
+        subjectMatch &&
+        locationMatch &&
+        gradeMatch &&
+        sectorMatch &&
         rateMatch &&
         ratingMatch
       );
     });
-  }, [initialTutors, searchTerm, filters]);
+  }, [fuzzySearchResults, filters]);
 
   const sortedTutors = useMemo(() => {
     const sorted = [...filteredTutors];

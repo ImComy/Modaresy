@@ -47,6 +47,7 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { wishlist } = useWishlist();
   const location = useLocation();
+  const isRTL = i18n.dir() === 'rtl';
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
@@ -80,23 +81,24 @@ const Navbar = () => {
     open: { opacity: 1, height: 'auto', transition: { duration: 0.25 } },
   };
 
+  const dropdownItemVariants = {
+    initial: { opacity: 0, y: -10 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -10 },
+  };
+
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
-  const mediaQuery = window.matchMedia('(max-width: 767px)');
-
-  const handleResize = (e) => setIsMobile(e.matches);
-  mediaQuery.addEventListener('change', handleResize);
-
-  // Set initial value
-  setIsMobile(mediaQuery.matches);
-
-  return () => mediaQuery.removeEventListener('change', handleResize);
-}, []);
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const handleResize = (e) => setIsMobile(e.matches);
+    mediaQuery.addEventListener('change', handleResize);
+    setIsMobile(mediaQuery.matches);
+    return () => mediaQuery.removeEventListener('change', handleResize);
+  }, []);
 
   const menuRef = useRef(null);
   const toggleRef = useRef(null);
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -129,10 +131,10 @@ const Navbar = () => {
           >
             M
           </motion.div>
-          <span className="font-bold text-lg tracking-tight">Modaresy</span>
+          <span className="font-bold text-lg tracking-tight">{t("Modaresy")}</span>
         </Link>
 
-       <div className="hidden md:flex items-center space-x-6 rtl:space-x-reverse">
+        <div className="hidden md:flex items-center space-x-6 rtl:space-x-reverse">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -141,7 +143,9 @@ const Navbar = () => {
                 to={item.path}
                 className={cn(
                   "flex items-center gap-1 text-sm font-medium transition-colors hover:text-foreground",
-                  isActive ? "text-foreground border-b-2 border-foreground pb-0.5" : "text-muted-foreground")}>
+                  isActive ? "text-foreground border-b-2 border-foreground pb-0.5" : "text-muted-foreground"
+                )}
+              >
                 {item.icon} {item.label}
               </Link>
             );
@@ -151,7 +155,7 @@ const Navbar = () => {
         <div className="flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
           {isLoggedIn && (
             <Link to="/wishlist" className="relative hidden sm:inline-flex">
-              <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-red-500 ">
+              <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-red-500">
                 <Heart size={20} />
                 {wishlist.length > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">
@@ -162,9 +166,7 @@ const Navbar = () => {
             </Link>
           )}
 
-          {isLoggedIn && (
-            <NotificationDropdown className='visible'/>
-          )}
+          {isLoggedIn && <NotificationDropdown className="visible" />}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -173,87 +175,225 @@ const Navbar = () => {
                 <span className="sr-only">{t('language')}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('language')}</DropdownMenuLabel>
-              <DropdownMenuRadioGroup value={i18n.language} onValueChange={changeLanguage}>
-                <DropdownMenuRadioItem value="en">{t('english')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="ar">{t('arabic')}</DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
+            <DropdownMenuContent dir={isRTL ? 'rtl' : 'ltr'} side="bottom" align={isRTL ? 'end' : 'start'} className="min-w-[8rem]">
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <DropdownMenuLabel className={cn(isRTL && 'text-right')}>
+                  {t('language')}
+                </DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={i18n.language} onValueChange={changeLanguage}>
+                  {['en', 'ar'].map((lang, index) => (
+                    <motion.div
+                      key={lang}
+                      variants={dropdownItemVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      transition={{ duration: 0.2, delay: index * 0.05 }}
+                    >
+                      <DropdownMenuRadioItem
+                        value={lang}
+                        className={cn(
+                          'flex items-center gap-2 hover:bg-accent/50 !cursor-pointer',
+                          isRTL && '!flex-row-reverse !text-left'
+                        )}
+                      >
+                        <span>{t(lang === 'en' ? 'english' : 'arabic')}</span>
+                      </DropdownMenuRadioItem>
+                    </motion.div>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </motion.div>
             </DropdownMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
                 <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                 <span className="sr-only">{t('theme')}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('theme')}</DropdownMenuLabel>
-              <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-                <DropdownMenuRadioItem value="light">
-                  <Sun className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('light')}
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="dark">
-                  <Moon className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('dark')}
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="system">
-                  <Laptop className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('system')}
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
+            <DropdownMenuContent dir={isRTL ? 'rtl' : 'ltr'} side="bottom" align={isRTL ? 'end' : 'start'} className="min-w-[8rem]">
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <DropdownMenuLabel className={cn(isRTL && 'text-right')}>
+                  {t('theme')}
+                </DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                  {[
+                    { value: 'light', icon: <Sun className="h-4 w-4" />, label: t('light') },
+                    { value: 'dark', icon: <Moon className="h-4 w-4" />, label: t('dark') },
+                    { value: 'system', icon: <Laptop className="h-4 w-4" />, label: t('system') },
+                  ].map((item, index) => (
+                    <motion.div
+                      key={item.value}
+                      variants={dropdownItemVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      transition={{ duration: 0.2, delay: index * 0.05 }}
+                    >
+                      <DropdownMenuRadioItem
+                        value={item.value}
+                        className={cn(
+                          'flex items-center gap-2 hover:bg-accent/50 !cursor-pointer',
+                          isRTL && '!flex-row-reverse !text-left'
+                        )}
+                      >
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </DropdownMenuRadioItem>
+                    </motion.div>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </motion.div>
             </DropdownMenuContent>
           </DropdownMenu>
 
           {!isLoggedIn ? (
             <div className="hidden md:flex items-center space-x-2 rtl:space-x-reverse">
-              <Button variant="ghost" onClick={() => navigate('/login')}>{t('login')}</Button>
-              <Button onClick={() => navigate('/signup')}>{t('signup')}</Button>
-              <Button variant="outline" size="sm" onClick={() => testLogin('student')}>Test Login (Student)</Button>
-              <Button variant="outline" size="sm" onClick={() => testLogin('teacher')}>Test Login (Teacher)</Button>
+              <Button variant="ghost" onClick={() => navigate('/login')}>
+                {t('login')}
+              </Button>
+              <Button onClick={() => navigate('/signup')}>
+                {t('signup')}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => testLogin('student')}>
+                Test Login (Student)
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => testLogin('teacher')}>
+                Test Login (Teacher)
+              </Button>
             </div>
           ) : !isMobile && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={userRole === 'teacher' ? '/teacher-avatar.jpg' : '/student-avatar.jpg'} alt="User Avatar" />
+                    <AvatarImage
+                      src={userRole === 'teacher' ? '/teacher-avatar.jpg' : '/student-avatar.jpg'}
+                      alt="User Avatar"
+                    />
                     <AvatarFallback>{userRole === 'teacher' ? 'T' : 'S'}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {userRole === "student" && (
-                  <DropdownMenuItem onClick={() => navigate("/profile")}>
-                    <Settings className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
-                    <span>{t('settings')}</span>
-                  </DropdownMenuItem>
-                )}
-
-                {userRole === 'teacher' && (
-                  <>
-                    <DropdownMenuItem onClick={() => navigate(profilePath)}>
-                      <User className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
-                      <span>{t('profile')}</span>
+              <DropdownMenuContent dir={isRTL ? 'rtl' : 'ltr'} side="bottom" align={isRTL ? 'end' : 'start'} className="min-w-[8rem]">
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <DropdownMenuLabel className={cn(isRTL && 'text-right')}>
+                    {t('myAccount')}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {userRole === 'student' && (
+                    <motion.div
+                      variants={dropdownItemVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      transition={{ duration: 0.2 }}
+                    >
+                      <DropdownMenuItem
+                        onClick={() => navigate('/profile')}
+                        className={cn(
+                          'flex items-center gap-2 hover:bg-accent/50 !cursor-pointer',
+                          isRTL && '!flex-row-reverse !text-left'
+                        )}
+                      >
+                        <Settings className="h-4 w-4" />
+                        <span>{t('settingsNav')}</span>
+                      </DropdownMenuItem>
+                    </motion.div>
+                  )}
+                  {userRole === 'teacher' && (
+                    <>
+                      <motion.div
+                        variants={dropdownItemVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        transition={{ duration: 0.2, delay: 0.05 }}
+                      >
+                        <DropdownMenuItem
+                          onClick={() => navigate(profilePath)}
+                          className={cn(
+                            'flex items-center gap-2 hover:bg-accent/50 !cursor-pointer',
+                            isRTL && '!flex-row-reverse !text-left'
+                          )}
+                        >
+                          <User className="h-4 w-4" />
+                          <span>{t('profile')}</span>
+                        </DropdownMenuItem>
+                      </motion.div>
+                      <motion.div
+                        variants={dropdownItemVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        transition={{ duration: 0.2, delay: 0.1 }}
+                      >
+                        <DropdownMenuItem
+                          onClick={() => navigate('/dashboard/teacher')}
+                          className={cn(
+                            'flex items-center gap-2 hover:bg-accent/50 !cursor-pointer',
+                            isRTL && '!flex-row-reverse !text-left'
+                          )}
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          <span>{t('dashboard')}</span>
+                        </DropdownMenuItem>
+                      </motion.div>
+                      <motion.div
+                        variants={dropdownItemVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        transition={{ duration: 0.2, delay: 0.15 }}
+                      >
+                        <DropdownMenuItem
+                          onClick={() => navigate('/settings/teacher')}
+                          className={cn(
+                            'flex items-center gap-2 hover:bg-accent/50 !cursor-pointer',
+                            isRTL && '!flex-row-reverse !text-left'
+                          )}
+                        >
+                          <Settings className="h-4 w-4" />
+                          <span>{t('settingsNav')}</span>
+                        </DropdownMenuItem>
+                      </motion.div>
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
+                  <motion.div
+                    variants={dropdownItemVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={{ duration: 0.2, delay: userRole === 'teacher' ? 0.2 : 0.05 }}
+                  >
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className={cn(
+                        'flex items-center gap-2 hover:bg-accent/50 !cursor-pointer',
+                        isRTL && '!flex-row-reverse !text-left'
+                      )}
+                    >
+                      <LogOut className="h-4 w-4 text-destructive" />
+                      <span>{t('logout')}</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/dashboard/teacher')}>
-                      <LayoutDashboard className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
-                      <span>{t('dashboard')}</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/settings/teacher')}>
-                      <Settings className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
-                      <span>{t('settings')}</span>
-                    </DropdownMenuItem>
-                  </>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
-                  <span>{t('logout')}</span>
-                </DropdownMenuItem>
+                  </motion.div>
+                </motion.div>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -282,43 +422,83 @@ const Navbar = () => {
             exit="closed"
             className="md:hidden border-t absolute top-full left-0 w-full bg-background shadow-md overflow-hidden"
           >
-              <div className="flex flex-col space-y-1 p-4">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className="text-base font-medium text-foreground hover:bg-accent hover:text-accent-foreground p-3 rounded-md block flex items-center gap-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {item.icon} {item.label}
-                  </Link>
-                ))}
+            <div className="flex flex-col space-y-1 p-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className="text-base font-medium text-foreground hover:bg-accent hover:text-accent-foreground p-3 rounded-md block flex items-center gap-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.icon} {item.label}
+                </Link>
+              ))}
               {isLoggedIn && (
                 <>
                   <Separator className="my-2" />
-                  <Link to="/wishlist" className="text-base font-medium text-foreground hover:bg-accent hover:text-accent-foreground p-3 rounded-md flex items-center gap-2 ml-1" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link
+                    to="/wishlist"
+                    className="text-base font-medium text-foreground hover:bg-accent hover:text-accent-foreground p-3 rounded-md flex items-center gap-2 ml-1"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
                     <Heart size={16} /> {t('wishlist')}
-                    {wishlist.length > 0 && <span className="ml-auto text-xs bg-accent text-accent-foreground rounded-full px-1.5 py-0.5">{wishlist.length}</span>}
+                    {wishlist.length > 0 && (
+                      <span className="ml-auto text-xs bg-accent text-accent-foreground rounded-full px-1.5 py-0.5">
+                        {wishlist.length}
+                      </span>
+                    )}
                   </Link>
                   {userRole === 'student' && (
-                    <Button variant="ghost" className="justify-start w-full text-left" onClick={() => { navigate("/profile"); setIsMobileMenuOpen(false); }}>
-                      <Settings className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('settings')}
+                    <Button
+                      variant="ghost"
+                      className="justify-start w-full text-left"
+                      onClick={() => {
+                        navigate('/profile');
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <Settings className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('settingsNav')}
                     </Button>
                   )}
                   {userRole === 'teacher' && (
                     <>
-                      <Button variant="ghost" className="justify-start w-full text-left" onClick={() => { navigate("/tutor/1"); setIsMobileMenuOpen(false); }}>
+                      <Button
+                        variant="ghost"
+                        className="justify-start w-full text-left"
+                        onClick={() => {
+                          navigate('/tutor/1');
+                          setIsMobileMenuOpen(false);
+                        }}
+                      >
                         <User className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('profile')}
                       </Button>
-                      <Button variant="ghost" className="justify-start w-full text-left" onClick={() => { navigate('/dashboard/teacher'); setIsMobileMenuOpen(false); }}>
+                      <Button
+                        variant="ghost"
+                        className="justify-start w-full text-left"
+                        onClick={() => {
+                          navigate('/dashboard/teacher');
+                          setIsMobileMenuOpen(false);
+                        }}
+                      >
                         <LayoutDashboard className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('dashboard')}
                       </Button>
-                      <Button variant="ghost" className="justify-start w-full text-left" onClick={() => { navigate('/settings/teacher'); setIsMobileMenuOpen(false); }}>
-                        <Settings className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('settings')}
+                      <Button
+                        variant="ghost"
+                        className="justify-start w-full text-left"
+                        onClick={() => {
+                          navigate('/settings/teacher');
+                          setIsMobileMenuOpen(false);
+                        }}
+                      >
+                        <Settings className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('settingsNav')}
                       </Button>
                     </>
                   )}
-                  <Button variant="ghost" className="justify-start w-full text-left" onClick={handleLogout}>
+                  <Button
+                    variant="ghost"
+                    className="justify-start w-full text-left"
+                    onClick={handleLogout}
+                  >
                     <LogOut className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('logout')}
                   </Button>
                 </>
@@ -326,10 +506,41 @@ const Navbar = () => {
               <Separator className="my-2" />
               {!isLoggedIn && (
                 <>
-                  <Button variant="outline" className="w-full justify-center" onClick={() => { navigate('/login'); setIsMobileMenuOpen(false); }}>{t('login')}</Button>
-                  <Button className="w-full justify-center" onClick={() => { navigate('/signup'); setIsMobileMenuOpen(false); }}>{t('signup')}</Button>
-                  <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => testLogin('student')}>Test Login (Student)</Button>
-                  <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => testLogin('teacher')}>Test Login (Teacher)</Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-center"
+                    onClick={() => {
+                      navigate('/login');
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    {t('login')}
+                  </Button>
+                  <Button
+                    className="w-full justify-center"
+                    onClick={() => {
+                      navigate('/signup');
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    {t('signup')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-center"
+                    onClick={() => testLogin('student')}
+                  >
+                    Test Login (Student)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-center"
+                    onClick={() => testLogin('teacher')}
+                  >
+                    Test Login (Teacher)
+                  </Button>
                 </>
               )}
             </div>
