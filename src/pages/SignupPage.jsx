@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -14,6 +14,8 @@ import MultiSelect from '@/components/ui/multi-select';
 import { grades, sectors, locations, subjects as allSubjectsList } from '@/data/formData';
 import PfpUploadWithCrop from '@/components/pfpSignup';
 import BannerUploadWithCrop from '@/components/bannerSignup';
+import { SearchableSelectContent } from '@/components/ui/searchSelect';
+import i18next from 'i18next';
 
 const subjectOptions = allSubjectsList.map(subject => ({
   value: subject.toLowerCase().replace(/\s+/g, '-'),
@@ -61,11 +63,16 @@ const SignupPage = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
+  const [isRTL, setIsRTL] = useState(i18next.dir() === 'rtl');
 
-  const handleMultiSelectChange = (name, selectedValues) => {
-    setFormData(prev => ({ ...prev, [name]: selectedValues }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
-  };
+  useEffect(() => {
+    const updateDir = () => setIsRTL(i18next.dir() === 'rtl');
+
+    i18next.on('languageChanged', updateDir);
+    return () => {
+      i18next.off('languageChanged', updateDir);
+    };
+  }, []);
 
   const validatePhone = (phone) => /^\+?\d{10,15}$/.test(phone);
 
@@ -77,6 +84,7 @@ const SignupPage = () => {
     if (!formData.password || formData.password.length < 6) newErrors.password = t('passwordLengthError');
     if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = t('passwordMismatch');
     if (!formData.agreedToTerms) newErrors.agreedToTerms = t('termsRequired');
+    if (formData.role === 'student' && !formData.grade) newErrors.grade = t('gradeInvalid');
 
     if (!formData.location) newErrors.location = t('locationRequired');
 
@@ -101,9 +109,6 @@ const SignupPage = () => {
     navigate('/login');
   };
 
-  const translatedGradeOptions = gradeOptions.map(opt => ({ ...opt, label: t(opt.label) }));
-  const translatedSectorOptions = sectorOptions.map(opt => ({ ...opt, label: t(opt.label) }));
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -121,10 +126,37 @@ const SignupPage = () => {
             {/* Role Selection */}
             <div className="space-y-2">
               <Label>{t('selectRole')}</Label>
-              <RadioGroup name="role" value={formData.role} onValueChange={(value) => handleSelectChange('role', value)} className="flex space-x-4 rtl:space-x-reverse">
-                <div className="flex items-center space-x-2 rtl:space-x-reverse"><RadioGroupItem value="student" id="role-student" /><Label htmlFor="role-student" className="font-normal">{t('student')}</Label></div>
-                <div className="flex items-center space-x-2 rtl:space-x-reverse"><RadioGroupItem value="teacher" id="role-teacher" /><Label htmlFor="role-teacher" className="font-normal">{t('teacher')}</Label></div>
+              <RadioGroup
+                name="role"
+                value={formData.role}
+                onValueChange={(value) => handleSelectChange('role', value)}
+                className={`flex gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}
+              >
+                {isRTL ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="teacher" id="role-teacher" />
+                      <Label htmlFor="role-teacher" className="font-normal">{t('teacher')}</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="student" id="role-student" />
+                      <Label htmlFor="role-student" className="font-normal">{t('student')}</Label>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="student" id="role-student" />
+                      <Label htmlFor="role-student" className="font-normal">{t('student')}</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="teacher" id="role-teacher" />
+                      <Label htmlFor="role-teacher" className="font-normal">{t('teacher')}</Label>
+                    </div>
+                  </>
+                )}
               </RadioGroup>
+
             </div>
 
             {/* Common Fields */}
@@ -156,8 +188,13 @@ const SignupPage = () => {
             <div className="space-y-1">
               <Label htmlFor="location">{t('location')}</Label>
               <Select name="location" value={formData.location} onValueChange={(value) => handleSelectChange('location', value)}>
-                <SelectTrigger id="location" error={errors.location}><SelectValue placeholder={t('selectLocation')} /></SelectTrigger>
-                <SelectContent>{locations.map(loc => (<SelectItem key={loc.value} value={loc.value} className="capitalize">{loc.label}</SelectItem>))}</SelectContent>
+                <SelectTrigger id="location" error={errors.location}>
+                  <SelectValue placeholder={t('selectLocation')} />
+                </SelectTrigger>
+                <SearchableSelectContent
+                  items={locations.map(loc => ({ value: loc.value, label: loc.label }))}
+                  searchPlaceholder={t('searchLocation')}
+                />
               </Select>
               {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
             </div>
@@ -167,16 +204,32 @@ const SignupPage = () => {
               <>
                 <div className="space-y-1">
                   <Label htmlFor="grade">{t('grade')}</Label>
-                  <Select name="grade" value={formData.grade} onValueChange={(value) => handleSelectChange('grade', value)}>
-                    <SelectTrigger id="grade"><SelectValue placeholder={t('selectGradeOptional')} /></SelectTrigger>
-                    <SelectContent>{grades.map(grade => (<SelectItem key={grade.value} value={grade.value}>{t(grade.labelKey)}</SelectItem>))}</SelectContent>
+                  <Select
+                    name="grade"
+                    value={formData.grade}
+                    onValueChange={(value) => handleSelectChange('grade', value)}
+                  >
+                    <SelectTrigger id="grade" error={errors.grade}>
+                      <SelectValue placeholder={t('selectGrade')} />
+                    </SelectTrigger>
+                    <SearchableSelectContent
+                      items={grades.map(grade => ({ value: grade.value, label: t(grade.labelKey) }))}
+                      searchPlaceholder={t('searchGrade')}
+                    />
                   </Select>
+                  {errors.grade && <p className="text-xs text-destructive">{errors.grade}</p>}
                 </div>
+
                 <div className="space-y-1">
                   <Label htmlFor="sector">{t('sector')}</Label>
                   <Select name="sector" value={formData.sector} onValueChange={(value) => handleSelectChange('sector', value)}>
-                    <SelectTrigger id="sector"><SelectValue placeholder={t('selectSectorOptional')} /></SelectTrigger>
-                    <SelectContent>{sectors.map(sector => (<SelectItem key={sector.value} value={sector.value}>{t(sector.labelKey)}</SelectItem>))}</SelectContent>
+                    <SelectTrigger id="sector">
+                      <SelectValue placeholder={t('selectSectorOptional')} />
+                    </SelectTrigger>
+                    <SearchableSelectContent
+                      items={sectors.map(sector => ({ value: sector.value, label: t(sector.labelKey) }))}
+                      searchPlaceholder={t('searchSector')}
+                    />
                   </Select>
                 </div>
               </>
@@ -185,50 +238,8 @@ const SignupPage = () => {
             {/* Teacher Specific Fields */}
             {formData.role === 'teacher' && (
               <>
-                <div className="space-y-1">
-                    <Label htmlFor="subjects">{t('subjects')}</Label>
-                    <MultiSelect
-                      options={subjectOptions}
-                      selected={formData.subjects}
-                      onChange={(selected) => handleMultiSelectChange('subjects', selected)}
-                      placeholder={t('selectSubjectsPlaceholder')}
-                      searchPlaceholder={t('searchSubjectsPlaceholder')} // Add this key
-                      emptyPlaceholder={t('noSubjectsFoundPlaceholder')} // Add this key
-                      error={errors.subjects}
-                    />
-                    {errors.subjects && <p className="text-xs text-destructive">{errors.subjects}</p>}
-                </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="targetGrades">{t('targetGrades')}</Label> {/* Add this key */}
-                    <MultiSelect
-                      id="targetGrades"
-                      options={translatedGradeOptions}
-                      selected={formData.targetGrades}
-                      onChange={(selected) => handleMultiSelectChange('targetGrades', selected)}
-                      placeholder={t('selectTargetGradesPlaceholder')} // Add this key
-                      searchPlaceholder={t('searchGradesPlaceholder')} // Add this key
-                      emptyPlaceholder={t('noGradesFoundPlaceholder')} // Add this key
-                      error={errors.targetGrades}
-                    />
-                    {errors.targetGrades && <p className="text-xs text-destructive">{errors.targetGrades}</p>}
-                </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="targetSectors">{t('targetSectors')}</Label> {/* Add this key */}
-                    <MultiSelect
-                      id="targetSectors"
-                      options={translatedSectorOptions}
-                      selected={formData.targetSectors}
-                      onChange={(selected) => handleMultiSelectChange('targetSectors', selected)}
-                      placeholder={t('selectTargetSectorsPlaceholder')} // Add this key
-                      searchPlaceholder={t('searchSectorsPlaceholder')} // Add this key
-                      emptyPlaceholder={t('noSectorsFoundPlaceholder')} // Add this key
-                      error={errors.targetSectors}
-                    />
-                    {errors.targetSectors && <p className="text-xs text-destructive">{errors.targetSectors}</p>}
-                </div>
                 <div className="space-y-6">
                   <PfpUploadWithCrop formData={formData} setFormData={setFormData} />
-
                   <BannerUploadWithCrop formData={formData} setFormData={setFormData} />
                 </div>
               </>

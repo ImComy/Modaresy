@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import BannerCropOverlay from "./ui/cropper";
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 
-export default function PfpUploadWithCrop({ formData, setFormData, defaultPfpUrl = null }) {
+export default function PfpUploadWithCrop({
+  formData,
+  setFormData,
+  defaultPfpUrl = null,
+}) {
+  const { t } = useTranslation();
   const [rawImage, setRawImage] = useState(null);
   const [cropperVisible, setCropperVisible] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -17,7 +23,7 @@ export default function PfpUploadWithCrop({ formData, setFormData, defaultPfpUrl
     };
   }, [rawImage, formData.pfp]);
 
-  function onFileChange(e) {
+  const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (rawImage) URL.revokeObjectURL(rawImage);
@@ -25,32 +31,32 @@ export default function PfpUploadWithCrop({ formData, setFormData, defaultPfpUrl
     setRawImage(url);
     setFileName(file.name);
     setCropperVisible(true);
-  }
+  };
 
-  function handleCrop(croppedFile) {
+  const handleCrop = (croppedFile) => {
     setFormData((prev) => ({
       ...prev,
-      img: croppedFile,
+      pfp: croppedFile,
     }));
-    setCropperVisible(false);
     if (rawImage) URL.revokeObjectURL(rawImage);
     setRawImage(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }
-
-  function handleCancel() {
     setCropperVisible(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleCancel = () => {
     if (rawImage) URL.revokeObjectURL(rawImage);
     setRawImage(null);
+    setCropperVisible(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }
+  };
 
-  const renderImage = () => {
-    if (formData.img instanceof File) {
+  const renderPreview = () => {
+    if (formData.pfp instanceof File) {
       return (
         <img
-          src={URL.createObjectURL(formData.img)}
-          alt="Profile Preview"
+          src={URL.createObjectURL(formData.pfp)}
+          alt={t("profilePreview")}
           className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
         />
       );
@@ -58,14 +64,14 @@ export default function PfpUploadWithCrop({ formData, setFormData, defaultPfpUrl
       return (
         <img
           src={defaultPfpUrl}
-          alt="Default Profile"
+          alt={t("defaultProfile")}
           className="w-full h-full object-cover opacity-60"
         />
       );
     } else {
       return (
         <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-          No image
+          {t("noImage")}
         </div>
       );
     }
@@ -73,28 +79,33 @@ export default function PfpUploadWithCrop({ formData, setFormData, defaultPfpUrl
 
   return (
     <div>
-      <label htmlFor="pfp" className="text-base font-medium text-foreground">
-        Profile Picture
+      <label
+        htmlFor="pfp"
+        className="block text-base font-medium text-foreground mb-2"
+      >
+        {t("profilePicture")}
       </label>
-      <div className="flex items-center gap-5 mt-3 ">
+
+      <div className="flex items-center gap-5 mt-2">
         <div className="w-20 h-20 rounded-md overflow-hidden border border-border bg-muted shadow-sm">
-          {renderImage()}
+          {renderPreview()}
         </div>
-        <div className="flex flex-col gap-1 cursor-pointer">
-          <Button className="cursor-pointer relative max-w-20">
-            Upload
+
+        <div className="flex flex-col gap-1">
+          <Button className="relative max-w-24">
+            {t("upload")}
             <input
               type="file"
               accept="image/*"
               id="pfp"
-              className="absolute inset-0 opacity-0 cursor-pointer"
-              onChange={onFileChange}
+              onChange={handleFileChange}
               ref={fileInputRef}
+              className="absolute inset-0 opacity-0 cursor-pointer"
             />
           </Button>
           {(rawImage || formData.pfp) && (
             <span className="text-sm text-muted-foreground truncate max-w-[14rem]">
-              {fileName || (formData.pfp?.name || '')}
+              {fileName || formData.pfp?.name || ""}
             </span>
           )}
         </div>
@@ -103,8 +114,8 @@ export default function PfpUploadWithCrop({ formData, setFormData, defaultPfpUrl
       {cropperVisible && (
         <BannerCropOverlay
           rawImage={rawImage}
-          onCancel={handleCancel}
           onCrop={handleCrop}
+          onCancel={handleCancel}
           shape="profile"
         />
       )}

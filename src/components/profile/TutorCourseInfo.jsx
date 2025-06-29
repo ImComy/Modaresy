@@ -65,7 +65,9 @@ const TutorCourseInfo = ({ courseContent = [], duration, lecturesPerWeek, isEdit
                            className="h-8 text-xs border-dashed focus-visible:ring-1 focus-visible:ring-offset-1"
                         />
                      ) : (
-                        <p className="font-medium">{t('durationMinutes', { duration: duration || t('N/A') })}</p>
+                        <p className="font-medium">
+                           {duration ? t('durationMinutes', { duration }) : t('noDurationProvided', 'No duration provided')}
+                        </p>
                      )}
                   </div>
                      <div className="space-y-1">
@@ -79,7 +81,10 @@ const TutorCourseInfo = ({ courseContent = [], duration, lecturesPerWeek, isEdit
                               className="h-8 text-xs border-dashed focus-visible:ring-1 focus-visible:ring-offset-1"
                            />
                         ) : (
-                           <p className="font-medium">{t('lecturesCount', { count: lecturesPerWeek || t('N/A') })}</p> // Needs translation key 'lecturesCount'
+                           <p className="font-medium">
+                              {lecturesPerWeek ? t('lecturesCount', { count: lecturesPerWeek }) : t('noLecturesProvided', 'No weekly lectures specified')}
+                           </p>
+
                         )}
                   </div>
                </div>

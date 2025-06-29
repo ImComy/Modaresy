@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from "react"
-import { Check, ChevronsUpDown, X } from "lucide-react"
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { Check, ChevronsUpDown, X } from "lucide-react";
+import Fuse from "fuse.js";
 
 export default function MultiSelect({
   options,
@@ -15,31 +16,46 @@ export default function MultiSelect({
   contentClassName = "",
   ...props
 }) {
-  const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState("")
-  const triggerRef = useRef(null)
-  const contentRef = useRef(null)
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const triggerRef = useRef(null);
+  const contentRef = useRef(null);
 
-  const normalizedOptions = options.map((opt) =>
-    typeof opt === "string" ? { label: opt, value: opt } : opt
-  )
+  const normalizedOptions = useMemo(
+    () =>
+      options.map((opt) =>
+        typeof opt === "string" ? { label: opt, value: opt } : opt
+      ),
+    [options]
+  );
 
-  const filteredOptions = normalizedOptions.filter((opt) =>
-    (opt.label || "").toLowerCase().includes(search.toLowerCase())
-  )
+  // Initialize Fuse.js for fuzzy matching
+  const fuse = useMemo(
+    () =>
+      new Fuse(normalizedOptions, {
+        keys: ["label"],
+        threshold: 0.4,
+      }),
+    [normalizedOptions]
+  );
+
+  const filteredOptions = useMemo(() => {
+    if (!search.trim()) return normalizedOptions;
+    return fuse.search(search).map((res) => res.item);
+  }, [search, fuse, normalizedOptions]);
 
   const toggleSelect = (value) => {
-    if (disabled) return
+    if (disabled) return;
     const newSelected = selected.includes(value)
       ? selected.filter((v) => v !== value)
-      : [...selected, value]
-    onChange(newSelected)
-  }
+      : [...selected, value];
+    onChange(newSelected);
+  };
 
   const removeSelected = (value, e) => {
-    e.stopPropagation()
-    toggleSelect(value)
-  }
+    e.stopPropagation();
+    toggleSelect(value);
+  };
 
   useEffect(() => {
     const onClickOutside = (e) => {
@@ -49,25 +65,24 @@ export default function MultiSelect({
         contentRef.current &&
         !contentRef.current.contains(e.target)
       ) {
-        setOpen(false)
-        setSearch("")
+        setOpen(false);
+        setSearch("");
       }
-    }
-    document.addEventListener("mousedown", onClickOutside)
-    return () => document.removeEventListener("mousedown", onClickOutside)
-  }, [])
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
 
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") {
-        setOpen(false)
-        setSearch("")
+        setOpen(false);
+        setSearch("");
       }
-    }
-    if (open) document.addEventListener("keydown", onKey)
-    else document.removeEventListener("keydown", onKey)
-    return () => document.removeEventListener("keydown", onKey)
-  }, [open])
+    };
+    if (open) document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
 
   return (
     <div className={`relative w-full ${className}`} {...props}>
@@ -88,7 +103,8 @@ export default function MultiSelect({
           {selected.length > 0 ? (
             selected.map((value) => {
               const label =
-                normalizedOptions.find((o) => o.value === value)?.label || value
+                normalizedOptions.find((o) => o.value === value)?.label ||
+                value;
               return (
                 <span
                   key={value}
@@ -100,18 +116,18 @@ export default function MultiSelect({
                     aria-label={`Remove ${label}`}
                     onClick={(e) => removeSelected(value, e)}
                     onMouseDown={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
+                      e.preventDefault();
+                      e.stopPropagation();
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") removeSelected(value, e)
+                      if (e.key === "Enter") removeSelected(value, e);
                     }}
                     className="p-0 text-muted-foreground hover:text-foreground"
                   >
                     <X size={14} />
                   </button>
                 </span>
-              )
+              );
             })
           ) : (
             <span className="text-sm text-muted-foreground">{placeholder}</span>
@@ -142,7 +158,7 @@ export default function MultiSelect({
               </p>
             ) : (
               filteredOptions.map((option) => {
-                const isSelected = selected.includes(option.value)
+                const isSelected = selected.includes(option.value);
                 return (
                   <div
                     key={option.value}
@@ -152,8 +168,8 @@ export default function MultiSelect({
                     onClick={() => toggleSelect(option.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault()
-                        toggleSelect(option.value)
+                        e.preventDefault();
+                        toggleSelect(option.value);
                       }
                     }}
                     className={`cursor-pointer flex items-center gap-2 px-3 py-2 text-sm ${
@@ -165,13 +181,12 @@ export default function MultiSelect({
                     {isSelected && <Check size={16} />}
                     <span>{option.label}</span>
                   </div>
-                )
+                );
               })
             )}
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
-

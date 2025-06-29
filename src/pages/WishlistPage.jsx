@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { useWishlist } from '@/context/WishlistContext';
-import GeneralTutorCard from '@/components/tutors/GeneralTutorCard';
+import ShortTutorCard from '@/components/tutors/shortcard';
 import { HeartOff } from 'lucide-react';
 
 const WishlistPage = () => {
@@ -28,7 +28,7 @@ const WishlistPage = () => {
       {wishlist.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {wishlist.map((tutor) => (
-            <GeneralTutorCard key={tutor.id} tutor={tutor} />
+            <ShortTutorCard key={tutor.id} tutor={tutor} />
           ))}
         </div>
       ) : (
