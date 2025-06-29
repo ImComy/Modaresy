@@ -1,114 +1,145 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import MultiSelect from '@/components/ui/multi-select';
+import { Plus, Trash2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import PfpUploadWithCrop from '@/components/pfpSignup';
+import BannerUploadWithCrop from '@/components/bannerSignup';
+import SocialsSection from '@/components/tutorSettings/social';
+import SubjectsSection from '@/components/tutorSettings/subjects';
+import ContentManagementSection from '@/components/Dashboard/content';
+import GroupsAndTablesSection from '@/components/Dashboard/groups';
+import AnalysisSection from '@/components/Dashboard/analysis';
+import PricesAndOffersSection from '@/components/Dashboard/prices';
 
 // Define validation schema using Zod
-const subjectSchema = z.object({
-  subject: z.string().min(1, 'Subject name is required'),
-  grade: z.string().min(1, 'Grade is required'),
-  type: z.string().min(1, 'Type is required'),
-  bio: z.string().optional(),
-  duration: z.number().min(1, 'Duration must be at least 1 minute'),
-  lecturesPerWeek: z.number().min(1, 'At least one lecture per week is required'),
-  yearsExp: z.number().min(0, 'Years of experience cannot be negative'),
-  price: z.number().min(0, 'Price cannot be negative'),
-  pricePeriod: z.number().min(1, 'Price period is required'),
-  private: z.object({
-    price: z.number().min(0, 'Private lesson price cannot be negative').optional(),
-    note: z.string().optional(),
-    pricePeriod: z.number().min(1, 'Price period is required').optional(),
-  }).optional(),
-  Groups: z.array(
-    z.object({
-      groupName: z.string().min(1, 'Group name is required'),
-      days: z.array(z.string()).min(1, 'At least one day is required'),
-      time: z.string().min(1, 'Time is required'),
-      isFull: z.boolean(),
-      note: z.string().optional(),
-    })
-  ).optional(),
-});
-
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
   password: z.string().min(6, 'Password must be at least 6 characters').optional(),
   location: z.string().optional(),
-  GeneralBio: z.string().optional(),
-  personalAvailability: z.object({
-    times: z.array(z.string()).optional(),
-    note: z.string().optional(),
-  }).optional(),
-  detailedLocation: z.array(z.string()).optional(),
-  subjects: z.array(subjectSchema).optional(),
+  sector: z.string().optional(),
+  grade: z.string().optional(),
+  pfp: z.any().optional(),
+  banner: z.any().optional(),
+  achievements: z.array(z.string()).optional(),
+  isTopTutor: z.boolean().optional(),
+  detailedLocation: z.array(z.string().min(1, 'Location cannot be empty')).max(3, 'Maximum 3 locations allowed').optional(),
+  generalBio: z.string().optional(),
+  socialLinks: z.record(z.string()).optional(),
+  youtubeVideos: z.array(
+    z.object({
+      title: z.string().min(1, 'Video title is required'),
+      url: z.string().url('Invalid URL'),
+    })
+  ).max(3, 'Maximum 3 videos allowed').optional(),
+  subjects: z.array(z.any()).optional(),
 });
 
 const EditUserForm = ({ user, onSave, onCancel }) => {
   const { t } = useTranslation();
+  const isTutor = user.role === 'tutor';
+  const isStudent = user.role === 'student';
 
-  // Initialize form with react-hook-form and zod validation
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      ...user,
-      subjects: user.subjects || [],
-      personalAvailability: user.personalAvailability || { times: [], note: '' },
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      password: '',
+      location: user.location || '',
+      sector: user.sector || '',
+      grade: user.grade || '',
+      pfp: user.pfp || null,
+      banner: user.banner || null,
+      achievements: user.achievements || [],
+      isTopTutor: user.isTopTutor || false,
       detailedLocation: user.detailedLocation || [],
+      generalBio: user.generalBio || '',
+      socialLinks: user.socialLinks || {},
+      youtubeVideos: user.youtubeVideos || [],
+      subjects: user.subjects || [],
     },
   });
 
-  const isTutor = user.role === 'tutor';
+  const handleAddDetailedLocation = useCallback(() => {
+    const currentLocations = form.getValues('detailedLocation') || [];
+    if (currentLocations.length < 3) {
+      form.setValue('detailedLocation', [...currentLocations, '']);
+    }
+  }, [form]);
 
-  // Memoize callbacks to prevent unnecessary re-renders
-  const handleSubjectChange = useCallback(
+  const handleRemoveDetailedLocation = useCallback(
+    (index) => {
+      const currentLocations = form.getValues('detailedLocation') || [];
+      form.setValue('detailedLocation', currentLocations.filter((_, i) => i !== index));
+    },
+    [form]
+  );
+
+  const handleAddVideo = useCallback(() => {
+    const currentVideos = form.getValues('youtubeVideos') || [];
+    if (currentVideos.length < 3) {
+      form.setValue('youtubeVideos', [...currentVideos, { title: '', url: '' }]);
+    }
+  }, [form]);
+
+  const handleRemoveVideo = useCallback(
+    (index) => {
+      const currentVideos = form.getValues('youtubeVideos') || [];
+      form.setValue('youtubeVideos', currentVideos.filter((_, i) => i !== index));
+    },
+    [form]
+  );
+
+  const handleVideoChange = useCallback(
     (index, field, value) => {
-      const updatedSubjects = [...form.getValues('subjects')];
-      updatedSubjects[index] = { ...updatedSubjects[index], [field]: value };
-      form.setValue('subjects', updatedSubjects);
+      const currentVideos = form.getValues('youtubeVideos') || [];
+      const updatedVideos = [...currentVideos];
+      updatedVideos[index] = { ...updatedVideos[index], [field]: value };
+      form.setValue('youtubeVideos', updatedVideos);
     },
     [form]
   );
 
-  const handleGroupChange = useCallback(
-    (subjectIndex, groupIndex, field, value) => {
-      const updatedSubjects = [...form.getValues('subjects')];
-      const updatedGroups = [...(updatedSubjects[subjectIndex].Groups || [])];
-      updatedGroups[groupIndex] = { ...updatedGroups[groupIndex], [field]: value };
-      updatedSubjects[subjectIndex] = { ...updatedSubjects[subjectIndex], Groups: updatedGroups };
-      form.setValue('subjects', updatedSubjects);
+  const handleSubjectsChange = useCallback(
+    (newSubjects) => {
+      form.setValue('subjects', newSubjects);
     },
     [form]
   );
 
-  const handleAvailabilityChange = useCallback(
-    (field, value) => {
-      form.setValue(`personalAvailability.${field}`, value);
+  const handleSocialLinksChange = useCallback(
+    (newLinks) => {
+      form.setValue('socialLinks', newLinks);
     },
     [form]
   );
 
-  // Handle form submission
+  const achievementsOptions = [
+    { label: 'Certified Instructor', value: 'certified' },
+    { label: 'Top Performer 2024', value: 'top2024' },
+    { label: '100+ Students', value: '100plus' },
+  ];
+
   const onSubmit = (data) => {
-    onSave(data);
+    onSave?.(data);
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="mb-4 space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -174,34 +205,50 @@ const EditUserForm = ({ user, onSave, onCancel }) => {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="GeneralBio"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('bio', 'General Bio')}</FormLabel>
-              <FormControl>
-                <Textarea {...field} placeholder={t('bio', 'General Bio')} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+
+        {isStudent && (
+          <>
+            <FormField
+              control={form.control}
+              name="sector"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('sector', 'Sector')}</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder={t('sector', 'Sector')} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="grade"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('grade', 'Grade')}</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder={t('grade', 'Grade')} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
 
         {isTutor && (
           <>
             <FormField
               control={form.control}
-              name="personalAvailability.times"
+              name="pfp"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('availabilityTimes', 'Availability Times')}</FormLabel>
+                  <FormLabel>{t('profilePicture', 'Profile Picture')}</FormLabel>
                   <FormControl>
-                    <Input
-                      {...field}
-                      value={field.value?.join(', ') || ''}
-                      onChange={(e) => field.onChange(e.target.value.split(', '))}
-                      placeholder={t('availabilityTimes', 'Availability Times')}
+                    <PfpUploadWithCrop
+                      formData={{ pfp: field.value }}
+                      setFormData={(newData) => form.setValue('pfp', newData.pfp)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -210,12 +257,15 @@ const EditUserForm = ({ user, onSave, onCancel }) => {
             />
             <FormField
               control={form.control}
-              name="personalAvailability.note"
+              name="banner"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('availabilityNote', 'Availability Note')}</FormLabel>
+                  <FormLabel>{t('banner', 'Banner')}</FormLabel>
                   <FormControl>
-                    <Textarea {...field} placeholder={t('availabilityNote', 'Availability Note')} />
+                    <BannerUploadWithCrop
+                      formData={{ banner: field.value }}
+                      setFormData={(newData) => form.setValue('banner', newData.banner)}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -223,336 +273,135 @@ const EditUserForm = ({ user, onSave, onCancel }) => {
             />
             <FormField
               control={form.control}
-              name="detailedLocation"
+              name="achievements"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('detailedLocation', 'Detailed Location')}</FormLabel>
+                  <FormLabel>{t('achievements', 'Achievements')}</FormLabel>
                   <FormControl>
-                    <Input
-                      {...field}
-                      value={field.value?.join(', ') || ''}
-                      onChange={(e) => field.onChange(e.target.value.split(', '))}
-                      placeholder={t('detailedLocation', 'Detailed Location')}
+                    <MultiSelect
+                      options={achievementsOptions}
+                      selected={field.value}
+                      onChange={field.onChange}
+                      placeholder={t('selectAchievements', 'Select Achievements')}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            {form.watch('subjects')?.map((subject, index) => (
-              <div key={index} className="border p-4 rounded-md space-y-4">
-                <h3 className="font-semibold">{t('subject', 'Subject')} {index + 1}</h3>
-                <FormField
-                  control={form.control}
-                  name={`subjects.${index}.subject`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('subjectName', 'Subject Name')}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={t('subjectName', 'Subject Name')} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`subjects.${index}.grade`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('grade', 'Grade')}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={t('grade', 'Grade')} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`subjects.${index}.type`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('type', 'Type')}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={t('type', 'Type')} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`subjects.${index}.bio`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('subjectBio', 'Subject Bio')}</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} placeholder={t('subjectBio', 'Subject Bio')} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`subjects.${index}.duration`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('duration', 'Duration (minutes)')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
-                          placeholder={t('duration', 'Duration (minutes)')}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`subjects.${index}.lecturesPerWeek`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('lecturesPerWeek', 'Lectures per Week')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
-                          placeholder={t('lecturesPerWeek', 'Lectures per Week')}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`subjects.${index}.yearsExp`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('yearsExp', 'Years of Experience')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
-                          placeholder={t('yearsExp', 'Years of Experience')}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`subjects.${index}.price`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('price', 'Price')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
-                          placeholder={t('price', 'Price')}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`subjects.${index}.pricePeriod`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('pricePeriod', 'Price Period')}</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
-                        value={field.value?.toString()}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('pricePeriod', 'Price Period')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="1">{t('month', 'Month')}</SelectItem>
-                          <SelectItem value="2">{t('session', 'Session')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`subjects.${index}.rating`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('rating', 'Rating')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          step="0.1"
-                          onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                          placeholder={t('rating', 'Rating')}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`subjects.${index}.private.price`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('privatePrice', 'Private Lesson Price')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
-                          placeholder={t('privatePrice', 'Private Lesson Price')}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`subjects.${index}.private.note`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('privateNote', 'Private Lesson Note')}</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} placeholder={t('privateNote', 'Private Lesson Note')} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`subjects.${index}.private.pricePeriod`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('privatePricePeriod', 'Private Price Period')}</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
-                        value={field.value?.toString()}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('privatePricePeriod', 'Private Price Period')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="1">{t('month', 'Month')}</SelectItem>
-                          <SelectItem value="2">{t('session', 'Session')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {(subject.Groups || []).map((group, groupIndex) => (
-                  <div key={groupIndex} className="border p-3 rounded-md space-y-3">
-                    <h4 className="font-semibold">{t('group', 'Group')} {groupIndex + 1}</h4>
-                    <FormField
-                      control={form.control}
-                      name={`subjects.${index}.Groups.${groupIndex}.groupName`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('groupName', 'Group Name')}</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder={t('groupName', 'Group Name')} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+            <FormField
+              control={form.control}
+              name="isTopTutor"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2">
+                  <FormControl>
+                    <Checkbox
+                      id="isTopTutor"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
                     />
-                    <FormField
-                      control={form.control}
-                      name={`subjects.${index}.Groups.${groupIndex}.days`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('days', 'Days')}</FormLabel>
+                  </FormControl>
+                  <FormLabel htmlFor="isTopTutor">{t('isTopTutor', 'Top Tutor')}</FormLabel>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="space-y-2">
+              <FormLabel>{t('detailedLocations', 'Detailed Locations')}</FormLabel>
+              <div className="flex flex-wrap gap-2">
+                <AnimatePresence>
+                  {form.watch('detailedLocation')?.map((loc, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg border"
+                    >
+                      <FormField
+                        control={form.control}
+                        name={`detailedLocation.${index}`}
+                        render={({ field }) => (
                           <FormControl>
                             <Input
                               {...field}
-                              value={field.value?.join(', ') || ''}
-                              onChange={(e) => field.onChange(e.target.value.split(', '))}
-                              placeholder={t('days', 'Days')}
+                              placeholder={`${t('location', 'Location')} ${index + 1}`}
                             />
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`subjects.${index}.Groups.${groupIndex}.time`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('time', 'Time')}</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder={t('time', 'Time')} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`subjects.${index}.Groups.${groupIndex}.isFull`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('groupStatus', 'Group Status')}</FormLabel>
-                          <Select
-                            onValueChange={(value) => field.onChange(value === 'true')}
-                            value={field.value?.toString()}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={t('groupStatus', 'Group Status')} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="false">{t('available', 'Available')}</SelectItem>
-                              <SelectItem value="true">{t('full', 'Full')}</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`subjects.${index}.Groups.${groupIndex}.note`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('groupNote', 'Group Note')}</FormLabel>
-                          <FormControl>
-                            <Textarea {...field} placeholder={t('groupNote', 'Group Note')} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                ))}
+                        )}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveDetailedLocation(index)}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
-            ))}
+              {form.watch('detailedLocation')?.length < 3 && (
+                <Button type="button" onClick={handleAddDetailedLocation}>
+                  <Plus className="w-4 h-4 mr-2" /> {t('addLocation', 'Add Location')}
+                </Button>
+              )}
+            </div>
+            <FormField
+              control={form.control}
+              name="generalBio"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('generalBio', 'General Bio')}</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      rows={6}
+                      placeholder={t('generalBio', 'General Bio')}
+                      className="w-full border rounded-lg p-2"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="subjects"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('subjects', 'Subjects')}</FormLabel>
+                  <FormControl>
+                    <SubjectsSection subjects={field.value} onChange={handleSubjectsChange} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="socialLinks"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('socialLinks', 'Social Links')}</FormLabel>
+                  <FormControl>
+                    <SocialsSection
+                      socialLinks={field.value}
+                      youtubeVideos={form.watch('youtubeVideos')}
+                      setSocialLinks={handleSocialLinksChange}
+                      onVideoChange={handleVideoChange}
+                      onAddVideo={handleAddVideo}
+                      onRemoveVideo={handleRemoveVideo}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <ContentManagementSection />
+            <GroupsAndTablesSection />
+            <PricesAndOffersSection />
+            <AnalysisSection />
           </>
         )}
 

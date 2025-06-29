@@ -42,8 +42,8 @@ const AccountManagement = () => {
 
   const handleEdit = (user) => setEditingUser({ ...user });
 
-  const handleSave = () => {
-    setUsers(users.map((u) => (u.id === editingUser.id ? editingUser : u)));
+  const handleSave = (updatedUser) => {
+    setUsers(users.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
     setEditingUser(null);
   };
 
@@ -77,13 +77,11 @@ const AccountManagement = () => {
       {editingUser ? (
         <EditUserForm
           user={editingUser}
-          onChange={setEditingUser}
           onSave={handleSave}
           onCancel={() => setEditingUser(null)}
         />
       ) : (
         <>
-          {/* Filters */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 flex-wrap">
             <Input
               type="text"
@@ -117,7 +115,6 @@ const AccountManagement = () => {
             </Select>
           </div>
 
-          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -126,14 +123,13 @@ const AccountManagement = () => {
                   <th className="p-3 font-medium">{t('name', 'Name')}</th>
                   <th className="p-3 font-medium">{t('email', 'Email')}</th>
                   <th className="p-3 font-medium">{t('role', 'Role')}</th>
-                  <th className="p-3 font-medium">{t('status', 'Status')}</th>
                   <th className="p-3 font-medium">{t('actions', 'Actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-4 text-center italic text-[hsl(var(--muted-foreground))]">
+                    <td colSpan={5} className="p-4 text-center italic text-[hsl(var(--muted-foreground))]">
                       {t('noUsersFound', 'No users found')}
                     </td>
                   </tr>
@@ -150,7 +146,6 @@ const AccountManagement = () => {
                         )}
                       </td>
                       <td className="p-3 capitalize">{t(user.role)}</td>
-                      <td className="p-3 capitalize">{t(user.status)}</td>
                       <td className="p-3 flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleEdit(user)}>
                           {t('edit', 'Edit')}
@@ -170,7 +165,6 @@ const AccountManagement = () => {
             </table>
           </div>
 
-          {/* Pagination Controls */}
           {totalPages > 1 && (
             <div className="flex justify-center gap-2 mt-4">
               <Button

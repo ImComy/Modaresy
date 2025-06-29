@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Flag, Key, Bell, MessageSquare } from 'lucide-react';
+import { User, Flag, Key, Bell, MessageSquare, BarChart2 } from 'lucide-react';
 import NavigationCard from '@/components/tutorSettings/nav';
 import AccountManagement from '@/components/admin/AccountManagement';
 import ReportedContent from '@/components/admin/ReportedContent';
 import PasswordRequests from '@/components/admin/PasswordRequests';
 import Notifications from '@/components/admin/Notifications';
 import ContactMessages from '@/components/admin/ContactMessages';
+import AnalysisPanel from '@/components/admin/analysis';
 
 const AdminPage = () => {
   const { t } = useTranslation();
@@ -43,6 +44,12 @@ const AdminPage = () => {
       defaultLabel: 'Contact Messages',
       icon: <MessageSquare className="w-5 h-5" />,
     },
+    {
+      id: 'analysis',
+      labelKey: 'analysis',
+      defaultLabel: 'Analysis',
+      icon: <BarChart2 className="w-5 h-5" />,
+    },
   ];
 
   const handleSubmit = () => {
@@ -58,13 +65,12 @@ const AdminPage = () => {
         <div className="sticky top-20 z-30">
           <div className="max-w-xl mx-auto px-4"></div>
           <NavigationCard
-            navItems={navItems} 
+            navItems={navItems}
             selectedSection={selectedSection}
             setSelectedSection={setSelectedSection}
             handleSubmit={handleSubmit}
           />
         </div>
-      
 
         <div className="rounded-xl p-4 sm:p-6 bg-[hsl(var(--card))] border border-[hsl(var(--border))] shadow-sm mt-4 sm:mt-6">
           {selectedSection === 'accounts' && <AccountManagement />}
@@ -72,6 +78,7 @@ const AdminPage = () => {
           {selectedSection === 'passwords' && <PasswordRequests />}
           {selectedSection === 'notifications' && <Notifications />}
           {selectedSection === 'contact' && <ContactMessages />}
+          {selectedSection === 'analysis' && <AnalysisPanel />}
         </div>
       </div>
     </div>

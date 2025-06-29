@@ -95,16 +95,6 @@ const ShortTutorCard = ({ tutor }) => {
           <CardContent className="flex-1 pt-12 pb-4 px-4 flex flex-col justify-between">
             <div className="text-center space-y-1">
               <h3 className="font-bold text-lg text-foreground">{tutor.name}</h3>
-              <div className="flex items-center justify-center gap-1 text-muted-foreground">
-                {averageRating ? (
-                  <>
-                    {renderStars(averageRating)}
-                    <span>({averageRating})</span>
-                  </>
-                ) : (
-                  t('noRating')
-                )}
-              </div>
             </div>
 
             <div className="mt-4 space-y-2">
