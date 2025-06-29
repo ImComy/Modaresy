@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Save } from 'lucide-react';
 import NavigationCard from '@/components/tutorSettings/nav';
@@ -9,6 +9,8 @@ import SocialsSection from '@/components/tutorSettings/social';
 import TutorProfileHeader from '@/components/profile/TutorProfileHeader';
 import { Button } from '@/components/ui/button';
 import { User, Settings, BookOpen, Share2 } from 'lucide-react';
+import SaveButton from '@/components/ui/save';
+import { useTranslation } from 'react-i18next';
 
 const defaultForm = {
   name: 'Ahmed Hassan',
@@ -23,22 +25,12 @@ const defaultForm = {
   bannerimg: "/52e7d04b4a52a814f1dc8460962e33791c3ad6e04e5074417d2d73dc934fcc_640.jpg",
 };
 
-const requiredFields = {
-  account: ['name', 'email', 'phone'],
-  general: ['location', 'generalBio', 'detailedLocation'],
-};
-const optionalFields = {
-  account: ['password', 'confirmPassword'],
-  general: ['img', 'bannerimg'],
-};
-
 const navItems = [
-  { id: 'account', label: 'Account', icon: <User className="w-4 h-4" /> },
-  { id: 'general', label: 'General', icon: <Settings className="w-4 h-4" /> },
-  { id: 'subjects', label: 'Subjects', icon: <BookOpen className="w-4 h-4" /> },
-  { id: 'socials', label: 'Socials', icon: <Share2 className="w-4 h-4" /> },
+  { id: 'account', labelKey: 'nav.account', defaultLabel: 'Account', icon: <User className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> },
+  { id: 'general', labelKey: 'nav.general', defaultLabel: 'General', icon: <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> },
+  { id: 'subjects', labelKey: 'nav.subjects', defaultLabel: 'Subjects', icon: <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> },
+  { id: 'socials', labelKey: 'nav.socials', defaultLabel: 'Socials', icon: <Share2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> },
 ];
-
 
 const TutorSettingsPage = () => {
   const [tutor, setTutor] = useState({
@@ -61,14 +53,8 @@ const TutorSettingsPage = () => {
       instagram: "https://www.instagram.com/ahmed.hassan",
       twitter: "https://twitter.com/ahmed_hassan",
       linkedin: "https://www.linkedin.com/in/ahmed-hassan",
-      youtube: "https://www.youtube.com/channel/ahmed.hassan",
-      tiktok: "https://www.tiktok.com",
-      whatsapp: "https://wa.me/01234567890",
-      telegram: "https://t.me/ahmed_hassan",
-      email: "info@modaresy.com",
-      website: "https://www.modaresy.com",
-      github: "",
     },
+    youtubeVideos: [],
     subjects: [
       {
         subject: "Mathematics",
@@ -81,16 +67,21 @@ const TutorSettingsPage = () => {
   });
 
   const [form, setForm] = useState(defaultForm);
-  const [subjects, setSubjects] = useState([]);
+  const [subjects, setSubjects] = useState(tutor.subjects || []);
   const [socialLinks, setSocialLinks] = useState(tutor.socials || {});
-  const [touched, setTouched] = useState({});
+  const [youtubeVideos, setYoutubeVideos] = useState(tutor.youtubeVideos || []);
   const [selectedSection, setSelectedSection] = useState('account');
   const [isSaving, setIsSaving] = useState(false);
+  const initialLoadRef = useRef(true);
 
   useEffect(() => {
-    setSubjects(tutor.subjects || []);
-    setSocialLinks(tutor.socials || {});
-  }, [tutor]);
+    if (initialLoadRef.current) {
+      setSubjects(tutor.subjects || []);
+      setSocialLinks(tutor.socials || {});
+      setYoutubeVideos(tutor.youtubeVideos || []);
+      initialLoadRef.current = false;
+    }
+  }, []); 
 
   const liveTutor = {
     ...tutor,
@@ -102,172 +93,12 @@ const TutorSettingsPage = () => {
     detailedLocation: form.detailedLocation || [],
     img: form.pfp || form.img,
     bannerimg: form.banner || form.bannerimg,
-  };
-
-  const handleChange = (e) => {
-    const { id, value } = e.target;
-    setForm((prev) => ({ ...prev, [id]: value }));
-    setTouched((prev) => ({ ...prev, [id]: true }));
-  };
-
-  const handleSocialChange = (platform, value) => {
-    setSocialLinks((prev) => ({
-      ...prev,
-      [platform]: value,
-    }));
-    setTouched((prev) => ({ ...prev, socials: true }));
-  };
-
-  const handleAddDetailedLocation = () => {
-    if (form.detailedLocation.length < 3) {
-      setForm((prev) => ({
-        ...prev,
-        detailedLocation: [...prev.detailedLocation, ''],
-      }));
-      setTouched((prev) => ({ ...prev, detailedLocation: true }));
-    }
-  };
-
-  const handleRemoveDetailedLocation = (index) => {
-    setForm((prev) => ({
-      ...prev,
-      detailedLocation: prev.detailedLocation.filter((_, i) => i !== index),
-    }));
-    setTouched((prev) => ({ ...prev, detailedLocation: true }));
-  };
-
-  const handleDetailedLocationChange = (index, value) => {
-    const updated = [...form.detailedLocation];
-    updated[index] = value;
-    setForm((prev) => ({
-      ...prev,
-      detailedLocation: updated,
-    }));
-    setTouched((prev) => ({ ...prev, detailedLocation: true }));
-  };
-
-  const hasUnsavedChanges = (tabId) => {
-    if (tabId === 'subjects') {
-      const initialSubjects = tutor.subjects || [];
-      const currentSubjects = subjects || [];
-      if (initialSubjects.length !== currentSubjects.length) return true;
-      return initialSubjects.some((initial, i) => {
-        const current = currentSubjects[i] || {};
-        // Normalize values to handle undefined/null and ensure accurate comparison
-        const normalize = (val) => (val == null ? '' : String(val).trim());
-        return (
-          normalize(initial.subject) !== normalize(current.subject) ||
-          normalize(initial.grade) !== normalize(current.grade) ||
-          normalize(initial.type) !== normalize(current.type) ||
-          normalize(initial.bio) !== normalize(current.bio) ||
-          normalize(initial.yearsExp) !== normalize(current.yearsExp)
-        );
-      });
-    } else if (tabId === 'socials') {
-      const initialSocials = tutor.socials || {};
-      const currentSocials = socialLinks || {};
-      const normalize = (val) => (val == null ? '' : String(val).trim());
-      return (
-        normalize(initialSocials.youtube) !== normalize(currentSocials.youtube) ||
-        normalize(initialSocials.twitter) !== normalize(currentSocials.twitter) ||
-        normalize(initialSocials.facebook) !== normalize(currentSocials.facebook) ||
-        normalize(initialSocials.linkedin) !== normalize(currentSocials.linkedin) ||
-        normalize(initialSocials.instagram) !== normalize(currentSocials.instagram)
-      );
-    }
-
-    const required = requiredFields[tabId] || [];
-    const optional = optionalFields[tabId] || [];
-    const keys = [...required, ...optional];
-
-    return keys.some((key) => {
-      const original = defaultForm[key];
-      const current = form[key];
-      if (typeof original === 'string' && typeof current === 'string') {
-        return original.trim() !== current.trim();
-      }
-      if (Array.isArray(original) && Array.isArray(current)) {
-        return (
-          original.length !== current.length ||
-          original.some((val, i) => val.trim() !== (current[i] || '').trim())
-        );
-      }
-      return original !== current;
-    });
-  };
-
-  const isMissing = (val) => typeof val !== 'string' || val.trim() === '' || val == null;
-
-  const hasMissingRequired = (tabId) => {
-    if (tabId === 'subjects') {
-      if (subjects.length === 0) return true;
-      const firstSubject = subjects[0] || {};
-      return (
-        isMissing(firstSubject.subject) ||
-        isMissing(firstSubject.grade) ||
-        isMissing(firstSubject.type) ||
-        isMissing(firstSubject.bio) ||
-        isMissing(firstSubject.yearsExp)
-      );
-    }
-
-    if (tabId === 'socials') {
-      return (
-        isMissing(socialLinks.youtube) &&
-        isMissing(socialLinks.twitter) &&
-        isMissing(socialLinks.facebook) &&
-        isMissing(socialLinks.linkedin) &&
-        isMissing(socialLinks.instagram)
-      );
-    }
-
-    return requiredFields[tabId]?.some((key) => {
-      const value = form[key];
-      if (key === 'detailedLocation') {
-        return !Array.isArray(value) || value.some((loc) => isMissing(loc));
-      }
-      return isMissing(value);
-    });
+    youtubeVideos: youtubeVideos,
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    const currentRequired = requiredFields[selectedSection] || [];
-    let invalid = false;
-
-    const updatedTouched = { ...touched };
-    currentRequired.forEach((field) => {
-      updatedTouched[field] = true;
-      if (field === 'detailedLocation') {
-        if (!form.detailedLocation?.length || form.detailedLocation.some((loc) => !loc.trim())) {
-          invalid = true;
-        }
-      } else if (!form[field]?.trim()) {
-        invalid = true;
-      }
-    });
-
-    if (selectedSection === 'subjects') {
-      if (subjects.length === 0) {
-        invalid = true;
-      } else {
-        const firstSubject = subjects[0] || {};
-        if (
-          isMissing(firstSubject.subject) ||
-          isMissing(firstSubject.grade) ||
-          isMissing(firstSubject.type) ||
-          isMissing(firstSubject.bio) ||
-          isMissing(firstSubject.yearsExp)
-        ) {
-          invalid = true;
-        }
-      }
-      updatedTouched.subjects = true;
-    }
-
-    setTouched(updatedTouched);
-    if (invalid) return;
-
+    if (e) e.preventDefault();
+    if (isSaving) return;
     setIsSaving(true);
     setTimeout(() => {
       setTutor((prev) => ({
@@ -275,129 +106,78 @@ const TutorSettingsPage = () => {
         ...form,
         subjects: subjects,
         socials: socialLinks,
+        youtubeVideos: youtubeVideos,
       }));
       setIsSaving(false);
-    }, 2000);
+    }, 1000); // Reduced delay for better UX
   };
 
-  const getFieldErrorClasses = (field) => {
-    const value = form[field];
-    const isEmpty =
-      touched[field] &&
-      (typeof value === 'string'
-        ? !value.trim()
-        : Array.isArray(value)
-        ? value.length === 0 || value.every((v) => !v.trim?.())
-        : !value);
-
-    return {
-      label: isEmpty ? 'text-red-600' : '',
-      input: isEmpty ? 'border-red-500' : '',
-    };
+  const handleVideoChange = (index, field, value) => {
+    setYoutubeVideos((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
+
+  const handleAddVideo = () => {
+    setYoutubeVideos((prev) => [...prev, { url: '', title: '' }]);
+  };
+
+  const handleRemoveVideo = (index) => {
+    setYoutubeVideos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const { t } = useTranslation();
 
   return (
     <>
-      {/* Horizontal Floating Nav Bar */}
       <div className="sticky top-20 z-30">
         <div className="max-w-xl mx-auto px-4">
           <NavigationCard
             navItems={navItems}
             selectedSection={selectedSection}
             setSelectedSection={setSelectedSection}
-            hasUnsavedChanges={hasUnsavedChanges}
-            hasMissingRequired={hasMissingRequired}
+            handleSubmit={handleSubmit}
           />
         </div>
       </div>
 
-      {/* Main Content */}
       <motion.div
-        className="max-w-7xl mx-auto px-4 py-10 felx flex-row gap-8"
+        className="max-w-7xl mx-auto py-10 flex flex-col gap-8"
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
         <form className="space-y-6" onSubmit={handleSubmit}>
-          <h1 className="text-3xl font-bold mb-4">Tutor Settings</h1>
 
           {selectedSection === 'account' && (
-            <AccountSection
-              form={form}
-              handleChange={handleChange}
-              getFieldErrorClasses={getFieldErrorClasses}
-            />
+            <AccountSection form={form} setForm={setForm} />
           )}
+
           {selectedSection === 'general' && (
-            <GeneralSection
-              form={form}
-              handleChange={handleChange}
-              getFieldErrorClasses={getFieldErrorClasses}
-              handleAddDetailedLocation={handleAddDetailedLocation}
-              handleDetailedLocationChange={handleDetailedLocationChange}
-              handleRemoveDetailedLocation={handleRemoveDetailedLocation}
-              touched={touched}
-              setForm={setForm}
-              defaultForm={defaultForm}
-            />
+            <GeneralSection form={form} setForm={setForm} defaultForm={defaultForm} />
           )}
+
           {selectedSection === 'subjects' && (
-            <SubjectsSection
-              subjects={subjects}
-              onChange={setSubjects}
-              errors={subjects.map((subj, idx) =>
-                idx === 0
-                  ? {
-                      subject: touched.subjects && isMissing(subj.subject),
-                      grade: touched.subjects && isMissing(subj.grade),
-                      type: touched.subjects && isMissing(subj.type),
-                      bio: touched.subjects && isMissing(subj.bio),
-                      yearsExp: touched.subjects && isMissing(subj.yearsExp),
-                    }
-                  : {}
-              )}
-            />
+            <SubjectsSection subjects={subjects} onChange={setSubjects} />
           )}
+
           {selectedSection === 'socials' && (
             <SocialsSection
               socialLinks={socialLinks}
-              onSocialChange={handleSocialChange}
-              getFieldErrorClasses={getFieldErrorClasses}
-              touched={touched}
-              setTouched={setTouched}
+              setSocialLinks={setSocialLinks}
+              youtubeVideos={youtubeVideos}
+              onVideoChange={handleVideoChange}
+              onAddVideo={handleAddVideo}
+              onRemoveVideo={handleRemoveVideo}
             />
           )}
 
-          {['account', 'general'].includes(selectedSection) && (
-            <>
-              <h3 className="text-xl font-bold mt-20">Live Tutor Profile</h3>
-              <TutorProfileHeader tutor={liveTutor} />
-            </>
-          )}
-
-          <div className="pt-6 flex justify-start">
-            <Button
-              type="submit"
-              disabled={isSaving}
-              className="gap-2 px-6 py-2 text-sm font-semibold transition-colors bg-primary hover:bg-primary/90"
-            >
-              {isSaving ? (
-                <>
-                  <span className="animate-spin rounded-full border-2 border-white border-t-transparent w-4 h-4" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  Save Changes
-                </>
-              )}
-            </Button>
+          <div className="flex justify-end mt-6">
+            <SaveButton isLoading={isSaving} className="w-full max-w-xs" />
           </div>
         </form>
-
-        {/* Optional Sidebar Placeholder */}
-        <div className="order-1 lg:order-2" />
       </motion.div>
     </>
   );
