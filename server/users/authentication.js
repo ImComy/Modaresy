@@ -50,6 +50,7 @@ const registerLimiter = rateLimit({
 router.post("/createAccount", registerLimiter, async (req, res) => {
   try{
     const body = req.body
+    const { type } = body;
     const hashed_password = await hash_password(body.password)
 
     if (!hashed_password) {
@@ -59,11 +60,11 @@ router.post("/createAccount", registerLimiter, async (req, res) => {
     body.password = hashed_password
 
     let user;
-    if (body.type === "Student") {
+    if (type === "Student") {
       user = new Student(body);
-    } else if (body.type === "Teacher") {
+    } else if (type === "Teacher") {
       user = new Teacher(body);
-    } else {
+    }else{
       return res.status(400).json({ error: "Invalid user type" });
     }
 
@@ -75,40 +76,42 @@ router.post("/createAccount", registerLimiter, async (req, res) => {
     return res.status(400).json({ error: err.message });
   }
 });
-router.post("/sendVerificationCode", async (req, res) => {
-  const { phone_number } = req.body;
+router.post("/sendVerificationCode", verifyToken, registerLimiter, async (req, res) => {
+  const { email, type } = req.body;
   
   const verificationCode = Math.floor(100000 + Math.random() * 900000);
   const codeExpiresAt = new Date(Date.now() + 5 *60 *1000) // 5 minutes
 
-  await Student.updateOne({ phone_number }, {
-    verificationCode,
-    codeExpiresAt,
-    verified: false
-  });
+  const user = await User.findOne({ email, __t: type });
 
   if (!user) return res.status(404).json({ error: "User not found" });
 
-  // send the sms/email api
+  user.verificationCode = verificationCode;
+  user.codeExpiresAt = codeExpiresAt;
+  user.verified = false;
+  await user.save();
 
+  // add your sms/email api here
+
+  return res.status(200).json({ message: "Verification code sent"}); 
 })
-router.post("/verifyPhone", async (req, res) => {
-  const { phone_number, code } = req.body;
+router.post("/verifyEmail", verifyToken, registerLimiter, async (req, res) => {
+  const { email, code } = req.body;
 
-  const user = await Student.findOne({ phone_number });
+  const user = await User.findOne({ email });
 
   if (!user) return res.status(404).json({ error: "User not found" });
   if (user.verified) return res.status(400).json({ error: "Already verified" });
 
   if (user.verificationCode === code && user.codeExpiresAt > Date.now()) {
-    user.verified = true;
     user.verificationCode = null;
     user.codeExpiresAt = null;
+    user.verified = true
     await user.save();
-    return res.json({ message: "Phone number verified successfully" });
+    return res.json({ message: "email verified successfully" });
+  }else{
+    return res.status(400).json({ error: "Invalid or expired code" });
   }
-
-  res.status(400).json({ error: "Invalid or expired code" });
 });
 
 router.post("/login", registerLimiter, async (req, res) => {
@@ -117,6 +120,9 @@ router.post("/login", registerLimiter, async (req, res) => {
 
   if (!user) {
     return res.status(404).json({ error: "User not found" });
+  }
+  if (!user.verified) {
+    return res.status(403).json({ error: "Email not verified" });
   }
 
   const match = await bcrypt.compare(password, user.password)
@@ -138,14 +144,15 @@ router.post("/login", registerLimiter, async (req, res) => {
     return res.status(400).json({ error: "Password is invalid" });
   }
 })
-router.get("/profile", (req, res) => {
+router.get("/profile", verifyToken, (req, res) => {
   
 })
-router.put("/updateProfile", (req, res) => {
+router.put("/updateProfile", verifyToken, (req, res) => {
   
 })
-router.delete("/logout", (req, res) => {
-  
+router.delete("/logout", verifyToken, (req, res) => {
+  res.clearCookie("token");
+  res.status(200).json({ message: "Logged out successfully" });
 })
 
 export default router;
