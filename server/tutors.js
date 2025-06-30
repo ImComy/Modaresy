@@ -4,7 +4,7 @@ const router = express.Router();
 router.get("/loadTutors", (req, res) => {
 
 })
-router.get("/loadTutorsFiltered/:Grade/:Sector/:Language/:Location/:MinimumRating/:MinMonthlyRange/:MaxMonthlyRange", (req, res) => {
+router.get("/loadTutorsFiltered/:Grade/:Sector/:Language/:Governate/:MinimumRating/:MinMonthlyRange/:MaxMonthlyRange", (req, res) => {
 
 })
 router.get("/getTopTutorsFiltered/:Grade/:Sector/:Langauge", (req, res) => {
