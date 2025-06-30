@@ -11,9 +11,9 @@ const Sectors = {
 }
 const Languages = ["Arabic", "English", "General"]
 const Governates = ["Ismailia"]
-const Districts = {
+/*const Districts = {
     Ismailia: ["Elsheikh zayed", "Ard AlGamiaat", "Alkhamsa"]
-}
+}*/
 
 function Sector_Validation(sector, grades) {
     for (let j = 0; j < grades.length; j++) {
@@ -52,18 +52,22 @@ const UserSchema = new Schema({
             message: "The Phone number is invalid!"
         }
     },
+    last_login: {
+        type: Date,
+        default: null
+    },
     password: { type: String, required: [true, "Password is missing!"] },
     governate: { type: String, enum: Governates, required: [true, "Please select your governate"] },
     district: {
         type: String,
-        required: true,
-        validate: {
+        required: true
+        /*validate: {
             validator: function (district) {
                 const governate = this.governate;
                 return Districts[governate]?.includes(district);
             },
             message: props => `District ${props.value} is invalid or doesn't match with the governate`
-        }
+        }*/
     },
     verified: { type: Boolean, default: false },
     verificationCode: { type: String },
@@ -126,7 +130,6 @@ const TeacherSchema = new Schema({
 
 /////
 
-const User = mongoose.model("User", UserSchema)
-
+export const User = mongoose.model("User", UserSchema)
 export const Student = User.discriminator("Student", StudentSchema)
 export const Teacher = User.discriminator("Teacher", TeacherSchema)
