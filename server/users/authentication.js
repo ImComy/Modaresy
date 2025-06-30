@@ -2,6 +2,8 @@ import express from "express";
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
+import JWT from 'jsonwebtoken'
 import {Student, Teacher} from './user_types.js'
 
 dotenv.config();
@@ -22,7 +24,13 @@ async function hash_password(plain_password) {
   }
 }
 
-router.post("/createAccount", async (req, res) => {
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests
+  message: 'Too many accounts created from this IP, please try again later'
+});
+
+router.post("/createAccount", registerLimiter, async (req, res) => {
   try{
     const body = req.body
     const hashed_password = await hash_password(body.password)
@@ -86,8 +94,30 @@ router.post("/verifyPhone", async (req, res) => {
   res.status(400).json({ error: "Invalid or expired code" });
 });
 
-router.get("/login/:email/:password", (req, res) => {
-  
+router.post("/login", registerLimiter, async (req, res) => {
+  const { email, password, type } = req.body
+  let user;
+
+  if (type == "Student"){
+    user = await Student.findOne({type, email});
+  }else if(type == "Teacher"){
+    user = await Teacher.findOne({type, email});
+  }else{
+    return res.status(400).json({error: "Invalid user type!"})
+  }
+  if (!user){
+    return res.status(404).json({error: "User not found!"})
+  }
+
+  const match = await bcrypt.compare(password, user.password)
+
+  if (match){
+    const token = JWT.sign({id: user._id, type: user.type}, process.env.JWT_PRIVATE_KEY, {expiresIn: "30d"})
+    // update the user to add the "last session date"
+    res.status(201).json({token})
+  }else{
+    return res.status(400).json({ error: "Password is invalid" });
+  }
 })
 router.get("/profile", (req, res) => {
   
