@@ -1,15 +1,11 @@
 import express from "express";
-import mongoose from 'mongoose';
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import JWT from 'jsonwebtoken'
-import {Student, Teacher} from './user_types.js'
+import {Student, Teacher, User} from './user_types.js'
 
 dotenv.config();
-await mongoose.connect('mongodb://localhost:27017/eduDB')
-.then(() => console.log("Database Connected!"))
-.catch(err => console.error("Connection error:", err));
 
 const saltRounds = parseInt(process.env.saltRounds);
 const router = express.Router();
@@ -21,6 +17,27 @@ async function hash_password(plain_password) {
   } catch (err) {
     console.error("Error hashing password:", err);
     return false;
+  }
+}
+export async function verifyToken(req, res, next) {
+  const token = req.cookies.token;
+
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  try {
+    const decoded = JWT.verify(token, process.env.JWT_PRIVATE_KEY);
+    const user = await User.findById(decoded.id)
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (user.__t !== decoded.type) {
+      return res.status(403).json({ error: 'User type mismatch' });
+    }
+
+    req.user = user;
+    next();
+  } catch (err) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
   }
 }
 
@@ -96,25 +113,27 @@ router.post("/verifyPhone", async (req, res) => {
 
 router.post("/login", registerLimiter, async (req, res) => {
   const { email, password, type } = req.body
-  let user;
+  const user = await User.findOne({email, __t: type})
 
-  if (type == "Student"){
-    user = await Student.findOne({type, email});
-  }else if(type == "Teacher"){
-    user = await Teacher.findOne({type, email});
-  }else{
-    return res.status(400).json({error: "Invalid user type!"})
-  }
-  if (!user){
-    return res.status(404).json({error: "User not found!"})
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
   }
 
   const match = await bcrypt.compare(password, user.password)
 
   if (match){
-    const token = JWT.sign({id: user._id, type: user.type}, process.env.JWT_PRIVATE_KEY, {expiresIn: "30d"})
-    // update the user to add the "last session date"
-    res.status(201).json({token})
+    const token = JWT.sign({id: user._id, type: user.__t}, process.env.JWT_PRIVATE_KEY, {expiresIn: "30d"})
+    
+    user.latest_session = new Date();
+    await user.save();
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+    res.status(200).json({ message: "Logged in" })
   }else{
     return res.status(400).json({ error: "Password is invalid" });
   }
