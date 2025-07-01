@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint \"src*.{js,jsx}\" --quiet",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "devstart": "nodemon ./server/app.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
