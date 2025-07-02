@@ -101,7 +101,7 @@ export async function login(req, res) {
   if (match){
     const token = JWT.sign({id: user._id, type: user.__t}, process.env.JWT_PRIVATE_KEY, {expiresIn: "30d"})
     
-    user.latest_session = new Date();
+    user.last_login = new Date();
     await user.save();
 
     res.cookie("token", token, {
@@ -117,7 +117,19 @@ export async function login(req, res) {
 }
 
 export async function getProfile(req, res) {
-  res.status(200).json({ user: req.user });
+  try {
+    const user = req.user.toObject();
+
+    delete user.password;
+    delete user.verificationCode;
+    delete user.codeExpiresAt;
+    delete user.last_login;
+    delete user.wishlist_id;
+
+     res.status(200).json(user)
+  } catch(err){
+    res.status(404).json({ error: err.message });
+  }
 }
 
 export async function updateProfile(req, res) {
