@@ -11,7 +11,7 @@ import {
 import { verifyToken } from "../middlewares/auth.js";
 import { registerLimiter } from "../middlewares/rateLimit.js";
 
-const router = express.Router();
+const router = express.Router(); 
 
 router.post("/createAccount", registerLimiter, createAccount);
 router.post("/login", registerLimiter, login);
