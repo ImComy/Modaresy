@@ -7,14 +7,13 @@ const { isEmail, isMobilePhone } = validator;
 export const options = { discriminatorKey: 'type', collection: 'Users' };
 
 const UserSchema = new Schema({
-    name: { type: String, trim: true, required: [true, "The Username is missing!"] },
+    name: { type: String , trim: true, required: [true, "The Username is missing!"] },
     type: { type: String, enum: User_Types, required: [true, "UserType isn't specified!"] },
     email: {
         type: String,
         required: true,
         unique: true,
         trim: true,
-        lowercase: true,
         validate: {
             validator: isEmail,
             message: "The email you entered is invalid!"
@@ -30,23 +29,16 @@ const UserSchema = new Schema({
             message: "The Phone number is invalid!"
         }
     },
-    last_login: { type: Date, default: null },
+    last_login: {
+        type: Date,
+        default: null
+    },
     password: { type: String, required: [true, "Password is missing!"] },
     governate: { type: String, enum: Governates, required: [true, "Please select your governate"] },
-    district: {
-        type: String,
-        required: true,
-        /*validate: {
-            validator: function (district) {
-                const governate = this.governate;
-                return Districts[governate]?.includes(district);
-            },
-            message: props => `District ${props.value} is invalid or doesn't match with the governate`
-        }*/
-    },
+    district: {type: String, required: true},
     verified: { type: Boolean, default: false },
     verificationCode: { type: String },
     codeExpiresAt: { type: Date }
-}, { ...options, timestamps: true });
+}, {...options, timestamps: true});
 
 export const User = mongoose.model("User", UserSchema);

@@ -31,8 +31,6 @@ export const validateLanguage = (language) => {
   return Languages.includes(language);
 };
 
-
-
 export const validateGovernate = (governate) => {
   return Governates.includes(governate);
 };
