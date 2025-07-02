@@ -6,38 +6,54 @@ import { User } from "../models/user.js";
 
 const saltRounds = parseInt(process.env.saltRounds);
 
-async function hashPassword(password) {
-  return await bcrypt.hash(password, saltRounds);
+async function hash_password(plain_password) {
+  try {
+    const hash = await bcrypt.hash(plain_password, saltRounds)
+    return hash;
+  } catch (err) {
+    console.error("Error hashing password:", err);
+    return false;
+  }
 }
 
 export async function createAccount(req, res) {
-  try {
-    const { type, password, ...rest } = req.body;
-    const hashedPassword = await hashPassword(password);
+  try{
+    const body = req.body
+    const { type } = body;
+    const hashed_password = await hash_password(body.password)
 
-    if (!hashedPassword) return res.status(500).json({ error: "Password hashing failed" });
+    if (!hashed_password) {
+      return res.status(500).json({ error: "Password hashing failed" });
+    }
 
-    const userData = { ...rest, type, password: hashedPassword };
+    body.password = hashed_password
 
     let user;
-    if (type === "Student") user = new Student(userData);
-    else if (type === "Teacher") user = new Teacher(userData);
-    else return res.status(400).json({ error: "Invalid user type" });
+    if (type === "Student") {
+      user = new Student(body);
+    } else if (type === "Teacher") {
+      user = new Teacher(body);
+    }else{
+      return res.status(400).json({ error: "Invalid user type" });
+    }
 
     await user.save();
-    res.status(201).json({ message: "Account created!" });
-  } catch (err) {
+    return res.status(201).json({ message: "Account created!" });
+  }catch(err){
     console.error(err);
-    res.status(400).json({ error: err.message });
+
+    return res.status(400).json({ error: err.message });
   }
 }
 
 export async function sendVerificationCode(req, res) {
   const { email, type } = req.body;
+  
   const verificationCode = Math.floor(100000 + Math.random() * 900000);
-  const codeExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+  const codeExpiresAt = new Date(Date.now() + 5 *60 *1000) // 5 minutes
 
   const user = await User.findOne({ email, __t: type });
+
   if (!user) return res.status(404).json({ error: "User not found" });
 
   user.verificationCode = verificationCode;
@@ -45,13 +61,14 @@ export async function sendVerificationCode(req, res) {
   user.verified = false;
   await user.save();
 
-  // Add SMS/email integration here
+  // add your sms/email api here
 
-  res.status(200).json({ message: "Verification code sent" });
+  return res.status(200).json({ message: "Verification code sent"}); 
 }
 
 export async function verifyEmail(req, res) {
   const { email, code } = req.body;
+
   const user = await User.findOne({ email });
 
   if (!user) return res.status(404).json({ error: "User not found" });
@@ -60,38 +77,43 @@ export async function verifyEmail(req, res) {
   if (user.verificationCode === code && user.codeExpiresAt > Date.now()) {
     user.verificationCode = null;
     user.codeExpiresAt = null;
-    user.verified = true;
+    user.verified = true
     await user.save();
-    return res.json({ message: "Email verified successfully" });
+    return res.json({ message: "email verified successfully" });
+  }else{
+    return res.status(400).json({ error: "Invalid or expired code" });
   }
-  res.status(400).json({ error: "Invalid or expired code" });
 }
 
 export async function login(req, res) {
-  const { email, password, type } = req.body;
-  const user = await User.findOne({ email, __t: type });
+  const { email, password, type } = req.body
+  const user = await User.findOne({email, __t: type})
 
-  if (!user) return res.status(404).json({ error: "User not found" });
-  if (!user.verified) return res.status(403).json({ error: "Email not verified" });
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+  if (!user.verified) {
+    return res.status(403).json({ error: "Email not verified" });
+  }
 
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(400).json({ error: "Password is invalid" });
+  const match = await bcrypt.compare(password, user.password)
 
-  const token = JWT.sign({ id: user._id, type: user.__t }, process.env.JWT_PRIVATE_KEY, {
-    expiresIn: "30d",
-  });
+  if (match){
+    const token = JWT.sign({id: user._id, type: user.__t}, process.env.JWT_PRIVATE_KEY, {expiresIn: "30d"})
+    
+    user.latest_session = new Date();
+    await user.save();
 
-  user.latest_session = new Date();
-  await user.save();
-
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "Strict",
-    maxAge: 30 * 24 * 60 * 60 * 1000,
-  });
-
-  res.status(200).json({ message: "Logged in" });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+    res.status(200).json({ message: "Logged in" })
+  }else{
+    return res.status(400).json({ error: "Password is invalid" });
+  }
 }
 
 export async function getProfile(req, res) {
