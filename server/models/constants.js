@@ -6,6 +6,10 @@ export const Education_Systems = Object.freeze([
   "National", "Azhar", "Technical", "IGCSE", "American", "IB", "French", "German"
 ]);
 
+//Temporary
+export const Grades = ["Secondary 1", "Secondary 2", "Secondary 3"]
+export const Sectors = ["Mathematics", "Scientific", "Literature", "General"]
+
 // Grades and sectors organized by education system
 export const EducationStructure = Object.freeze({
   National: {

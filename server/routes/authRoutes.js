@@ -8,8 +8,8 @@ import {
   updateProfile,
   logout
 } from "../controllers/authController.js";
-import { verifyToken } from "../middlewares/auth.js";
-import { registerLimiter } from "../middlewares/rateLimit.js";
+import { verifyToken } from "../middleware/auth.js";
+import { registerLimiter } from "../middleware/rateLimit.js";
 
 const router = express.Router(); 
 

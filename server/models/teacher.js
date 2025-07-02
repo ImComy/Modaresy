@@ -1,6 +1,8 @@
 import { Schema } from 'mongoose';
 import validator from 'validator';
 const { isMobilePhone } = validator
+import {Grades, Languages} from '../models/constants.js'
+import {User} from './user.js'
 
 const TeacherSchema = new Schema({
     about_me: { required: true, type: String },
