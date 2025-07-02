@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 import { Grades, Languages } from './constants.js';
-import { Sector_Validation } from '../utils/constantsValidation.js';
+//import { Sector_Validation } from '../utils/constantsValidation.js';
 import { User } from './user.js';
 
 const StudentSchema = new Schema({
@@ -11,7 +11,7 @@ const StudentSchema = new Schema({
         required: [true, "Student's Sector isn't specified"],
         validate: {
             validator: function (value) {
-                return Sector_Validation(value, [this.grade]);
+                //return Sector_Validation(value, [this.grade]);
             },
             message: "Sector doesn't match the student's grade"
         }

@@ -4,7 +4,7 @@ import {
   SubjectsBySystem,
   Languages,
   Governates
-} from "@/constants/education"; 
+} from "../models/constants.js"; 
 
 export const validateEducationSystem = (system) => Education_Systems.includes(system);
 

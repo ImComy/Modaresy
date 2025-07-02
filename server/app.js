@@ -1,8 +1,8 @@
 import express from "express"
-import main from "./users/authentication.js"
-import tutors from "./tutors.js"
-import students from "./students.js"
-import admins from "./admins.js"
+import auth from "./routes/authRoutes.js"
+import tutors from "./routes/tutors.js"
+import students from "./routes/students.js"
+import admins from "./routes/admins.js"
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 
@@ -25,7 +25,7 @@ const port = process.env.port;
 app.use(express.json());
 app.use(cookieParser());
 
-app.use('/auth', main)
+app.use('/auth', auth)
 app.use('/tutors', tutors)
 app.use('/students', students)
 app.use('/admins', admins)
