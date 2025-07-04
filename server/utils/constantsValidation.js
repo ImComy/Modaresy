@@ -1,10 +1,32 @@
 import {
-  Education_Systems,
-  EducationStructure,
   SubjectsBySystem,
   Languages,
-  Governates
+  Governates,
+  User_Types,
+  PaymentTiming,
+  PaymentMethods,
+  PricePeriod 
 } from "../models/constants.js"; 
+
+export const validatePaymentMethod = (method) => PaymentMethods.includes(method);
+export const validatePaymentTiming = (timing) => PaymentTiming.includes(timing);
+export const validatePricePeriod = (period) => PricePeriod.includes(period);
+
+const Education_Systems = Object.keys(SubjectsBySystem);
+const EducationStructure = Object.fromEntries(
+  Object.entries(SubjectsBySystem).map(([system, grades]) => [
+    system,
+    {
+      grades: Object.keys(grades),
+      sectors: Object.fromEntries(
+        Object.entries(grades).map(([grade, subjects]) => [
+          grade,
+          Array.isArray(subjects) ? [] : Object.keys(subjects)
+        ])
+      )
+    }
+  ])
+);
 
 export const validateEducationSystem = (system) => Education_Systems.includes(system);
 
@@ -33,4 +55,8 @@ export const validateLanguage = (language) => {
 
 export const validateGovernate = (governate) => {
   return Governates.includes(governate);
+};
+
+export const validateUserType = (userType) => {
+  return User_Types.includes(userType);
 };

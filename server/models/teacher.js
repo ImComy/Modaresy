@@ -1,45 +1,106 @@
-import { Schema } from 'mongoose';
-import validator from 'validator';
-const { isMobilePhone } = validator
-import {Grades, Languages} from '../models/constants.js'
-import {User} from './user.js'
+import mongoose, { Schema } from 'mongoose';
+
+import {
+  validateGrade,
+  validateSector,
+  validateLanguage,
+  validateEducationSystem
+} from '../utils/constantsValidation.js';
+import { User } from './user.js';
 
 const TeacherSchema = new Schema({
-    about_me: { required: true, type: String },
-    subject_profiles: { type: [Schema.Types.ObjectId] },
-    experience_years: { type: Number },
-    grades: {
-        type: [String],
-        enum: Grades,
-        required: [true, "Choose At least one grade to teach"]
-    },
-    languages: {
-        type: [String],
-        enum: Languages,
-        required: [true, "Please choose at least one langauge"]
-    },
-    sectors: {
-        type: [{
-            type: String,
-            validate: {
-                validator: function (value) {
-                    return Sector_Validation(value, this.grades)
-                },
-                message: "The sector you chose doesn't match with your grade!"
-            }
-        }],
-        required: [true, "Please choose at least one sector"]
-    },
-    phone_numbers: {
-        type: [String],
-        required: true,
-        validate: {
-            validator: function (phones) {
-                return phones.every(phone => isMobilePhone(phone, 'ar-EG'));
-            },
-            message: "One or more phone numbers are invalid"
-        }
-    }
-})
+  pfp: { type: String, default: '/weeeeeee.png' },
+  banner: { type: String, default: '/weeee.png' },
+  social_media: { type: [String], default: [] },
+  districts: { type: [String], default: [] },
 
-export const Teacher = User.discriminator("Teacher", TeacherSchema)
+  isTop: { type: Boolean, default: false, required: true },
+  isRecommended: { type: Boolean, default: false, required: true },
+  isReady: { type: Boolean, default: false, required: true },
+
+  about_me: { type: String, required: true },
+
+  education_system: {
+    type: [String],
+    required: [true, "Please select an education system"],
+    validate: {
+      validator: function (value) {
+        return validateEducationSystem(value);
+      },
+      message: "Invalid education system selected",
+    },
+  },
+
+  subject_profiles: [{
+    type: Schema.Types.ObjectId,
+    ref: 'SubjectProfile',
+  }],
+
+  availability: {
+    type: Schema.Types.ObjectId,
+    ref: 'PersonalAvailability',
+    default: null,
+  },
+
+  achievements: {
+    type: Schema.Types.ObjectId,
+    ref: 'Achievement',
+    default: null,
+  },
+
+  experience_years: {
+    type: Number,
+    default: 0,
+    required: true,
+  },
+
+  grades: {
+    type: [String],
+    validate: {
+      validator: function (value) {
+        return Array.isArray(value) &&
+          value.every(grade => validateGrade(this.education_system, grade));
+      },
+      message: "One or more selected grades are invalid for the selected education system",
+    },
+    required: true,
+  },
+
+  languages: {
+    type: [String],
+    validate: {
+      validator: function (value) {
+        return Array.isArray(value) &&
+          value.every(lang => validateLanguage(lang));
+      },
+      message: "One or more selected languages are invalid",
+    },
+    required: true,
+  },
+
+  sectors: {
+    type: [String],
+    validate: {
+      validator: function (value) {
+        return Array.isArray(value) &&
+          value.every(sector =>
+            (this.grades || []).every(grade =>
+              validateSector(this.education_system, grade, sector)
+            )
+          );
+      },
+      message: "One or more sectors are invalid for the selected grades and education system",
+    },
+    required: true,
+  },
+
+  rating: {
+    type: Number,
+    required: true,
+    default: 0
+  }
+}, {
+  timestamps: true,
+});
+
+export const Teacher = User.discriminator('Teacher', TeacherSchema);

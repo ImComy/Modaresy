@@ -1,73 +1,31 @@
 // User types
 export const User_Types = Object.freeze(["Teacher", "Student"]);
 
-// Supported education systems
-export const Education_Systems = Object.freeze([
-  "National", "Azhar", "Technical", "IGCSE", "American", "IB", "French", "German"
+// Payment Timing
+export const PaymentTiming = Object.freeze([
+  "Prepaid",    // مقدم
+  "Postpaid"    // مؤخر
 ]);
 
-//Temporary
-export const Grades = ["Secondary 1", "Secondary 2", "Secondary 3"]
-export const Sectors = ["Mathematics", "Scientific", "Literature", "General"]
+// Price period: pricing frequency
+export const PricePeriod = Object.freeze([
+  "Session",
+  "Month"
+]);
 
-// Grades and sectors organized by education system
-export const EducationStructure = Object.freeze({
-  National: {
-    grades: Object.freeze([
-      "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
-      "Preparatory 1", "Preparatory 2", "Preparatory 3",
-      "Secondary 1", "Secondary 2", "Secondary 3"
-    ]),
-    sectors: Object.freeze({
-      "Secondary 1": ["General"],
-      "Secondary 2": ["Scientific", "Literature"],
-      "Secondary 3": ["Mathematics", "Scientific", "Literature"]
-    })
-  },
-
-  Azhar: {
-    grades: Object.freeze([
-      "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
-      "Preparatory 1", "Preparatory 2", "Preparatory 3",
-      "Secondary 1", "Secondary 2", "Secondary 3"
-    ]),
-    sectors: Object.freeze({
-      "Secondary 3": ["Scientific", "Literature"]
-    })
-  },
-
-  Technical: {
-    grades: Object.freeze(["Technical 1", "Technical 2", "Technical 3"]),
-    sectors: Object.freeze({
-      "Technical 3": ["Industrial", "Commercial", "Agricultural"]
-    })
-  },
-
-  IGCSE: {
-    grades: Object.freeze(["Year 9", "Year 10", "Year 11", "Year 12"]),
-    sectors: null
-  },
-
-  American: {
-    grades: Object.freeze(["Grade 9", "Grade 10", "Grade 11", "Grade 12"]),
-    sectors: null
-  },
-
-  IB: {
-    grades: Object.freeze(["Year 1", "Year 2"]),
-    sectors: null
-  },
-
-  French: {
-    grades: Object.freeze(["Seconde", "Première", "Terminale"]),
-    sectors: null
-  },
-
-  German: {
-    grades: Object.freeze(["Klasse 10", "Klasse 11", "Klasse 12"]),
-    sectors: null
-  }
-});
+// payment methods
+export const PaymentMethods = Object.freeze([
+  "Cash",
+  "Vodafone Cash",
+  "Etisalat Cash",
+  "Orange Money",
+  "Bank Transfer",
+  "Meeza",
+  "Instapay",
+  "ValU",
+  "Credit Card",
+  "Fawry"
+]);
 
 // Subjects by system and grade (track-aware for Secondary stages)
 export const SubjectsBySystem = Object.freeze({
