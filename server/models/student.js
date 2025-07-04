@@ -6,7 +6,7 @@ import {
   validateGrade,
   validateSector,
   validateLanguage
-} from '../utils/educationValidators.js';
+} from '../utils/constantsValidation.js';
 
 const StudentSchema = new Schema({
   education_system: {
