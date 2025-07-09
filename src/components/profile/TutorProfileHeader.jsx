@@ -272,7 +272,7 @@ const TutorProfileHeader = ({ tutor }) => {
 
           <h2 className="text-xl font-semibold mb-2 text-primary">{t('aboutMe')}</h2>
           {tutor.GeneralBio?.trim() ? (
-            <p className="text-foreground/90 leading-relaxed whitespace-pre-wrap bg-muted/50 p-4 rounded-md border border-border max-w-prose">
+            <p className="text-foreground/90 leading-relaxed whitespace-pre-wrap bg-muted/50 p-4 rounded-md border border-border ">
               {tutor.GeneralBio}
             </p>
           ) : (
