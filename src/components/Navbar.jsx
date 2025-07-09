@@ -123,15 +123,8 @@ const Navbar = () => {
       className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
     >
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link to="/" className="flex items-center space-x-2 rtl:space-x-reverse" onClick={() => setIsMobileMenuOpen(false)}>
-          <motion.div
-            whileHover={{ rotate: 5, scale: 1.05 }}
-            transition={{ duration: 0.2 }}
-            className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-primary-foreground font-bold text-lg"
-          >
-            M
-          </motion.div>
-          <span className="font-bold text-lg tracking-tight">{t("Modaresy")}</span>
+        <Link to="/" className="flex items-center space-x-2 rtl:space-x-reverse w-[100px]" onClick={() => setIsMobileMenuOpen(false)}>
+          <img src='icon.svg' alt='Modaresy' className='primary'/>
         </Link>
 
         <div className="hidden md:flex items-center space-x-6 rtl:space-x-reverse">
