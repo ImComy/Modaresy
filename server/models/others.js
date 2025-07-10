@@ -1,12 +1,11 @@
 import mongoose, { Schema } from 'mongoose';
+import {weekDays} from './constants.js';
 
-// Times Schema (embedded in PersonalAvailability)
 export const TimesSchema = new Schema({
-  days: { type: String, required: true },   // "Monday" or "MWF"
-  hours: { type: String, required: true }   // "10:00-12:00"
+  days: { type: [String], required: true, enum: weekDays},
+  hours: { type: String, required: true }
 });
 
-// Wishlist Schema
 export const WishlistSchema = new Schema({
   ids_of_teachers: {
     type: [mongoose.Types.ObjectId],
@@ -15,14 +14,12 @@ export const WishlistSchema = new Schema({
   }
 });
 
-// Achievements Schema
 export const AchievementSchema = new Schema({
   type: { type: String, required: true },   
   label: { type: String, required: true },  
   isCurrent: { type: Boolean, default: true }
 });
 
-// Personal Availability Schema
 export const PersonalAvailabilitySchema = new Schema({
   times: {
     type: [TimesSchema],

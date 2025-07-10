@@ -1,5 +1,8 @@
 import { Schema } from 'mongoose';
 import { User } from './user.js';
+import {
+  Education_Systems
+} from './constants.js'
 
 import {
   validateEducationSystem,
@@ -12,11 +15,9 @@ const StudentSchema = new Schema({
   education_system: {
     type: String,
     required: [true, "Student's education system is not specified"],
+    enum: Education_Systems,
     validate: {
-      validator: function (value) {
-        return validateEducationSystem(value);
-      },
-      message: "Invalid education system",
+      message: "Invalid education system"
     },
   },
   grade: {
@@ -44,7 +45,7 @@ const StudentSchema = new Schema({
     required: [true, "Studying language isn't specified"],
     validate: {
       validator: function (lang) {
-        return validateLanguage(lang);
+        return validateLanguage(this.education_system, lang);
       },
       message: "Invalid studying language",
     },

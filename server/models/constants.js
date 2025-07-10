@@ -1,9 +1,11 @@
 export const User_Types = Object.freeze(["Teacher", "Student"]);
 
+export const weekDays = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
 // Payment Timing
 export const PaymentTiming = Object.freeze([
-  "Prepaid",    // مقدم
-  "Postpaid"    // مؤخر
+  "Prepaid",
+  "Postpaid"
 ]);
 
 // Price period: pricing frequency
@@ -34,7 +36,8 @@ export const EducationStructure = Object.freeze({
       "Secondary 1": ["General"],
       "Secondary 2": ["Scientific", "Literature"],
       "Secondary 3": ["Mathematics", "Scientific", "Literature"]
-    })
+    }),
+    langauges: ["Arabic", "English"]
   },
 
   Azhar: {
@@ -43,14 +46,15 @@ export const EducationStructure = Object.freeze({
       "Secondary 1": ["General"],
       "Secondary 2": ["Scientific", "Literature"],
       "Secondary 3": ["Mathematics", "Scientific", "Literature"]
-    })
+    }),
+    langauges: ["Arabic"]
   }
 });
 
 // Subjects by system and grade (track-aware for Secondary stages)
 export const SubjectsBySystem = Object.freeze({
   National: Object.freeze({
-    "Secondary_Shared_Subjects": ["German", "French", "Religion", "Arabic", "English"],
+    Secondary_Shared_Subjects: ["German", "French", "Religion", "Arabic", "English"],
     "Secondary 1": ["History", "Math", "Integrated Sciences", "Philosophy and Logic", ...SubjectsBySystem.National.Secondary_Shared_Subjects],
     "Secondary 2": {
       Scientific: ["Physics", "Chemistry", "Biology", "Math", ...SubjectsBySystem.National.Secondary_Shared_Subjects],
@@ -72,11 +76,6 @@ export const SubjectsBySystem = Object.freeze({
     }
   })*/
 });
-
-// Available languages for studying
-export const Languages = Object.freeze([
-  "Arabic", "English", "French", "German", "Italian", "Spanish", "General"
-]);
 
 // Egyptian governates
 export const Governates = Object.freeze([
