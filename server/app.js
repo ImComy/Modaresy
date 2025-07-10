@@ -16,7 +16,7 @@ const __dirname = dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-await mongoose.connect('mongodb://localhost:27017/eduDB')
+await mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("Database Connected!"))
 .catch(err => console.error("Connection error:", err));
 

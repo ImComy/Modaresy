@@ -31,7 +31,34 @@ export const PersonalAvailabilitySchema = new Schema({
     default: ""
   }
 });
+export const ReportSchema = new mongoose.Schema({
+  Reporter_ID: {
+    type: mongoose.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  Reported_ID: {
+    type: mongoose.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  Reason: {
+    type: String,
+    required: true
+  },
+  Type: {
+    type: String,
+    enum: ['Tutor', 'Student', 'Other'],
+    default: 'Tutor',
+    required: true
+  },
+  Date: {
+    type: Date,
+    default: Date.now
+  }
+});
 
+export const Report = mongoose.model("Report", ReportSchema);
 export const Wishlist = mongoose.model("Wishlist", WishlistSchema);
 export const Achievement = mongoose.model("Achievement", AchievementSchema);
 export const PersonalAvailability = mongoose.model("PersonalAvailability", PersonalAvailabilitySchema);

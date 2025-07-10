@@ -1,6 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
-import { PricePeriod, PaymentTiming, PaymentMethods } from './constants.js';
-import { calculateSubjectProfileRating } from '../utils/ratingUtils.js';
+import { PricePeriod, PaymentTimings, PaymentMethods } from './constants.js';
+import { calculateSubjectProfileRating } from '../utils/rating.js';
 
 // Offer Schema
 export const OfferSchema = new Schema({
@@ -97,7 +97,7 @@ export const YouTubeLinkSchema = new Schema({
 export const PaymentTimingSchema = new Schema({
   timing: {
     type: String,
-    enum: PaymentTiming,
+    enum: PaymentTimings,
     required: true,
   },
   method: {

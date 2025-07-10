@@ -7,7 +7,7 @@ import {
   validateEducationSystem,
   validateUserType
 } from '../utils/constantsValidation.js';
-import { PricePeriod, PaymentTiming, PaymentMethods } from './constants.js';
+import { PricePeriod, PaymentTimings, PaymentMethods } from './constants.js';
 
 const SubjectSchema = new Schema({
   name: {
@@ -110,7 +110,7 @@ const SubjectProfileSchema = new Schema({
   },
   payment_timing: {
     type: String,
-    enum: PaymentTiming,
+    enum: PaymentTimings,
     required: true
   },
   groups: {
