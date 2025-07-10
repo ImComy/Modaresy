@@ -1,4 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
+import {
+  Education_Systems
+} from './constants.js'
 
 import {
   validateGrade,
@@ -9,10 +12,8 @@ import {
 import { User } from './user.js';
 
 const TeacherSchema = new Schema({
-  pfp: { type: String, default: '/weeeeeee.png' },
-  banner: { type: String, default: '/weeee.png' },
-  social_media: { type: [String], default: [] },
-  districts: { type: [String], default: [] },
+  social_media: { type: [String] },
+  address: { type: String, required: true },
 
   isTop: { type: Boolean, default: false, required: true },
   isRecommended: { type: Boolean, default: false, required: true },
@@ -23,16 +24,11 @@ const TeacherSchema = new Schema({
   education_system: {
     type: [String],
     required: [true, "Please select an education system"],
-    validate: {
-      validator: function (value) {
-        return validateEducationSystem(value);
-      },
-      message: "Invalid education system selected",
-    },
+    enum: Education_Systems
   },
 
   subject_profiles: [{
-    type: Schema.Types.ObjectId,
+    type: [mongoose.Types.ObjectId],
     ref: 'SubjectProfile',
   }],
 

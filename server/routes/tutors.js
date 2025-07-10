@@ -47,15 +47,13 @@ router.get("/loadTutors", async (req, res) => {
     });
 
     res.status(200).json(cleanedTutors);
-
   } catch (err) {
     console.error("Failed to load tutors:", err);
     res.status(500).json({ error: "Something went wrong while fetching tutors" });
   }
 });
 
-router.get(
-  "/loadTutorsFiltered/:Grade/:Sector/:Language/:Governate/:MinimumRating/:MinMonthlyRange/:MaxMonthlyRange",
+router.get("/loadTutorsFiltered/:Grade/:Sector/:Language/:Governate/:MinimumRating/:MinMonthlyRange/:MaxMonthlyRange",
   async (req, res) => {
     try {
       const {
