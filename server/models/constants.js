@@ -1,5 +1,30 @@
 export const User_Types = Object.freeze(["Teacher", "Student"]);
 
+// Payment Timing
+export const PaymentTiming = Object.freeze([
+  "Prepaid",    // مقدم
+  "Postpaid"    // مؤخر
+]);
+
+// Price period: pricing frequency
+export const PricePeriod = Object.freeze([
+  "Session",
+  "Month"
+]);
+
+// payment methods
+export const PaymentMethods = Object.freeze([
+  "Cash",
+  "Vodafone Cash",
+  "Etisalat Cash",
+  "Orange Money",
+  "Bank Transfer",
+  "Meeza",
+  "Instapay",
+  "ValU",
+  "Credit Card",
+  "Fawry"
+]);
 export const Education_Systems = Object.freeze(["National", "Azhar"]);
 
 export const EducationStructure = Object.freeze({
