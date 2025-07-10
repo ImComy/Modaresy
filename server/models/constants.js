@@ -2,19 +2,16 @@ export const User_Types = Object.freeze(["Teacher", "Student"]);
 
 export const weekDays = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 
-// Payment Timing
-export const PaymentTiming = Object.freeze([
+export const PaymentTimings = Object.freeze([
   "Prepaid",
   "Postpaid"
 ]);
 
-// Price period: pricing frequency
 export const PricePeriod = Object.freeze([
   "Session",
   "Month"
 ]);
 
-// payment methods
 export const PaymentMethods = Object.freeze([
   "Cash",
   "Vodafone Cash",
@@ -37,7 +34,7 @@ export const EducationStructure = Object.freeze({
       "Secondary 2": ["Scientific", "Literature"],
       "Secondary 3": ["Mathematics", "Scientific", "Literature"]
     }),
-    langauges: ["Arabic", "English"]
+    languages: ["Arabic", "English"]
   },
 
   Azhar: {
@@ -50,34 +47,25 @@ export const EducationStructure = Object.freeze({
     langauges: ["Arabic"]
   }
 });
+export const Languages = ["Arabic", "English", "French", "German", "General"]
 
-// Subjects by system and grade (track-aware for Secondary stages)
+const Secondary_Shared_Subjects = ["German", "French", "Religion", "Arabic", "English"];
+
 export const SubjectsBySystem = Object.freeze({
   National: Object.freeze({
-    Secondary_Shared_Subjects: ["German", "French", "Religion", "Arabic", "English"],
-    "Secondary 1": ["History", "Math", "Integrated Sciences", "Philosophy and Logic", ...SubjectsBySystem.National.Secondary_Shared_Subjects],
+    "Secondary 1": ["History", "Math", "Integrated Sciences", "Philosophy and Logic", ...Secondary_Shared_Subjects],
     "Secondary 2": {
-      Scientific: ["Physics", "Chemistry", "Biology", "Math", ...SubjectsBySystem.National.Secondary_Shared_Subjects],
-      Literature: ["History", "Geography", "Psychology", "Math", ...SubjectsBySystem.National.Secondary_Shared_Subjects]
+      Scientific: ["Physics", "Chemistry", "Biology", "Math", ...Secondary_Shared_Subjects],
+      Literature: ["History", "Geography", "Psychology", "Math", ...Secondary_Shared_Subjects]
     },
     "Secondary 3": {
-      Mathematics: ["Math", "Physics", "Chemistry", ...SubjectsBySystem.National.Secondary_Shared_Subjects],
-      Scientific: ["Physics", "Chemistry", "Biology", ...SubjectsBySystem.National.Secondary_Shared_Subjects],
-      Literature: ["History", "Geography", "Statistics", ...SubjectsBySystem.National.Secondary_Shared_Subjects]
+      Mathematics: ["Math", "Physics", "Chemistry", ...Secondary_Shared_Subjects],
+      Scientific: ["Physics", "Chemistry", "Biology", ...Secondary_Shared_Subjects],
+      Literature: ["History", "Geography", "Statistics", ...Secondary_Shared_Subjects]
     }
-  }),
-
-  /*Azhar: Object.freeze({
-    "Secondary 1": ["Arabic", "Quran", "Math", "Fiqh", "Hadith", "Tafsir", "English", "Science"],
-    "Secondary 2": ["Arabic", "Quran", "Math", "Fiqh", "Hadith", "Tafsir", "Logic", "English"],
-    "Secondary 3": {
-        Scientific: ["Arabic", "Quran", "Math", "Fiqh", "Hadith", "Tafsir", "Biology", "Chemistry", "English"],
-        Literature: ["Arabic", "Quran", "Math", "Fiqh", "Hadith", "Tafsir", "Arabic Literature", "Logic", "English"]
-    }
-  })*/
+  })
 });
 
-// Egyptian governates
 export const Governates = Object.freeze([
   "Cairo", "Cairo - Nasr City", "Cairo - Heliopolis", "Cairo - Maadi",
   "Giza", "Giza - Mohandessin", "Giza - 6th of October",

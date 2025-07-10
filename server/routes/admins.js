@@ -1,27 +1,14 @@
 import express from "express";
+import { verifyAdmin } from "../middleware/auth.js";
+import { login, addTutor, removeStudent, removeTutor, updateStudent, updateTutor, loadAnalysis } from "../controllers/adminController.js"
 const router = express.Router();
 
-router.get("/login", (req, res) => {
-  console.log(req.body)
-  res.json({ message: "Hello from Express!" });
-});
-router.post("/addTutor", (req, res) => {
-
-})
-router.delete("/removeStudent", (req, res) => {
-
-})
-router.delete("/removeTutor", (req, res) => {
-
-})
-router.put("/updateStudent", (req, res) => {
-
-})
-router.put("/updateTutor", (req, res) => {
-
-})
-router.get("/loadAnalysis/:adminToken", (req, res) => {
-
-})
+router.post("/login", login)
+router.post("/addTutor", verifyAdmin, addTutor)
+router.delete("/removeStudent", verifyAdmin, removeStudent)
+router.delete("/removeTutor", verifyAdmin, removeTutor)
+router.put("/updateStudent", verifyAdmin, updateStudent)
+router.put("/updateTutor", verifyAdmin, updateTutor)
+router.get("/loadAnalysis/:adminToken", verifyAdmin, loadAnalysis)
 
 export default router;

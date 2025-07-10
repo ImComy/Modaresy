@@ -3,13 +3,13 @@ import {
   Languages,
   Governates,
   User_Types,
-  PaymentTiming,
+  PaymentTimings,
   PaymentMethods,
   PricePeriod 
 } from "../models/constants.js"; 
 
 export const validatePaymentMethod = (method) => PaymentMethods.includes(method);
-export const validatePaymentTiming = (timing) => PaymentTiming.includes(timing);
+export const validatePaymentTiming = (timing) => PaymentTimings.includes(timing);
 export const validatePricePeriod = (period) => PricePeriod.includes(period);
 
 const Education_Systems = Object.keys(SubjectsBySystem);

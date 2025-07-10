@@ -15,10 +15,7 @@ const StudentSchema = new Schema({
   education_system: {
     type: String,
     required: [true, "Student's education system is not specified"],
-    enum: Education_Systems,
-    validate: {
-      message: "Invalid education system"
-    },
+    enum: Education_Systems
   },
   grade: {
     type: String,
