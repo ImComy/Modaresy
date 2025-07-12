@@ -1,14 +1,4 @@
 import mongoose, { Schema } from 'mongoose';
-import {
-  Education_Systems
-} from './constants.js'
-
-import {
-  validateGrade,
-  validateSector,
-  validateLanguage,
-  validateEducationSystem
-} from '../utils/constantsValidation.js';
 import { User } from './user.js';
 
 const TeacherSchema = new Schema({
@@ -24,7 +14,7 @@ const TeacherSchema = new Schema({
   education_system: {
     type: [String],
     required: [true, "Please select an education system"],
-    enum: Education_Systems
+    //enum: Education_Systems
   },
 
   subject_profiles: [{
@@ -52,31 +42,31 @@ const TeacherSchema = new Schema({
 
   grades: {
     type: [String],
-    validate: {
+    /*validate: {
       validator: function (value) {
         return Array.isArray(value) &&
           value.every(grade => validateGrade(this.education_system, grade));
       },
       message: "One or more selected grades are invalid for the selected education system",
-    },
+    },*/
     required: true,
   },
 
   languages: {
     type: [String],
-    validate: {
+    /*validate: {
       validator: function (value) {
         return Array.isArray(value) &&
           value.every(lang => validateLanguage(lang));
       },
       message: "One or more selected languages are invalid",
-    },
+    },*/
     required: true,
   },
 
   sectors: {
     type: [String],
-    validate: {
+    /*validate: {
       validator: function (value) {
         return Array.isArray(value) &&
           value.every(sector =>
@@ -86,7 +76,7 @@ const TeacherSchema = new Schema({
           );
       },
       message: "One or more sectors are invalid for the selected grades and education system",
-    },
+    },*/
     required: true,
   },
 

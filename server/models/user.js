@@ -1,7 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import validator from 'validator';
-import { validateUserType, validateGovernate } from '../utils/constantsValidation.js';
-const { isEmail, isMobilePhone } = validator;
+
 export const options = { discriminatorKey: 'type', collection: 'Users' };
 
 const UserSchema = new Schema({
@@ -14,10 +12,10 @@ const UserSchema = new Schema({
   type: {
     type: String,
     required: [true, "User type isn't specified!"],
-    validate: {
+    /*validate: {
       validator: validateUserType,
       message: "Invalid user type selected!"
-    }
+    }*/
   },
 
   email: {
@@ -26,10 +24,10 @@ const UserSchema = new Schema({
     unique: true,
     lowercase: true,
     trim: true,
-    validate: {
+    /*validate: {
       validator: isEmail,
       message: "The email you entered is invalid!"
-    }
+    }*/
   },
 
   phone_number: {
@@ -37,10 +35,10 @@ const UserSchema = new Schema({
     required: [true, "Phone number is missing!"],
     unique: true,
     trim: true,
-    validate: {
+    /*validate: {
       validator: (value) => isMobilePhone(value, "ar-EG"),
       message: "The phone number is invalid!"
-    }
+    }*/
   },
 
   password: {
@@ -58,11 +56,16 @@ const UserSchema = new Schema({
   governate: {
     type: String,
     required: [true, "Please select your governate"],
-    validate: {
-      validator: validateGovernate,
-      message: "Invalid governate selected!"
-    }
   },
+
+  district: {
+    type: String,
+    required: [true, "Please select a valid district"],
+    /*validate: {
+      validator: (value) => validateDistrict(value, this.governate),
+      message: "Invalid district selected!"
+    }*/
+  }
 
   last_login: {
     type: Date,
