@@ -124,7 +124,7 @@ const Navbar = () => {
     >
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center space-x-2 rtl:space-x-reverse w-[100px]" onClick={() => setIsMobileMenuOpen(false)}>
-          <img src='icon.svg' alt='Modaresy' className='primary'/>
+          <img src='/icon.svg' alt='Modaresy' className='primary'/>
         </Link>
 
         <div className="hidden md:flex items-center space-x-6 rtl:space-x-reverse">

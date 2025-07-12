@@ -1193,6 +1193,11 @@
   "noUsersFound": "No users found",
   "previous": "Previous",
   "next": "Next",
-  "pageOf": "Page {{current}} of {{total}}"
+  "pageOf": "Page {{current}} of {{total}}",
+  "heroSection": {
+    "title": "Get the tutor you want,\nwith just one click.",
+    "subtitle": "Browse hundreds of top-rated teachers in every subject. No stress, no limits. just results.",
+    "button": "Find Your Tutor"
+  }
 }
 

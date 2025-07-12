@@ -1,9 +1,9 @@
+// TutorProfilePage.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
-import { Button } from '@/components/ui/button';
 import { mockTutors } from '@/data/enhanced';
 import { mockSchedules } from '@/data/mockSchedules';
 import TutorProfileHeader from '@/components/profile/TutorProfileHeader';
@@ -13,15 +13,11 @@ import TutorGroupsCard from '@/components/profile/TutorScheduleDisplay';
 import TutorReviews from '@/components/profile/TutorReviews';
 import { grades, sectors } from '@/data/formData';
 import { useAuth } from '@/context/AuthContext';
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from '@/components/ui/select';
+import EditToggleButton from '@/components/ui/EditToggleButton';
+import useEditMode from '@/hooks/useEditMode';
 import SubjectPricingInfo from '@/components/profile/Subject';
 import TutorAchievements from '@/components/profile/badges';
+import SubjectSelector from '../components/profile/subjectSelector';
 
 const getTutorData = (id) => {
   const numericId = parseInt(id);
@@ -43,8 +39,27 @@ const TutorProfilePage = () => {
   const { authState } = useAuth();
 
   const [tutor, setTutor] = useState(null);
+  const [originalTutor, setOriginalTutor] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(0);
+
+  const {
+    isEditing,
+    startEditing,
+    cancelEditing,
+    saveChanges,
+    hasChanges,
+    markDirty
+  } = useEditMode({
+    onSaveCallback: () => {
+      setOriginalTutor(structuredClone(tutor));
+      console.log('Changes saved');
+    },
+    onCancelCallback: () => {
+      setTutor(structuredClone(originalTutor));
+      console.log('Changes discarded');
+    }
+  });
 
   useEffect(() => {
     setIsLoading(true);
@@ -52,6 +67,7 @@ const TutorProfilePage = () => {
       const data = getTutorData(id);
       if (data) {
         setTutor(data);
+        setOriginalTutor(structuredClone(data));
         const params = new URLSearchParams(location.search);
         const filterSubject = params.get('subject');
         const filterGrade = params.get('grade');
@@ -81,14 +97,7 @@ const TutorProfilePage = () => {
 
   if (!tutor) return <div className="text-center py-10">{t('tutorNotFound')}</div>;
 
-  const gradeOptions = grades.map(g => ({ value: g.value, label: t(g.labelKey) }));
-  const sectorOptions = sectors.map(s => ({ value: s.value, label: t(s.labelKey) }));
   const selectedSubject = tutor.subjects[selectedSubjectIndex];
-
-  const subjectOptions = tutor.subjects.map((subj, idx) => ({
-    label: `${t(subj.subject)} - ${subj.grade} (${t(subj.type)})`,
-    value: idx.toString()
-  }));
 
   return (
     <motion.div
@@ -97,7 +106,27 @@ const TutorProfilePage = () => {
       transition={{ duration: 0.2 }}
       className="max-w-6xl mx-auto space-y-8 pb-12"
     >
-      <TutorProfileHeader tutor={tutor} selectedSubject={selectedSubject} />
+    <EditToggleButton
+      isEditing={isEditing}
+      startEditing={startEditing}
+      cancelEditing={() => {
+        cancelEditing();
+        setTutor(originalTutor); // restore backup state
+      }}
+      onSave={() => {
+        saveChanges();
+        setOriginalTutor(tutor); // save current state
+      }}
+    />
+
+      <TutorProfileHeader
+        tutor={tutor}
+        setTutor={setTutor}
+        markDirty={markDirty}
+        isEditing={isEditing}
+        isOwner={authState.isLoggedIn && authState.userId === parseInt(id)}
+      />
+
       {(!Array.isArray(tutor.subjects) || tutor.subjects.length === 0) ? (
         <div className="rounded-xl bg-muted/40 dark:bg-muted/10 border border-border px-6 py-12 text-center space-y-4 shadow-sm">
           <div className="flex justify-center">
@@ -117,115 +146,36 @@ const TutorProfilePage = () => {
         </div>
       ) : (
         <>
-          <div className="space-y-3 mb-6">
-            <p className="text-base font-semibold">
-              {t('selectSubjectToView', 'Select a subject to view')}
-            </p>
-
-            <div className="overflow-x-auto">
-              <div className="flex flex-nowrap gap-3 pb-2 px-1 min-w-full sm:flex-wrap">
-                {tutor.subjects.map((subj, idx) => {
-                  const isActive = selectedSubjectIndex === idx;
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedSubjectIndex(idx)}
-                      className={`px-4 py-2 text-sm sm:text-base rounded-full flex-shrink-0 whitespace-nowrap transition-all duration-200 border shadow-sm flex items-center gap-2
-                        ${
-                          isActive
-                            ? 'bg-primary text-white border-primary ring-2 ring-primary'
-                            : 'bg-muted text-muted-foreground border-muted hover:bg-primary/10 hover:text-primary'
-                        }`}
-                    >
-                      <span>{t(subj.subject)} - {subj.grade}</span>
-                      {subj.type && (
-                        <span className={`px-2 py-0.5 text-xs rounded-full font-medium
-                          ${
-                            isActive
-                              ? 'bg-white text-primary'
-                              : 'bg-primary/10 text-primary'
-                          }`}
-                        >
-                          {t(subj.type)}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <SubjectSelector
+            tutor={tutor}
+            selectedSubjectIndex={selectedSubjectIndex}
+            setSelectedSubjectIndex={setSelectedSubjectIndex}
+          />
 
           <TutorAchievements tutor={tutor} />
 
-          {/* Desktop layout */}
           <div className="hidden lg:grid grid-cols-3 gap-8">
             <div className="col-span-2 space-y-8">
-              <SubjectPricingInfo
-                price={selectedSubject?.price}
-                pricePeriod={selectedSubject?.pricePeriod}
-                privatePricing={selectedSubject?.private}
-                additionalPricing={selectedSubject?.additionalPricing}
-                subjectBio={selectedSubject?.bio}
-                subjectRating={selectedSubject?.rating}
-                offer={selectedSubject?.offer}
-                paymentTiming={selectedSubject?.paymentTiming}
-                paymentMethods={selectedSubject?.paymentMethods}
-              />
-              <TutorVideoManager
-                introVideoUrl={selectedSubject?.introVideoUrl}
-                otherVideos={selectedSubject?.otherVideos}
-                isOwner={false}
-              />
-              <TutorReviews
-                tutorId={id}
-                comments={selectedSubject?.comments}
-              />
+              <SubjectPricingInfo {...selectedSubject} />
+              <TutorVideoManager {...selectedSubject} isOwner={false} />
+              <TutorReviews tutorId={id} comments={selectedSubject?.comments} />
             </div>
             <div className="space-y-8">
-              <TutorCourseInfo
-                courseContent={selectedSubject?.courseContent}
-                duration={selectedSubject?.duration}
-                lecturesPerWeek={selectedSubject?.lecturesPerWeek}
-                isEditing={false}
-              />
+              <TutorCourseInfo {...selectedSubject} isEditing={false} />
               {selectedSubject?.Groups && (
                 <TutorGroupsCard subject={selectedSubject} tutor={tutor} />
               )}
             </div>
           </div>
 
-          {/* Mobile layout */}
           <div className="block lg:hidden space-y-8">
-            <SubjectPricingInfo
-              price={selectedSubject?.price}
-              pricePeriod={selectedSubject?.pricePeriod}
-              privatePricing={selectedSubject?.private}
-              additionalPricing={selectedSubject?.additionalPricing}
-              subjectBio={selectedSubject?.bio}
-              subjectRating={selectedSubject?.rating}
-              offer={selectedSubject?.offer}
-              paymentTiming={selectedSubject?.paymentTiming}
-              paymentMethods={selectedSubject?.paymentMethods}
-            />
-            <TutorCourseInfo
-              courseContent={selectedSubject?.courseContent}
-              duration={selectedSubject?.duration}
-              lecturesPerWeek={selectedSubject?.lecturesPerWeek}
-              isEditing={false}
-            />
+            <SubjectPricingInfo {...selectedSubject} />
+            <TutorCourseInfo {...selectedSubject} isEditing={false} />
             {selectedSubject?.Groups && (
               <TutorGroupsCard subject={selectedSubject} tutor={tutor} />
             )}
-            <TutorVideoManager
-              introVideoUrl={selectedSubject?.introVideoUrl}
-              otherVideos={selectedSubject?.otherVideos}
-              isOwner={false}
-            />
-            <TutorReviews
-              tutorId={id}
-              comments={selectedSubject?.comments}
-            />
+            <TutorVideoManager {...selectedSubject} isOwner={false} />
+            <TutorReviews tutorId={id} comments={selectedSubject?.comments} />
           </div>
         </>
       )}
