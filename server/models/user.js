@@ -65,7 +65,7 @@ const UserSchema = new Schema({
       validator: (value) => validateDistrict(value, this.governate),
       message: "Invalid district selected!"
     }*/
-  }
+  },
 
   last_login: {
     type: Date,
