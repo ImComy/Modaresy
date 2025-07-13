@@ -1,38 +1,28 @@
 import mongoose, { Schema } from 'mongoose';
 import { User } from './user.js';
+import {
+  validateEducationStructure_many
+} from '../services/validation.service.js'
+
+import {
+  Education_Systems
+} from './constants.js'
 
 const TeacherSchema = new Schema({
   social_media: { type: [String] },
   address: { type: String, required: true },
-
-  isTop: { type: Boolean, default: false, required: true },
-  isRecommended: { type: Boolean, default: false, required: true },
-  isReady: { type: Boolean, default: false, required: true },
-
   about_me: { type: String, required: true },
 
   education_system: {
     type: [String],
     required: [true, "Please select an education system"],
-    //enum: Education_Systems
+    enum: Education_Systems
   },
 
   subject_profiles: [{
     type: [mongoose.Types.ObjectId],
     ref: 'SubjectProfile',
   }],
-
-  availability: {
-    type: Schema.Types.ObjectId,
-    ref: 'PersonalAvailability',
-    default: null,
-  },
-
-  achievements: {
-    type: Schema.Types.ObjectId,
-    ref: 'Achievement',
-    default: null,
-  },
 
   experience_years: {
     type: Number,
@@ -42,41 +32,39 @@ const TeacherSchema = new Schema({
 
   grades: {
     type: [String],
-    /*validate: {
-      validator: function (value) {
-        return Array.isArray(value) &&
-          value.every(grade => validateGrade(this.education_system, grade));
+    validate: {
+      validator: function (grades){
+        return validateEducationStructure_many("grades", grades, this.education_system)
       },
-      message: "One or more selected grades are invalid for the selected education system",
-    },*/
+      message: "One or more selected grades are invalid for the selected education system"
+    },
     required: true,
   },
 
   languages: {
     type: [String],
-    /*validate: {
-      validator: function (value) {
-        return Array.isArray(value) &&
-          value.every(lang => validateLanguage(lang));
+    validate: {
+      validator: function (languages) {
+        return validateEducationStructure_many("languages", languages, this.education_system)
       },
       message: "One or more selected languages are invalid",
-    },*/
+    },
     required: true,
   },
 
   sectors: {
     type: [String],
-    /*validate: {
+    validate: {
       validator: function (value) {
         return Array.isArray(value) &&
           value.every(sector =>
             (this.grades || []).every(grade =>
-              validateSector(this.education_system, grade, sector)
+              validateSector(sector, grade, this.education_system)
             )
           );
       },
       message: "One or more sectors are invalid for the selected grades and education system",
-    },*/
+    },
     required: true,
   },
 
