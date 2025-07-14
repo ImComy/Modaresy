@@ -10,6 +10,7 @@ import StatsSection from '@/components/home/stats';
 import VisionSection from '../components/home/vision';
 import StudentBenefitsSection from '../components/home/students';
 import TutorBenefitsSection from '../components/home/tutor';
+import Mobile from '../components/home/phone';
 
 const HomePage = () => {
   const { t } = useTranslation();
@@ -61,6 +62,7 @@ const HomePage = () => {
         <StudentBenefitsSection />
       </section>
       <TutorBenefitsSection />
+      <Mobile />
     </div>
   );
 };

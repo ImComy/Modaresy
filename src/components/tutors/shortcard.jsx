@@ -2,7 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Quote } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const ShortTutorCard = ({ tutor }) => {
   const { t } = useTranslation();
@@ -10,45 +11,50 @@ const ShortTutorCard = ({ tutor }) => {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, scale: 0.98, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
-      transition={{ duration: 0.3 }}
-      className="group rounded-xl overflow-hidden shadow-md bg-card border border-border hover:border-primary transition-all duration-300"
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className={cn(
+        'group relative overflow-hidden rounded-3xl shadow-xl border border-border bg-card hover:shadow-2xl transition-all duration-300',
+        'flex flex-col sm:flex-row'
+      )}
     >
-      <Link to={`/tutor/${tutor.id}`} className="block w-full h-full">
-        {/* Banner */}
-        <div className="relative h-28 w-full overflow-hidden">
-          <img
-            src={tutor.bannerimg || 'https://placehold.co/600x200?text=Tutor'}
-            alt="Tutor Banner"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = 'https://placehold.co/600x200?text=Tutor';
-            }}
-          />
-        </div>
+      {/* Image side */}
+      <div className="w-full sm:w-1/2 aspect-[4/3]">
+        <img
+          src={tutor.img}
+          alt={tutor.name}
+          className="w-full h-full object-cover object-center transition-transform duration-500 ease-in-out group-hover:scale-105"
+        />
+      </div>
 
-        {/* Avatar */}
-        <div className="flex justify-center -mt-10 z-10 relative transition-transform duration-300 group-hover:-translate-y-1">
-          <Avatar className="h-20 w-20 border-2 border-primary rounded-md bg-background shadow-sm">
-            <AvatarImage src={tutor.img} alt={tutor.name} />
-            <AvatarFallback className="rounded-md">
-              {tutor.name?.split(' ').map((n) => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
-        </div>
+      {/* Info side */}
+      <Link
+        to={`/tutor/${tutor.id}`}
+        className="relative w-full sm:w-1/2 flex flex-col justify-center items-center text-center px-6 py-6"
+      >
+        {/* Background quote icon */}
+        <Quote className="absolute top-4 right-4 text-muted-foreground/10 w-20 h-20 pointer-events-none" />
 
-        {/* Name & Bio */}
-        <div className="pt-4 pb-6 px-4 text-center">
-          <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors duration-300">
-            {tutor.name}
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-            {tutor.GeneralBio}
-          </p>
-        </div>
+        {/* Name */}
+        <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
+          {tutor.name}
+        </h3>
+
+        {/* Bio: clamp to 4 lines */}
+        <p className="mt-3 text-sm text-muted-foreground max-w-sm line-clamp-4">
+          {tutor.GeneralBio}
+        </p>
+
+        {/* Button */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="mt-5 bg-primary text-white px-5 py-2 rounded-full shadow hover:bg-primary/90 transition-all text-sm"
+        >
+          {t('viewProfile')}
+        </motion.button>
       </Link>
     </motion.div>
   );
