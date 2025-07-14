@@ -37,8 +37,8 @@ const HomePage = () => {
   const { i18n } = useTranslation();
   const isRTL = i18n.dir() === 'rtl'; 
   return (
-    <div className="flex flex-col gap-10">
-      <div className="relative">
+    <div className="flex flex-col gap-10 ">
+      <div className="relative  roudned-lg">
         <HeroSection />
         <div
         className={`absolute bottom-0 hidden lg:block w-[600px] ${
@@ -50,7 +50,7 @@ const HomePage = () => {
       <ExploreSection />
       <div className="block md:hidden"><StatsSection /></div>
       
-      <section className=" container mx-auto px-4">
+      <section className=" container mx-auto px-4  roudned-lg">
         <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center mb-5">{t('TopTutors')}</motion.h2>
         <TopTutors tutors={mockTutors} />
       </section>

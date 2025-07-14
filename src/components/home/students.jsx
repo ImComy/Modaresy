@@ -62,7 +62,7 @@ const StudentBenefitsSection = () => {
   return (
     <section
       className={cn(
-        "relative overflow-hidden py-24 px-6 sm:px-12 md:px-20 bg-gradient-to-br from-blue-100/40 to-white dark:from-gray-900 dark:to-gray-950",
+        "relative overflow-hidden py-24 px-6 sm:px-12 md:px-20 rounded-xl bg-gradient-to-br from-blue-100/40 to-white dark:from-gray-900 dark:to-gray-950 ",
         isArabic ? "rtl text-right" : "ltr text-left"
       )}
     >
@@ -101,6 +101,7 @@ const StudentBenefitsSection = () => {
                         autoPlay
                         controls
                         loop
+                        muted
                         playsInline
                         preload="auto"
                         poster="/fallback-image.jpg" 

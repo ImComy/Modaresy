@@ -9,12 +9,12 @@ const VisionSection = () => {
   const fadeFrom = isArabic ? 80 : -80;
 
   return (
-    <section className="relative overflow-hidden py-20 bg-background flex items-center justify-center px-6 sm:px-12 md:px-20">
+    <section className="relative overflow-hidden py-20 rounded-xl bg-background flex items-center justify-center px-6 sm:px-12 md:px-20 ">
       {/* 🌟 Spinning Sparkle */}
       <motion.div
         animate={{ rotate: 360 }}
         transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
-        className="absolute -top-24 -right-24 text-primary opacity-10 pointer-events-none"
+        className="absolute -top-24 -right-24 text-primary opacity-10 pointer-events-none "
       >
         <Sparkles size={300} strokeWidth={1} />
       </motion.div>
