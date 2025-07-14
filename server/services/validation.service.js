@@ -11,10 +11,8 @@ export function validatePhoneNumber(num) {
 
 export function validateDistrict(district, governate){
     if (!district || !governate) return false;
-    const gov = governate.trim();
-    const dist = district.trim();
 
-    return Districts[gov] && Districts[gov].includes(dist);
+    return Districts[governate] && Districts[governate].includes(district);
 }
 
 export function validateEducationStructure_many(property_name, property_array, educationSystem){
@@ -30,7 +28,6 @@ export function validateEducationStructure_one(property_name, property_value, ed
 
 export function validateSector(sector, grade, educationSystem){
   if (!EducationStructure[educationSystem] || !EducationStructure[educationSystem].grades.includes(grade)) return false;
-  sector = sector.trim()
   return EducationStructure[educationSystem].sectors[grade].includes(sector);
 }
 
