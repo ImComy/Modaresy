@@ -4,15 +4,12 @@ import ShortTutorCard from './shortcard';
 import { useTranslation } from 'react-i18next';
 
 const TUTORS_PER_PAGE = 4;
-
-// Replace with the tutor IDs you want to show
-const TOP_TUTOR_IDS = [1, 16, 14, 4];
+const TOP_TUTOR_IDS = [1, 13, 11, 9];
 
 export const TopTutors = ({ tutors }) => {
   const { t } = useTranslation();
   const [currentPage, setCurrentPage] = useState(1);
 
-  // 🔍 Filter only tutors with the matching IDs
   const topTutors = tutors.filter((t) => TOP_TUTOR_IDS.includes(t.id));
   const totalPages = Math.ceil(topTutors.length / TUTORS_PER_PAGE);
 
@@ -22,11 +19,16 @@ export const TopTutors = ({ tutors }) => {
   );
 
   return (
-    <>
-      <AnimatePresence>
+    <div className="w-full">
+      <AnimatePresence mode="wait">
         <motion.div
+          key={currentPage}
           layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.4, ease: 'easeInOut' }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
           {currentTutors.map((tutor) => (
             <ShortTutorCard key={tutor.id} tutor={tutor} />
@@ -34,6 +36,7 @@ export const TopTutors = ({ tutors }) => {
         </motion.div>
       </AnimatePresence>
 
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="mt-8 flex justify-center items-center gap-2 flex-wrap">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
@@ -51,7 +54,7 @@ export const TopTutors = ({ tutors }) => {
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 };
 
