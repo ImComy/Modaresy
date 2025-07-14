@@ -1,4 +1,11 @@
 import mongoose, { Schema } from 'mongoose';
+import {
+  userTypes
+} from '../models/constants.js'
+import {
+  isEmail,
+  validatePhoneNumber
+} from '../services/validation.service.js'
 
 export const options = { discriminatorKey: 'type', collection: 'Users' };
 
@@ -12,10 +19,7 @@ const UserSchema = new Schema({
   type: {
     type: String,
     required: [true, "User type isn't specified!"],
-    /*validate: {
-      validator: validateUserType,
-      message: "Invalid user type selected!"
-    }*/
+    enum: userTypes
   },
 
   email: {
@@ -24,10 +28,10 @@ const UserSchema = new Schema({
     unique: true,
     lowercase: true,
     trim: true,
-    /*validate: {
+    validate: {
       validator: isEmail,
       message: "The email you entered is invalid!"
-    }*/
+    }
   },
 
   phone_number: {
@@ -35,10 +39,10 @@ const UserSchema = new Schema({
     required: [true, "Phone number is missing!"],
     unique: true,
     trim: true,
-    /*validate: {
-      validator: (value) => isMobilePhone(value, "ar-EG"),
+    validate: {
+      validator: validatePhoneNumber,
       message: "The phone number is invalid!"
-    }*/
+    }
   },
 
   password: {
@@ -61,10 +65,12 @@ const UserSchema = new Schema({
   district: {
     type: String,
     required: [true, "Please select a valid district"],
-    /*validate: {
-      validator: (value) => validateDistrict(value, this.governate),
+    validate: {
+      validator: function (value){
+        validateDistrict(value, this.governate)
+      },
       message: "Invalid district selected!"
-    }*/
+    }
   },
 
   last_login: {
