@@ -1,24 +1,28 @@
 import express from "express";
 import {
   createAccount,
-  login,
+  login
+} from "../controllers/users.js";
+
+import {
+  rateLimiter,
+  verifyToken,
   sendVerificationCode,
-  verifyEmail,
-  getProfile,
-  updateProfile,
-  logout
-} from "../controllers/authController.js";
-import { verifyToken } from "../middleware/auth.js";
-import { registerLimiter } from "../middleware/rateLimit.js";
+  verifyUserAccount,
+  logout,
+  hash_password
+} from "../services/authentication.service.js"
 
-const router = express.Router(); 
+const router = express.Router();
 
-router.post("/createAccount", registerLimiter, createAccount);
-router.post("/login", registerLimiter, login);
-router.post("/sendVerificationCode", verifyToken, registerLimiter, sendVerificationCode);
-router.post("/verifyEmail", verifyToken, registerLimiter, verifyEmail);
-router.get("/profile", verifyToken, getProfile);
-router.put("/updateProfile", verifyToken, updateProfile);
+router.use(rateLimiter)
+
+router.post("/createAccount", hash_password, createAccount);
+router.post("/login", login);
+router.post("/sendVerificationCode", verifyToken, sendVerificationCode);
+router.post("/verifyUserAccount", verifyToken, verifyUserAccount);
+//router.get("/profile", verifyToken, getProfile);
+//router.put("/updateProfile", verifyToken, updateProfile);
 router.delete("/logout", verifyToken, logout);
 
 export default router;

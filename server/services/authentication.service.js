@@ -1,36 +1,39 @@
 // Modules
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt';
+import rateLimit from 'express-rate-limit';
 
 // Models
 import User from '../models/user.js'
+import Admin from "../models/admin.js";
 
 // Constants
 const saltRounds = parseInt(process.env.saltRounds);
 
 // Functions
-export async function hash_password(plain_password) {
+export async function hash_password(req, res, next) {
   try {
-    const hash = await bcrypt.hash(plain_password, saltRounds)
-    return hash;
+    req.body.password = await bcrypt.hash(req.body.password, saltRounds)
+    next()
   } catch (err) {
-    console.error("Error hashing password:", err);
-    return false;
+    return res.status(400).json({ error: "Error hashing password:"+ err })
   }
 }
-export async function compareHash(password, hashed_password) {
-    return await bcrypt.compare(password, hashed_password)
+export async function compareHash(password, email) {
+    const user = await User.findOne({email})
+    if (!user) return false
+    return {isMatch: await bcrypt.compare(password, user.password), id: user._id}
 }
 
-export async function sendVerificationCode(body) {
-  const { email, type } = body;
+export async function sendVerificationCode(req, res) {
+  const { email, type } = req.body;
   
   const verificationCode = Math.floor(100000 + Math.random() * 900000);
   const codeExpiresAt = new Date(Date.now() + 5 *60 *1000) // 5 minutes
 
   const user = await User.findOne({ email, __t: type, verified: false});
 
-  if (!user) return {error: "User not found or already verified"}, {status: 404};
+  if (!user) return res.status(404).json({error: "User not found or already verified"});
 
   user.verificationCode = verificationCode;
   user.codeExpiresAt = codeExpiresAt;
@@ -39,10 +42,10 @@ export async function sendVerificationCode(body) {
 
   // add your whatsapp messaging api here
 
-  return {message: "Verification code sent"}, {status: 200}; 
+  return res.status(200).json({message: "Verification code sent"}); 
 }
 
-export async function verifyEmail(req, res) {
+export async function verifyUserAccount(req, res) {
   const { phone_number, code } = req.body;
 
   const user = await User.findOne({ phone_number });
@@ -56,12 +59,70 @@ export async function verifyEmail(req, res) {
     user.verified = true
     await user.save();
 
-    return { message: "phone number verified successfully" }, {status: 200};
+    return res.status(200).json({ message: "phone number verified successfully" });
   }else{
-    return { error: "Invalid or expired code" }, {status: 400};
+    return res.status(400).json({ error: "Invalid or expired code" });
   }
 }
 
-export function get_token(user){
- return jwt.sign({id: user._id, type: user.__t}, process.env.JWT_PRIVATE_KEY, {expiresIn: "30d"})
+export async function get_token(id){
+  const user = await User.findById(id)
+  if (!user) return false
+ return jwt.sign({id: user._id, type: user.type}, process.env.JWT_PRIVATE_KEY, {expiresIn: "30d"})
 }
+
+export function logout(req, res) {
+  res.clearCookie("token");
+  res.status(200).json({ message: "Logged out successfully"});
+}
+
+export async function verifyToken(req, res, next) {
+  const token = req.cookies.token;
+
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_PRIVATE_KEY);
+    const user = await User.findById(decoded.id)
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (user.__t !== decoded.type) {
+      return res.status(403).json({ error: 'User type mismatch' });
+    }
+
+    req.user = user;
+    next();
+  } catch (err) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
+  }
+}
+
+export const verifyAdmin = async (req, res, next) => {
+  try {
+    const token = req.cookies?.admin_token;
+
+    if (!token)
+      return res.status(401).json({ error: "Admin token not found in cookies" });
+
+    const decoded = jwt.verify(token, process.env.JWT_PRIVATE_KEY);
+
+    if (!decoded || decoded.type !== "Admin")
+      return res.status(403).json({ error: "Unauthorized: Not an admin token" });
+
+    const admin = await Admin.findById(decoded.adminId);
+    if (!admin)
+      return res.status(401).json({ error: "Admin no longer exists" });
+
+    req.admin = admin;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid or expired token", details: err.message });
+  }
+};
+
+export const rateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: 'Too many requests sended from this IP, please try again later'
+});

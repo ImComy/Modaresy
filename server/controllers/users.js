@@ -1,38 +1,39 @@
-import User from '../models/user.js'
+import Student from '../models/student.js'
+import Teacher from '../models/teacher.js'
+
 import {
-    compareHash,
-    get_token
+  get_token,
+  compareHash
 } from '../services/authentication.service.js'
 
-export async function login(req, res) {
-  const { email, password, type } = req.body
+export async function createAccount(req, res, next) {
+  try{
+    const user_data = req.body
 
-  const user = await User.findOne({email, __t: type})
-
-  if (!user) {
-    return res.status(404).json({ error: "User not found" });
-  }
-  if (!user.verified) {
-    return res.status(403).json({ error: "Phone number is not verified" });
-  }
-
-  const match = compareHash(password, user.password)
-
-  if (match){
-    const token = get_token(user);
-    
-    user.last_login = new Date();
+    let user;
+    if (user_data.type === "Student") {
+      user = new Student(user_data);
+    }else if (user_data.type === "Teacher") {
+      user = new Teacher(user_data);
+    }else {
+      return res.status(400).json({ error: "Invalid user type" });
+    }
     await user.save();
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "Strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000
-    });
     
-    res.status(200).json({ message: "Logged in" })
-  }else{
-    return res.status(400).json({ error: "Password is invalid" });
+    return res.status(201).json({ message: "Account created!" });
+  }catch (err) {
+    return res.status(400).json({ error: err.message });
   }
+}
+
+export async function login(req, res){
+  const input_data = req.body
+
+  const {isMatch, id} = await compareHash(input_data.password, input_data.email);
+  if (!isMatch) return res.status(400).json({error: "password or email is invalid"})
+  
+  const token = await get_token(id)
+  if (!token) return res.status(400).json({error: "cannot generate a token!"});
+
+  return res.status(200).json({message: "user login successfully!", token})
 }
