@@ -1198,6 +1198,54 @@
     "title": "Get the tutor you want,\nwith just one click.",
     "subtitle": "Browse hundreds of top-rated teachers in every subject. No stress, no limits. just results.",
     "button": "Find Your Tutor"
-  }
+  },
+  "vision": {
+    "title": "Our Vision",
+    "statement": "Creating a truly competitive market between tutors",
+    "description": "One that values the quality of explanation and education—not just popularity—to fight exploitation, ease student stress, and show compassion to parents."
+  },
+  "mission": {
+    "title": "Our Mission",
+    "statement": "Empowering good educators and guiding students",
+    "description": "We aim to highlight competent teachers and connect them with students seeking high-quality learning—beyond the limits of fame-based perception."
+  },
+  "students": {
+    "title": "What We Offer for Students",
+    "location": {
+      "title": "Tutors Near You",
+      "description": "Easily find tutors close to your area."
+    },
+    "affordability": {
+      "title": "Affordable for Everyone",
+      "description": "High-quality lessons at prices that fit all budgets."
+    },
+    "flexibility": {
+      "title": "Flexible Scheduling",
+      "description": "Choose from different time slots that suit your routine."
+    },
+    "accessibility": {
+      "title": "Easy Access",
+      "description": "You can evaluate your future teacher by watching some of his introductory videos"
+    }
+  },
+    "tutorss": {
+      "title": "How Modaresy Benefits Tutors",
+      "freeAdvertising": {
+        "title": "Free Advertising",
+        "description": "Modaresy promotes your profile to students for free—no paid ads or commissions."
+      },
+      "noRisk": {
+        "title": "No Risk Involved",
+        "description": "You don’t pay or commit to anything. Just create your profile and let students find you."
+      },
+      "winWin": {
+        "title": "A Win-Win Opportunity",
+        "description": "You gain exposure and students get more choices. Everyone wins."
+      },
+      "standOut": {
+        "title": "Stand Out Easily",
+        "description": "Let your teaching quality speak for itself without needing fame or expensive marketing."
+      }
+    }
 }
 

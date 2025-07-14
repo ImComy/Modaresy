@@ -7,6 +7,9 @@ import TopTutors from '@/components/tutors/topTutors';
 import HeroSection from '@/components/home/hero';
 import ExploreSection from '@/components/home/explore';
 import StatsSection from '@/components/home/stats';
+import VisionSection from '../components/home/vision';
+import StudentBenefitsSection from '../components/home/students';
+import TutorBenefitsSection from '../components/home/tutor';
 
 const HomePage = () => {
   const { t } = useTranslation();
@@ -34,7 +37,7 @@ const HomePage = () => {
   const { i18n } = useTranslation();
   const isRTL = i18n.dir() === 'rtl'; 
   return (
-    <div className="">
+    <div className="flex flex-col gap-10">
       <div className="relative">
         <HeroSection />
         <div
@@ -47,10 +50,17 @@ const HomePage = () => {
       <ExploreSection />
       <div className="block md:hidden"><StatsSection /></div>
       
-      <section className="space-y-6 container mx-auto px-4">
-        <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center">{t('TopTutors')}</motion.h2>
+      <section className=" container mx-auto px-4">
+        <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center mb-5">{t('TopTutors')}</motion.h2>
         <TopTutors tutors={mockTutors} />
       </section>
+      <section>
+        <VisionSection />
+      </section>
+      <section>
+        <StudentBenefitsSection />
+      </section>
+      <TutorBenefitsSection />
     </div>
   );
 };
