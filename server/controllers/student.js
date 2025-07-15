@@ -1,6 +1,7 @@
 import {
     getProfileData,
-    whatsappContactAPI
+    whatsappContactAPI,
+    sendEnrollmentRequest
 } from '../services/student.service.js'
 
 // All function here requires middleware "verifyToken" to run
@@ -16,9 +17,9 @@ export const addToWishlist = async (req, res) => {
     wishlist.teacher_ids.push(tutorId);
     
     await wishlist.save();
-    res.status(200).json({ message: "Tutor added to wishlist" });
+    return res.status(200).json({ message: "Tutor added to wishlist" });
   } catch (err) {
-    res.status(500).json({ error: "Failed to add tutor to wishlist", details: err.message });
+    return res.status(500).json({ error: "Failed to add tutor to wishlist", details: err.message });
   }
 };
 
@@ -34,14 +35,14 @@ export const removeFromWishlist = async(req, res) => {
     wishlist.teacher_ids.splice(index, 1)
     
     await wishlist.save();
-    res.status(200).json({ message: "Tutor removed from wishlist" });
+    return res.status(200).json({ message: "Tutor removed from wishlist" });
   } catch (err) {
-    res.status(500).json({ error: "Failed to remove tutor from wishlist", details: err.message });
+    return res.status(500).json({ error: "Failed to remove tutor from wishlist", details: err.message });
   }
 }
 
 export async function getProfile(req, res){
-    res.status(200).json({userdata: getProfileData(req.user)})
+    return res.status(200).json({userdata: getProfileData(req.user)})
 }
 
 export async function updateProfile(req, res) {
@@ -49,18 +50,28 @@ export async function updateProfile(req, res) {
         const { updated_information } = req.body
         Object.assign(req.user, updated_information);
         await req.user.save()
-        res.status(200).json({ message: "Profile updated" });
+        return res.status(200).json({ message: "Profile updated" });
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        return res.status(400).json({ error: err.message });
     }
 }
 
 // requires "getTeacherById"
 export async function contactTutor(req, res){
     try{
-        res.status(200).json({link: whatsappContactAPI(req.teacher.phone_number, 
+        return res.status(200).json({link: whatsappContactAPI(req.teacher.phone_number, 
             `Hello! I'm ${req.user.name}, I am interested about knowing your groups and teaching details, Mr/Ms ${req.teacher.name}`)})
     }catch(err){
-        res.status(400).json({ error: err.message });
+        return res.status(400).json({ error: err.message });
     }    
+}
+
+// requires "getTeacherById"
+export async function requestEnrollment(req, res){
+    try{
+        const r = await sendEnrollmentRequest(req.user, req.teacher)
+        return res.status(r.status).json(r.message);
+    }catch(err){
+        return res.status(400).json({ error: err.message });
+    }
 }

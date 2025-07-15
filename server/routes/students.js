@@ -9,17 +9,26 @@ import {
     getTeacherById
 } from '../services/tutor.service.js'
 
-import { reviewTutor, contactTutor, addToWishlist, removeFromWishlist, reportTutor, getProfile, updateProfile} from "../controllers/studentController.js";
+import { 
+    contactTutor, 
+    addToWishlist, 
+    removeFromWishlist, 
+    reportTutor, 
+    getProfile, 
+    updateProfile,
+    requestEnrollment
+} from "../controllers/studentController.js";
 
 const router = express.Router();
 
 router.use(verifyToken)
 
-//router.post("/reviewTutor", reviewTutor)
 router.post("/contactTutor", getTeacherById, contactTutor)
+router.post("/requestEnrollment", getTeacherById, requestEnrollment)
 router.post("/addWishlist", getWishlist, addToWishlist)
 router.delete("/removeWishlist", getWishlist, removeFromWishlist)
 //router.post("/reportTutor", reportTutor)
+
 router.get("/getProfile", getProfile)
 router.put("/updateProfile", updateProfile)
 

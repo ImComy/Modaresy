@@ -72,6 +72,11 @@ const TeacherSchema = new Schema({
     type: Number,
     required: true,
     default: 0
+  },
+
+  enrollments: {
+    type: [mongoose.Types.ObjectId],
+    ref: 'Student'
   }
 }, {
   timestamps: true,

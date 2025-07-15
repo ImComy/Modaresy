@@ -1,7 +1,6 @@
 // Modules
 
 // Models
-import Student from '../models/student.js'
 import Wishlist from '../models/misc.js'
 
 // Constants
@@ -31,3 +30,17 @@ export async function getProfileData(user){
 
 export const whatsappContactAPI = (phoneNumber, text) =>
   `https://api.whatsapp.com/send?phone=2${phoneNumber}&text=${encodeURIComponent(text)}`;
+
+export async function sendEnrollmentRequest(user, teacher){
+    try{
+        if (!teacher.enrollments.includes[user._id]){
+            teacher.enrollments.push(user._id)
+            await teacher.save()
+            return {message: "enrollment request sent successfully!", status: 200}
+        }else{
+            return {message: "enrollment request is already sent", status: 400}
+        }
+    }catch(err){
+        return {err, status: 400}
+    }
+}

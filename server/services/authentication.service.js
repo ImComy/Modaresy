@@ -86,6 +86,7 @@ export async function verifyToken(req, res, next) {
     const user = await User.findById(decoded.id)
 
     if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.verified) return res.status(400).json({ error: 'User isn\'t verified' });
 
     if (user.__t !== decoded.type) {
       return res.status(403).json({ error: 'User type mismatch' });
