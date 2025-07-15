@@ -21,8 +21,6 @@ router.post("/createAccount", hash_password, createAccount);
 router.post("/login", login);
 router.post("/sendVerificationCode", verifyToken, sendVerificationCode);
 router.post("/verifyUserAccount", verifyToken, verifyUserAccount);
-//router.get("/profile", verifyToken, getProfile);
-//router.put("/updateProfile", verifyToken, updateProfile);
 router.delete("/logout", verifyToken, logout);
 
 export default router;
