@@ -109,19 +109,11 @@ const TutorVideoManager = ({ introVideoUrl, otherVideos = [] }) => {
               {allVideos.length > 1 && (
                 <div>
                   <h4 className="font-medium text-foreground mb-3">{t('videoManager.playlist')}</h4>
-
                   <div
                     className={`
-                      flex gap-4 py-3
-                      ${
-                        allVideos.length > 3
-                          ? 'overflow-x-auto md:flex-nowrap'
-                          : 'flex-wrap'
-                      }
-                      ${
-                        allVideos.length > 1 ? 'sm:overflow-x-auto sm:flex-nowrap' : ''
-                      }
-                      pb-1 -mx-1 px-1
+                      flex gap-4 py-3 -mx-1 px-1
+                      overflow-x-auto flex-nowrap
+                      sm:max-w-[260px] md:max-w-[804px] // 3 videos * (260px + 8px gap) = 804px
                     `}
                   >
                     {allVideos.map((video) => {
@@ -134,9 +126,10 @@ const TutorVideoManager = ({ introVideoUrl, otherVideos = [] }) => {
                           key={video.id}
                           onClick={() => setSelectedVideo(video)}
                           whileHover={{ scale: 1.02 }}
-                          className={`min-w-[260px] max-w-sm sm:min-w-[240px] cursor-pointer border rounded-lg p-3 space-y-2 transition-shadow ${
-                            isActive ? 'ring-2 ring-primary' : 'hover:shadow-md'
-                          }`}
+                          className={`
+                            min-w-[260px] max-w-[260px] cursor-pointer border rounded-lg p-3 space-y-2 transition-shadow
+                            ${isActive ? 'ring-2 ring-primary' : 'hover:shadow-md'}
+                          `}
                         >
                           <div className="space-y-1">
                             <p className="text-sm font-semibold truncate text-card-foreground">

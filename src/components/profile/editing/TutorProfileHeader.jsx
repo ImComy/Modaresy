@@ -316,7 +316,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                     <MapPin size={18} className="mt-0.5 text-primary shrink-0" />
                     <div className="flex-1">
                       <Select
-                        value={tutor.location || ''}
+                        value={tutor.location ?? ''} 
                         onValueChange={(val) => handleFieldChange('location', val)}
                       >
                         <SelectTrigger className="w-full max-w-xs border-primary/30 focus:border-primary transition-colors">
