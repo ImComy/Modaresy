@@ -7,7 +7,7 @@ export const TimesSchema = new Schema({
 });
 
 export const WishlistSchema = new Schema({
-  ids_of_teachers: {
+  teacher_ids: {
     type: [mongoose.Types.ObjectId],
     ref: 'Teacher',
     required: true
