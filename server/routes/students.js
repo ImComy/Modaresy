@@ -13,15 +13,17 @@ import {
     contactTutor, 
     addToWishlist, 
     removeFromWishlist, 
-    reportTutor, 
+    //reportTutor, 
     getProfile, 
     updateProfile,
-    requestEnrollment
+    requestEnrollment,
+    isStudent
 } from "../controllers/studentController.js";
 
 const router = express.Router();
 
 router.use(verifyToken)
+router.use(isStudent)
 
 router.post("/contactTutor", getTeacherById, contactTutor)
 router.post("/requestEnrollment", getTeacherById, requestEnrollment)

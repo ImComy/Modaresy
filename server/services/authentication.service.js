@@ -127,3 +127,15 @@ export const rateLimiter = rateLimit({
   max: 5,
   message: 'Too many requests sended from this IP, please try again later'
 });
+
+export async function getProfileData(user){
+    const filtered_user = user.toObject()
+
+    delete filtered_user.password
+    delete filtered_user.verificationCode;
+    delete filtered_user.codeExpiresAt;
+    delete filtered_user.last_login;
+    delete filtered_user.wishlist_id;
+
+    return filtered_user
+}

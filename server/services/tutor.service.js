@@ -17,3 +17,11 @@ export async function getTeacherbyId(req, res, next){
         return res.status(400).json({message:"error getting the teacher" ,err})
     }
 }
+
+export function isTeacher(req, res, next){
+    if (req.user && req.user.type == "Teacher"){
+        next()
+    }else{
+        return res.status(400).json({error: "user isn't a teacher"})
+    }
+}
