@@ -1,8 +1,10 @@
 import {
-    getProfileData,
     whatsappContactAPI,
     sendEnrollmentRequest
 } from '../services/student.service.js'
+import {
+  getProfileData
+} from '../services/authentication.service.js'
 
 // All function here requires middleware "verifyToken" to run
 
