@@ -4,24 +4,48 @@ import SubjectPricingInfoEdit from './editing/Subject';
 import { useAuth } from '@/context/AuthContext';
 import { useParams } from 'react-router-dom';
 
-const SubjectPricingInfo = ({ tutor, setTutor, isEditing, markDirty }) => {
+const SubjectPricingInfo = ({
+  tutor,
+  subject,
+  subjectIndex,
+  setTutor,
+  isEditing,
+  markDirty,
+}) => {
   const { id } = useParams();
   const { authState } = useAuth();
   const { isLoggedIn, userId } = authState;
   const isOwner = isLoggedIn && userId === parseInt(id);
 
   const handleChange = (field, value) => {
-    setTutor(prev => ({
-      ...prev,
-      [field]: value,
-    }));
+    if (!setTutor || typeof subjectIndex !== 'number') return;
+
+    setTutor(prev => {
+      const updatedSubjects = [...prev.subjects];
+      updatedSubjects[subjectIndex] = {
+        ...updatedSubjects[subjectIndex],
+        [field]: value,
+      };
+      return {
+        ...prev,
+        subjects: updatedSubjects,
+      };
+    });
+
     if (markDirty) markDirty();
   };
 
   return isEditing ? (
-    <SubjectPricingInfoEdit tutor={tutor} onChange={handleChange} />
+    <SubjectPricingInfoEdit
+      {...subject}
+      subject={subject}
+      onChange={handleChange}
+    />
   ) : (
-    <SubjectPricingInfoDisplay tutor={tutor} isOwner={isOwner} />
+    <SubjectPricingInfoDisplay
+      {...subject}
+      isOwner={isOwner}
+    />
   );
 };
 

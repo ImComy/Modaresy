@@ -42,6 +42,7 @@ const TutorProfilePage = () => {
   const [originalTutor, setOriginalTutor] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(0);
+  const isOwner= authState.isLoggedIn && authState.userId === parseInt(id);
 
   const {
     isEditing,
@@ -106,26 +107,30 @@ const TutorProfilePage = () => {
       transition={{ duration: 0.2 }}
       className="max-w-6xl mx-auto space-y-8 pb-12"
     >
-    <EditToggleButton
-      isEditing={isEditing}
-      startEditing={startEditing}
-      cancelEditing={() => {
-        cancelEditing();
-        setTutor(originalTutor); // restore backup state
-      }}
-      onSave={() => {
-        saveChanges();
-        setOriginalTutor(tutor); // save current state
-      }}
-    />
+      {isOwner && (
+        <EditToggleButton
+          isEditing={isEditing}
+          startEditing={startEditing}
+          cancelEditing={() => {
+            cancelEditing();
+            setTutor(originalTutor);
+          }}
+          onSave={() => {
+            saveChanges();
+            setOriginalTutor(tutor);
+          }}
+        />
+      )};
 
       <TutorProfileHeader
         tutor={tutor}
         setTutor={setTutor}
         markDirty={markDirty}
         isEditing={isEditing}
-        isOwner={authState.isLoggedIn && authState.userId === parseInt(id)}
+        isOwner={isOwner}
       />
+
+      <TutorAchievements tutor={tutor} />
 
       {(!Array.isArray(tutor.subjects) || tutor.subjects.length === 0) ? (
         <div className="rounded-xl bg-muted/40 dark:bg-muted/10 border border-border px-6 py-12 text-center space-y-4 shadow-sm">
@@ -152,31 +157,86 @@ const TutorProfilePage = () => {
             setSelectedSubjectIndex={setSelectedSubjectIndex}
           />
 
-          <TutorAchievements tutor={tutor} />
-
-          <div className="hidden lg:grid grid-cols-3 gap-8">
-            <div className="col-span-2 space-y-8">
-              <SubjectPricingInfo {...selectedSubject} />
-              <TutorVideoManager {...selectedSubject} isOwner={false} />
-              <TutorReviews tutorId={id} comments={selectedSubject?.comments} />
+          {isEditing ? (
+            <div className="block lg:grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-8">
+                <SubjectPricingInfo
+                  subject={selectedSubject}
+                  subjectIndex={selectedSubjectIndex}
+                  tutor={tutor}
+                  setTutor={setTutor}
+                  markDirty={markDirty}
+                  isEditing={true}
+                />
+                <TutorVideoManager
+                  subject={selectedSubject}
+                  subjectIndex={selectedSubjectIndex}
+                  tutor={tutor}
+                  setTutor={setTutor}
+                  markDirty={markDirty}
+                  isEditing={true}
+                />
+                <TutorReviews
+                  tutorId={id}
+                  comments={selectedSubject?.comments}
+                  isEditing={true}
+                  subjectIndex={selectedSubjectIndex}
+                  tutor={tutor}
+                  setTutor={setTutor}
+                  markDirty={markDirty}
+                />
+              </div>
+              <div className="space-y-8">
+                <TutorCourseInfo
+                  subject={selectedSubject}
+                  subjectIndex={selectedSubjectIndex}
+                  tutor={tutor}
+                  setTutor={setTutor}
+                  markDirty={markDirty}
+                  isEditing={true}
+                />
+                {selectedSubject?.Groups && (
+                  <TutorGroupsCard
+                    subject={selectedSubject}
+                    tutor={tutor}
+                    subjectIndex={selectedSubjectIndex}
+                    setTutor={setTutor}
+                    markDirty={markDirty}
+                    isEditing={true}
+                  />
+                )}
+              </div>
             </div>
-            <div className="space-y-8">
-              <TutorCourseInfo {...selectedSubject} isEditing={false} />
-              {selectedSubject?.Groups && (
-                <TutorGroupsCard subject={selectedSubject} tutor={tutor} />
-              )}
-            </div>
-          </div>
+          ) : (
+            tutor.subjects.map((subject, idx) => (
+              <div key={idx} className="space-y-8 border-t pt-8 mt-8">
+                <h3 className="text-xl font-semibold">
+                  {subject.subject} – {subject.grade}
+                </h3>
+                <div className="block lg:grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2 space-y-8">
+                    <SubjectPricingInfo
+                      subject={selectedSubject}
+                      subjectIndex={selectedSubjectIndex}
+                      tutor={tutor}
+                      setTutor={setTutor}
+                      markDirty={markDirty}
+                      isEditing={false}
+                    />
 
-          <div className="block lg:hidden space-y-8">
-            <SubjectPricingInfo {...selectedSubject} />
-            <TutorCourseInfo {...selectedSubject} isEditing={false} />
-            {selectedSubject?.Groups && (
-              <TutorGroupsCard subject={selectedSubject} tutor={tutor} />
-            )}
-            <TutorVideoManager {...selectedSubject} isOwner={false} />
-            <TutorReviews tutorId={id} comments={selectedSubject?.comments} />
-          </div>
+                    <TutorVideoManager {...subject} isOwner={false} />
+                    <TutorReviews tutorId={id} comments={subject?.comments} />
+                  </div>
+                  <div className="space-y-8">
+                    <TutorCourseInfo {...subject} isEditing={false} />
+                    {subject?.Groups && (
+                      <TutorGroupsCard subject={subject} tutor={tutor} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </>
       )}
     </motion.div>

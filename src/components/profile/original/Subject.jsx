@@ -24,8 +24,8 @@ const SubjectPricingInfoDisplay = ({
   pricePeriod = 1, // Default to month (1)
   privatePricing,
   additionalPricing = [],
-  subjectBio,
-  subjectRating,
+  bio,
+  rating,
   offer,
   paymentTiming,
   paymentMethods = [],
@@ -116,11 +116,11 @@ const SubjectPricingInfoDisplay = ({
 
   return (
     <Card className="w-full border-muted shadow-sm rounded-xl relative overflow-visible">
-      {typeof subjectRating === "number" && (
+      {typeof rating === "number" && (
         <div className="absolute -top-3 right-4 bg-background px-3 py-1 border border-muted rounded-full shadow-sm flex items-center gap-1 text-sm">
-          {renderStars(subjectRating)}
+          {renderStars(rating)}
           <span className="text-xs text-muted-foreground">
-            ({subjectRating.toFixed(1)})
+            ({rating.toFixed(1)})
           </span>
         </div>
       )}
@@ -133,7 +133,7 @@ const SubjectPricingInfoDisplay = ({
             <h2 className="text-xl font-semibold">{t('subjectOverview', 'Subject Overview')}</h2>
           </div>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            {subjectBio || <span className="italic">{t('noBio', 'No bio available for this subject.')}</span>}
+            {bio || <span className="italic">{t('noBio', 'No bio available for this subject.')}</span>}
           </p>
         </div>
 

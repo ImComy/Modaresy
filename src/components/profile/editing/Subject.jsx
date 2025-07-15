@@ -31,7 +31,7 @@ const SubjectPricingInfoEdit = ({
   pricePeriod: initialPricePeriod = "1", 
   privatePricing: initialPrivatePricing = { price: "", pricePeriod: "2", note: "" },
   additionalPricing: initialAdditionalPricing = [],
-  subjectBio: initialSubjectBio = "",
+  bio: initialSubjectBio = "",
   subjectRating,
   offer: initialOffer = { percentage: "", for: "group", from: "", to: "", description: "" },
   paymentTiming: initialPaymentTiming = "",
@@ -55,7 +55,7 @@ const SubjectPricingInfoEdit = ({
       description: item.description || "",
     }))
   );
-  const [subjectBio, setSubjectBio] = useState(initialSubjectBio);
+  const [bio, setbio] = useState(initialSubjectBio);
   const [offer, setOffer] = useState({
     percentage: initialOffer.percentage?.toString() || "",
     for: initialOffer.for || "group",
@@ -107,8 +107,8 @@ const SubjectPricingInfoEdit = ({
   };
 
   const handleSubjectBioChange = (value) => {
-    setSubjectBio(value);
-    handleFieldChange("subjectBio", value);
+    setbio(value);
+    handleFieldChange("bio", value);
   };
 
   const handleOfferChange = (field, value) => {
@@ -200,7 +200,7 @@ const SubjectPricingInfoEdit = ({
             <h2 className="text-xl font-semibold">{t('subjectOverview', 'Subject Overview')}</h2>
           </div>
           <Textarea
-            value={subjectBio}
+            value={bio}
             onChange={(e) => handleSubjectBioChange(e.target.value)}
             placeholder={t('subjectBioPlaceholder', 'Write something about this subject...')}
             className="w-full min-h-[120px] border-primary/30 focus:border-primary focus:ring-primary/20 transition-colors shadow-sm"
