@@ -1,4 +1,3 @@
-// TutorProfilePage.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -6,18 +5,19 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { mockTutors } from '@/data/enhanced';
 import { mockSchedules } from '@/data/mockSchedules';
+import { useAuth } from '@/context/AuthContext';
+
+import EditToggleButton from '@/components/ui/EditToggleButton';
+import useEditMode from '@/hooks/useEditMode';
+
 import TutorProfileHeader from '@/components/profile/TutorProfileHeader';
+import TutorAchievements from '@/components/profile/badges';
+import SubjectSelector from '@/components/profile/subjectSelector';
+import SubjectPricingInfo from '@/components/profile/Subject';
 import TutorVideoManager from '@/components/profile/TutorVideoManager';
 import TutorCourseInfo from '@/components/profile/TutorCourseInfo';
 import TutorGroupsCard from '@/components/profile/TutorScheduleDisplay';
 import TutorReviews from '@/components/profile/TutorReviews';
-import { grades, sectors } from '@/data/formData';
-import { useAuth } from '@/context/AuthContext';
-import EditToggleButton from '@/components/ui/EditToggleButton';
-import useEditMode from '@/hooks/useEditMode';
-import SubjectPricingInfo from '@/components/profile/Subject';
-import TutorAchievements from '@/components/profile/badges';
-import SubjectSelector from '../components/profile/subjectSelector';
 
 const getTutorData = (id) => {
   const numericId = parseInt(id);
@@ -42,24 +42,18 @@ const TutorProfilePage = () => {
   const [originalTutor, setOriginalTutor] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(0);
-  const isOwner= authState.isLoggedIn && authState.userId === parseInt(id);
+
+  const isOwner = authState.isLoggedIn && authState.userId === parseInt(id);
 
   const {
     isEditing,
     startEditing,
     cancelEditing,
     saveChanges,
-    hasChanges,
     markDirty
   } = useEditMode({
-    onSaveCallback: () => {
-      setOriginalTutor(structuredClone(tutor));
-      console.log('Changes saved');
-    },
-    onCancelCallback: () => {
-      setTutor(structuredClone(originalTutor));
-      console.log('Changes discarded');
-    }
+    onSaveCallback: () => setOriginalTutor(structuredClone(tutor)),
+    onCancelCallback: () => setTutor(structuredClone(originalTutor))
   });
 
   useEffect(() => {
@@ -69,34 +63,39 @@ const TutorProfilePage = () => {
       if (data) {
         setTutor(data);
         setOriginalTutor(structuredClone(data));
+
         const params = new URLSearchParams(location.search);
         const filterSubject = params.get('subject');
         const filterGrade = params.get('grade');
-        let index = 0;
-        if (filterSubject && filterGrade && Array.isArray(data.subjects)) {
-          const idx = data.subjects.findIndex(
-            s => s.subject === filterSubject && s.grade === filterGrade
-          );
-          index = idx >= 0 ? idx : 0;
-        }
-        setSelectedSubjectIndex(index);
+        const index = data.subjects.findIndex(
+          s => s.subject === filterSubject && s.grade === filterGrade
+        );
+        setSelectedSubjectIndex(index >= 0 ? index : 0);
       } else {
         navigate('/');
-        toast({ title: t('error'), description: t('tutorNotFound'), variant: 'destructive' });
+        toast({
+          title: t('error'),
+          description: t('tutorNotFound'),
+          variant: 'destructive',
+        });
       }
       setIsLoading(false);
     }, 300);
     return () => clearTimeout(timer);
   }, [id, t, navigate, toast, location.search]);
 
-  if (isLoading) return (
-    <div className="flex justify-center items-center min-h-[400px]">
-      <span className="animate-spin h-8 w-8 rounded-full border-4 border-t-transparent border-primary"></span>
-      <span className="ml-2">{t('loading')}...</span>
-    </div>
-  );
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <span className="animate-spin h-8 w-8 rounded-full border-4 border-t-transparent border-primary"></span>
+        <span className="ml-2">{t('loading')}...</span>
+      </div>
+    );
+  }
 
-  if (!tutor) return <div className="text-center py-10">{t('tutorNotFound')}</div>;
+  if (!tutor) {
+    return <div className="text-center py-10">{t('tutorNotFound')}</div>;
+  }
 
   const selectedSubject = tutor.subjects[selectedSubjectIndex];
 
@@ -120,7 +119,7 @@ const TutorProfilePage = () => {
             setOriginalTutor(tutor);
           }}
         />
-      )};
+      )}
 
       <TutorProfileHeader
         tutor={tutor}
@@ -140,13 +139,10 @@ const TutorProfilePage = () => {
             </div>
           </div>
           <h2 className="text-xl font-semibold text-foreground">
-            {t('noSubjectsHeader', 'No Subjects Added')}
+            {t('noSubjectsHeader')}
           </h2>
           <p className="text-muted-foreground max-w-md mx-auto text-sm">
-            {t(
-              'noSubjectsDescription',
-              'This tutor hasn’t added any subjects yet. Please check back later or explore other tutors.'
-            )}
+            {t('noSubjectsDescription')}
           </p>
         </div>
       ) : (
@@ -175,15 +171,6 @@ const TutorProfilePage = () => {
                   setTutor={setTutor}
                   markDirty={markDirty}
                   isEditing={true}
-                />
-                <TutorReviews
-                  tutorId={id}
-                  comments={selectedSubject?.comments}
-                  isEditing={true}
-                  subjectIndex={selectedSubjectIndex}
-                  tutor={tutor}
-                  setTutor={setTutor}
-                  markDirty={markDirty}
                 />
               </div>
               <div className="space-y-8">
@@ -216,21 +203,38 @@ const TutorProfilePage = () => {
                 <div className="block lg:grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-2 space-y-8">
                     <SubjectPricingInfo
-                      subject={selectedSubject}
-                      subjectIndex={selectedSubjectIndex}
+                      subject={subject}
+                      subjectIndex={idx}
                       tutor={tutor}
                       setTutor={setTutor}
                       markDirty={markDirty}
                       isEditing={false}
                     />
-
-                    <TutorVideoManager {...subject} isOwner={false} />
-                    <TutorReviews tutorId={id} comments={subject?.comments} />
+                    <TutorVideoManager
+                      subject={subject}
+                      subjectIndex={idx}
+                      tutor={tutor}
+                      isEditing={false}
+                      isOwner={isOwner}
+                    />
+                    <TutorReviews
+                      tutorId={id}
+                      comments={subject?.comments}
+                    />
                   </div>
                   <div className="space-y-8">
-                    <TutorCourseInfo {...subject} isEditing={false} />
+                    <TutorCourseInfo
+                      subject={subject}
+                      subjectIndex={idx}
+                      tutor={tutor}
+                      isEditing={false}
+                    />
                     {subject?.Groups && (
-                      <TutorGroupsCard subject={subject} tutor={tutor} />
+                      <TutorGroupsCard
+                        subject={subject}
+                        tutor={tutor}
+                        isEditing={false}
+                      />
                     )}
                   </div>
                 </div>

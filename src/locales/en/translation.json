@@ -1250,6 +1250,9 @@
   "mobileComingSoon": {
     "title": "Mobile Experience Coming Soon!",
     "description": "We're working hard to bring you a smooth, full-featured mobile version of Modaresy. Stay tuned for updates!"
-  }
+  },
+  "save": "Save",
+  "cancel": "Cancel",
+  "editProfile": "Edit Profile"
 }
 

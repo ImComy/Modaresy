@@ -1,8 +1,11 @@
 import React from 'react';
 import { Pencil, X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 const EditToggleButton = ({ isEditing, startEditing, cancelEditing, onSave }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="fixed top-20 right-6 z-50 flex gap-3 items-center">
       {isEditing && (
@@ -14,7 +17,7 @@ const EditToggleButton = ({ isEditing, startEditing, cancelEditing, onSave }) =>
           )}
         >
           <Check size={18} strokeWidth={2.5} />
-          <span className="text-sm font-semibold">Save</span>
+          <span className="text-sm font-semibold">{t('save', 'Save')}</span>
         </button>
       )}
 
@@ -29,7 +32,7 @@ const EditToggleButton = ({ isEditing, startEditing, cancelEditing, onSave }) =>
       >
         {isEditing ? <X size={18} strokeWidth={2.5} /> : <Pencil size={18} strokeWidth={2.5} />}
         <span className="text-sm font-semibold">
-          {isEditing ? 'Cancel' : 'Edit Profile'}
+          {isEditing ? t('cancel', 'Cancel') : t('editProfile', 'Edit Profile')}
         </span>
       </button>
     </div>

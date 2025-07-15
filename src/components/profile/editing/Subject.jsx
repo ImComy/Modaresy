@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 const SubjectPricingInfoEdit = ({
   price: initialPrice = 0,
   pricePeriod: initialPricePeriod = "1", 
-  privatePricing: initialPrivatePricing = { price: "", pricePeriod: "2", note: "" },
+  private: initialPrivatePricing = { price: "", pricePeriod: "2", note: "" },
   additionalPricing: initialAdditionalPricing = [],
   bio: initialSubjectBio = "",
   subjectRating,
@@ -41,7 +41,7 @@ const SubjectPricingInfoEdit = ({
   const { t } = useTranslation();
   const [price, setPrice] = useState(initialPrice.toString());
   const [pricePeriod, setPricePeriod] = useState(initialPricePeriod.toString() || "1");
-  const [privatePricing, setPrivatePricing] = useState({
+  const [privateSession, setPrivateSession] = useState({
     price: initialPrivatePricing.price?.toString() || "",
     pricePeriod: initialPrivatePricing.pricePeriod?.toString() || "2",
     note: initialPrivatePricing.note || "",
@@ -101,9 +101,9 @@ const SubjectPricingInfoEdit = ({
   };
 
   const handlePrivatePricingChange = (field, value) => {
-    const updated = { ...privatePricing, [field]: field === "price" ? Number(value) || 0 : value };
-    setPrivatePricing(updated);
-    handleFieldChange("privatePricing", updated);
+    const updated = { ...privateSession, [field]: field === "price" ? Number(value) || 0 : value };
+    setPrivateSession(updated);
+    handleFieldChange("private", updated);
   };
 
   const handleSubjectBioChange = (value) => {
@@ -337,9 +337,9 @@ const SubjectPricingInfoEdit = ({
             <div className="flex-1 bg-muted/20 rounded-lg px-5 py-4 flex items-start gap-3 transition-all hover:shadow-md border border-primary/30">
               <div className="flex items-center gap-2 text-primary flex-col">
                 <User size={20} className="text-blue-500 mt-0.5" />
-                {privatePricing.note && (
+                {privateSession.note && (
                   <div className="hidden sm:flex mt-2 items-center gap-1 text-xs text-muted-foreground">
-                    <Tooltip content={privatePricing.note}>
+                    <Tooltip content={privateSession.note}>
                       <Info className="w-4 h-4 cursor-pointer" />
                     </Tooltip>
                   </div>
@@ -351,13 +351,13 @@ const SubjectPricingInfoEdit = ({
                   <div className="flex gap-3 items-center">
                     <Input
                       type="number"
-                      value={privatePricing.price}
+                      value={privateSession.price}
                       onChange={(e) => handlePrivatePricingChange("price", e.target.value)}
                       placeholder={t('price', 'Price')}
                       className="w-full max-w-xs border-primary/30 focus:border-primary focus:ring-primary/20 transition-colors shadow-sm"
                     />
                     <Select
-                      value={privatePricing.pricePeriod}
+                      value={privateSession.pricePeriod}
                       onValueChange={(value) => handlePrivatePricingChange("pricePeriod", value)}
                     >
                       <SelectTrigger className="w-full max-w-[120px] border-primary/30 focus:border-primary focus:ring-primary/20 transition-colors shadow-sm">
@@ -373,13 +373,13 @@ const SubjectPricingInfoEdit = ({
                     </Select>
                   </div>
                   <Textarea
-                    value={privatePricing.note}
+                    value={privateSession.note}
                     onChange={(e) => handlePrivatePricingChange("note", e.target.value)}
                     placeholder={t('note', 'Add a note...')}
                     className="w-full min-h-[60px] border-primary/30 focus:border-primary focus:ring-primary/20 transition-colors shadow-sm sm:hidden"
                   />
                   <Input
-                    value={privatePricing.note}
+                    value={privateSession.note}
                     onChange={(e) => handlePrivatePricingChange("note", e.target.value)}
                     placeholder={t('note', 'Add a note...')}
                     className="w-full border-primary/30 focus:border-primary focus:ring-primary/20 transition-colors shadow-sm hidden sm:block"
