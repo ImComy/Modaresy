@@ -21,8 +21,8 @@ import { useTranslation } from "react-i18next";
 
 const SubjectPricingInfoDisplay = ({
   price,
-  pricePeriod = 1, // Default to month (1)
-  privatePricing,
+  pricePeriod = 1,
+  private: privatePricing,
   additionalPricing = [],
   bio,
   rating,
