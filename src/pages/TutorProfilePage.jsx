@@ -20,8 +20,8 @@ import TutorGroupsCard from '@/components/profile/TutorScheduleDisplay';
 import TutorReviews from '@/components/profile/TutorReviews';
 
 const getTutorData = (id) => {
-  const numericId = parseInt(id);
-  const baseTutor = mockTutors.find(t => t.id === numericId);
+  const numericId = Number(id);
+  const baseTutor = mockTutors.find(t => String(t.id) === String(id) || t.id === numericId);
   if (!baseTutor) return null;
   return {
     ...baseTutor,
@@ -30,8 +30,9 @@ const getTutorData = (id) => {
   };
 };
 
-const TutorProfilePage = () => {
-  const { id } = useParams();
+const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = null }) => {
+  const params = useParams();
+  const id = propTutorId ?? params.id;
   const { t } = useTranslation();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -46,7 +47,7 @@ const TutorProfilePage = () => {
   const isOwner = authState.isLoggedIn && authState.userId === parseInt(id);
 
   const {
-    isEditing,
+    isEditing: internalEditing,
     startEditing,
     cancelEditing,
     saveChanges,
@@ -55,6 +56,8 @@ const TutorProfilePage = () => {
     onSaveCallback: () => setOriginalTutor(structuredClone(tutor)),
     onCancelCallback: () => setTutor(structuredClone(originalTutor)),
   });
+
+  const isEditing = externalEditing ?? internalEditing;
 
   useEffect(() => {
     setIsLoading(true);
@@ -83,11 +86,6 @@ const TutorProfilePage = () => {
     }, 300);
     return () => clearTimeout(timer);
   }, [id, t, navigate, toast, location.search]);
-
-  useEffect(() => {
-    console.log('TutorProfilePage - selectedSubjectIndex:', selectedSubjectIndex);
-    console.log('TutorProfilePage - selectedSubject:', tutor?.subjects[selectedSubjectIndex]);
-  }, [selectedSubjectIndex, tutor]);
 
   if (isLoading) {
     return (

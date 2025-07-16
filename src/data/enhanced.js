@@ -145,7 +145,7 @@ export const mockTutors = [
     id: 2,
     name: "Tarek Salem",
     location: "Mansoura",
-    detailedLocation: "Talkha, Mansoura",
+    detailedLocation: ["Dokki, Giza", "elMansoura, Dakahlia"],
     img: "/50e2dd414d4faa0df7c5d57bc32f3e7b1d3ac3e456587049722c7dd291_640.jpg",
     bannerimg: "/53e2d6444f5bae14f1dc8460962e33791c3ad6e04e507440742e7bd0944dc0_640.jpg",
     phone: "01234567890",
