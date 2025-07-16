@@ -50,10 +50,10 @@ const TutorProfilePage = () => {
     startEditing,
     cancelEditing,
     saveChanges,
-    markDirty
+    markDirty,
   } = useEditMode({
     onSaveCallback: () => setOriginalTutor(structuredClone(tutor)),
-    onCancelCallback: () => setTutor(structuredClone(originalTutor))
+    onCancelCallback: () => setTutor(structuredClone(originalTutor)),
   });
 
   useEffect(() => {
@@ -84,6 +84,11 @@ const TutorProfilePage = () => {
     return () => clearTimeout(timer);
   }, [id, t, navigate, toast, location.search]);
 
+  useEffect(() => {
+    console.log('TutorProfilePage - selectedSubjectIndex:', selectedSubjectIndex);
+    console.log('TutorProfilePage - selectedSubject:', tutor?.subjects[selectedSubjectIndex]);
+  }, [selectedSubjectIndex, tutor]);
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -97,7 +102,9 @@ const TutorProfilePage = () => {
     return <div className="text-center py-10">{t('tutorNotFound')}</div>;
   }
 
-  const selectedSubject = tutor.subjects[selectedSubjectIndex];
+  const selectedSubject = selectedSubjectIndex >= 0 && selectedSubjectIndex < tutor.subjects.length 
+    ? tutor.subjects[selectedSubjectIndex] 
+    : null;
 
   return (
     <motion.div
@@ -138,7 +145,9 @@ const TutorProfilePage = () => {
               <span className="text-2xl">📚</span>
             </div>
           </div>
-          <h2 className="text-xl font-semibold text-foreground">
+          <h2
+            className="text-xl font-semibold text-foreground"
+          >
             {t('noSubjectsHeader')}
           </h2>
           <p className="text-muted-foreground max-w-md mx-auto text-sm">
@@ -153,93 +162,110 @@ const TutorProfilePage = () => {
             setSelectedSubjectIndex={setSelectedSubjectIndex}
           />
 
-          {isEditing ? (
-            <div className="block lg:grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-8">
-                <SubjectPricingInfo
-                  subject={selectedSubject}
-                  subjectIndex={selectedSubjectIndex}
-                  tutor={tutor}
-                  setTutor={setTutor}
-                  markDirty={markDirty}
-                  isEditing={true}
-                />
-                <TutorVideoManager
-                  subject={selectedSubject}
-                  subjectIndex={selectedSubjectIndex}
-                  tutor={tutor}
-                  setTutor={setTutor}
-                  markDirty={markDirty}
-                  isEditing={true}
-                />
-              </div>
-              <div className="space-y-8">
-                <TutorCourseInfo
-                  subject={selectedSubject}
-                  subjectIndex={selectedSubjectIndex}
-                  tutor={tutor}
-                  setTutor={setTutor}
-                  markDirty={markDirty}
-                  isEditing={true}
-                />
-                {selectedSubject?.Groups && (
-                  <TutorGroupsCard
-                    subject={selectedSubject}
-                    tutor={tutor}
-                    subjectIndex={selectedSubjectIndex}
-                    setTutor={setTutor}
-                    markDirty={markDirty}
-                    isEditing={true}
-                  />
-                )}
-              </div>
-            </div>
-          ) : (
-            tutor.subjects.map((subject, idx) => (
-              <div key={idx} className="space-y-8 border-t pt-8 mt-8">
-                <h3 className="text-xl font-semibold">
-                  {subject.subject} – {subject.grade}
-                </h3>
-                <div className="block lg:grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <div className="lg:col-span-2 space-y-8">
+          {selectedSubject ? (
+            <div className="space-y-8 border-t pt-8 mt-8">
+              <h3 className="text-xl font-semibold">
+                {selectedSubject.subject} – {selectedSubject.grade}
+              </h3>
+              <div className="block lg:grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-8">
+                  {/* Mobile layout */}
+                  <div className="block lg:hidden space-y-8">
                     <SubjectPricingInfo
-                      subject={subject}
-                      subjectIndex={idx}
+                      subject={selectedSubject}
+                      subjectIndex={selectedSubjectIndex}
                       tutor={tutor}
                       setTutor={setTutor}
                       markDirty={markDirty}
-                      isEditing={false}
+                      isEditing={isEditing}
                     />
                     <TutorVideoManager
-                      subject={subject}
-                      subjectIndex={idx}
+                      subject={selectedSubject}
+                      subjectIndex={selectedSubjectIndex}
                       tutor={tutor}
-                      isEditing={false}
+                      setTutor={setTutor}
+                      markDirty={markDirty}
+                      isEditing={isEditing}
                       isOwner={isOwner}
                     />
-                    <TutorReviews
-                      tutorId={id}
-                      comments={subject?.comments}
-                    />
-                  </div>
-                  <div className="space-y-8">
                     <TutorCourseInfo
-                      subject={subject}
-                      subjectIndex={idx}
+                      subject={selectedSubject}
+                      subjectIndex={selectedSubjectIndex}
                       tutor={tutor}
-                      isEditing={false}
+                      setTutor={setTutor}
+                      markDirty={markDirty}
+                      isEditing={isEditing}
                     />
-                    {subject?.Groups && (
+                    {selectedSubject?.Groups && (
                       <TutorGroupsCard
-                        subject={subject}
+                        subject={selectedSubject}
                         tutor={tutor}
-                        isEditing={false}
+                        subjectIndex={selectedSubjectIndex}
+                        setTutor={setTutor}
+                        markDirty={markDirty}
+                        isEditing={isEditing}
+                      />
+                    )}
+                    {!isEditing && (
+                      <TutorReviews
+                        tutorId={id}
+                        comments={selectedSubject?.comments}
+                      />
+                    )}
+                  </div>
+                  {/* Desktop layout */}
+                  <div className="hidden lg:block space-y-8">
+                    <SubjectPricingInfo
+                      subject={selectedSubject}
+                      subjectIndex={selectedSubjectIndex}
+                      tutor={tutor}
+                      setTutor={setTutor}
+                      markDirty={markDirty}
+                      isEditing={isEditing}
+                    />
+                    <TutorVideoManager
+                      subject={selectedSubject}
+                      subjectIndex={selectedSubjectIndex}
+                      tutor={tutor}
+                      setTutor={setTutor}
+                      markDirty={markDirty}
+                      isEditing={isEditing}
+                      isOwner={isOwner}
+                    />
+                    {!isEditing && (
+                      <TutorReviews
+                        tutorId={id}
+                        comments={selectedSubject?.comments}
                       />
                     )}
                   </div>
                 </div>
+                <div className="hidden lg:block space-y-8">
+                  <TutorCourseInfo
+                    subject={selectedSubject}
+                    subjectIndex={selectedSubjectIndex}
+                    tutor={tutor}
+                    setTutor={setTutor}
+                    markDirty={markDirty}
+                    isEditing={isEditing}
+                  />
+                  {selectedSubject?.Groups && (
+                    <TutorGroupsCard
+                      subject={selectedSubject}
+                      tutor={tutor}
+                      subjectIndex={selectedSubjectIndex}
+                      setTutor={setTutor}
+                      markDirty={markDirty}
+                      isEditing={isEditing}
+                    />
+                  )}
+                </div>
               </div>
-            ))
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              {t('noSubjectsFound', 'No subjects found for this selection.')}
+            </p>
           )}
         </>
       )}

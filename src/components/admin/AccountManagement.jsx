@@ -25,10 +25,10 @@ const AccountManagement = () => {
 
   const [users, setUsers] = useState([
     ...mockUsers,
-    ...mockTutors.map((tutor) => ({
-      id: tutor.id.toString(),
-      name: tutor.name,
-      email: tutor.socials?.email || '',
+    ...mockTutors.map((tutor, index) => ({
+      id: tutor.id.toString(), // Ensure string IDs
+      name: tutor.name || `Tutor ${index + 1}`,
+      email: tutor.socials?.email || `tutor${index + 1}@example.com`,
       role: 'tutor',
       status: 'active',
     })),
@@ -40,14 +40,28 @@ const AccountManagement = () => {
   const [roleFilter, setRoleFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const handleEdit = (user) => setEditingUser({ ...user });
+  const handleEdit = (user) => {
+    if (!user?.id) {
+      console.error('Cannot edit user: Invalid or missing ID', user);
+      return;
+    }
+    setEditingUser({ ...user });
+  };
 
   const handleSave = (updatedUser) => {
-    setUsers(users.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+    if (!updatedUser?.id) {
+      console.error('Cannot save user: Invalid or missing ID', updatedUser);
+      return;
+    }
+    setUsers(users.map((u) => (u.id === updatedUser.id ? { ...updatedUser, id: u.id } : u)));
     setEditingUser(null);
   };
 
   const handleBan = (id) => {
+    if (!id) {
+      console.error('Cannot ban user: Invalid or missing ID');
+      return;
+    }
     setUsers(users.map((u) =>
       u.id === id ? { ...u, status: u.status === 'active' ? 'banned' : 'active' } : u
     ));

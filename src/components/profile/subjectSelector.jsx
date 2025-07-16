@@ -1,10 +1,10 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from '@/components/ui/select';
 import { useTranslation } from 'react-i18next';
 
@@ -12,40 +12,36 @@ const SubjectSelector = ({ tutor, selectedSubjectIndex, setSelectedSubjectIndex 
   const { t } = useTranslation();
   const subjects = tutor.subjects || [];
 
-  const [selectedType, setSelectedType] = useState('');
-  const [selectedGrade, setSelectedGrade] = useState('');
-
-  // Initial prefill for 1 subject or default to first
+  // Initialize selectedSubjectIndex if invalid
   useEffect(() => {
-    if (subjects.length === 1) {
-      const subj = subjects[0];
+    if (subjects.length > 0 && (selectedSubjectIndex < 0 || selectedSubjectIndex >= subjects.length)) {
       setSelectedSubjectIndex(0);
-      setSelectedType(subj.type);
-      setSelectedGrade(subj.grade);
-    } else if (subjects.length > 1) {
-      const first = subjects[0];
-      setSelectedType(first.type);
-      setSelectedGrade(first.grade);
     }
-  }, [subjects]);
+  }, [subjects, selectedSubjectIndex, setSelectedSubjectIndex]);
 
-  // Grade options for current type
-  const gradeOptions = useMemo(() => {
-    return [...new Set(subjects.filter(s => s.type === selectedType).map(s => s.grade))];
-  }, [selectedType, subjects]);
+  // Compute unique types and grades for dropdowns
+  const types = useMemo(() => [...new Set(subjects.map(s => s.type))], [subjects]);
+  const grades = useMemo(() => {
+    const currentType = subjects[selectedSubjectIndex]?.type || types[0];
+    return [...new Set(subjects.filter(s => s.type === currentType).map(s => s.grade))];
+  }, [subjects, selectedSubjectIndex]);
 
-  // Auto-select first grade when type changes
-  useEffect(() => {
-    if (gradeOptions.length > 0) {
-      setSelectedGrade(gradeOptions[0]);
+  // Handle type change
+  const handleTypeChange = (type) => {
+    const firstSubjectWithType = subjects.findIndex(s => s.type === type);
+    if (firstSubjectWithType >= 0) {
+      setSelectedSubjectIndex(firstSubjectWithType);
     }
-  }, [gradeOptions]);
+  };
 
-  const filteredSubjects = useMemo(() => {
-    return subjects.filter(
-      s => s.type === selectedType && s.grade === selectedGrade
-    );
-  }, [selectedType, selectedGrade, subjects]);
+  // Handle grade change
+  const handleGradeChange = (grade) => {
+    const currentType = subjects[selectedSubjectIndex]?.type || types[0];
+    const matchingSubjectIndex = subjects.findIndex(s => s.type === currentType && s.grade === grade);
+    if (matchingSubjectIndex >= 0) {
+      setSelectedSubjectIndex(matchingSubjectIndex);
+    }
+  };
 
   if (!subjects.length) {
     return (
@@ -76,11 +72,7 @@ const SubjectSelector = ({ tutor, selectedSubjectIndex, setSelectedSubjectIndex 
             return (
               <button
                 key={idx}
-                onClick={() => {
-                  setSelectedSubjectIndex(idx);
-                  setSelectedType(subj.type);
-                  setSelectedGrade(subj.grade);
-                }}
+                onClick={() => setSelectedSubjectIndex(idx)}
                 className={`px-4 py-2 text-sm rounded-full transition-all duration-200 border shadow-sm flex items-center gap-2
                   ${
                     isActive
@@ -98,17 +90,20 @@ const SubjectSelector = ({ tutor, selectedSubjectIndex, setSelectedSubjectIndex 
   }
 
   // Full UI for larger subject sets
+  const currentType = subjects[selectedSubjectIndex]?.type || types[0];
+  const currentGrade = subjects[selectedSubjectIndex]?.grade || grades[0];
+
   return (
     <div className="space-y-4 mb-6">
       <p className="text-base font-semibold">{t('selectSubjectToView', 'Select a subject to view')}</p>
 
       <div className="flex flex-col sm:flex-row gap-4">
-        <Select value={selectedType} onValueChange={setSelectedType}>
+        <Select value={currentType} onValueChange={handleTypeChange}>
           <SelectTrigger className="w-full sm:w-1/2">
             <SelectValue placeholder={t('selectType', 'Select Type')} />
           </SelectTrigger>
           <SelectContent>
-            {[...new Set(subjects.map(s => s.type))].map((type, idx) => (
+            {types.map((type, idx) => (
               <SelectItem key={idx} value={type}>
                 {t(type)}
               </SelectItem>
@@ -116,12 +111,12 @@ const SubjectSelector = ({ tutor, selectedSubjectIndex, setSelectedSubjectIndex 
           </SelectContent>
         </Select>
 
-        <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+        <Select value={currentGrade} onValueChange={handleGradeChange}>
           <SelectTrigger className="w-full sm:w-1/2">
             <SelectValue placeholder={t('selectGrade', 'Select Grade')} />
           </SelectTrigger>
           <SelectContent>
-            {gradeOptions.map((grade, idx) => (
+            {grades.map((grade, idx) => (
               <SelectItem key={idx} value={grade}>
                 {t(grade)}
               </SelectItem>
@@ -131,8 +126,9 @@ const SubjectSelector = ({ tutor, selectedSubjectIndex, setSelectedSubjectIndex 
       </div>
 
       <div className="flex flex-wrap gap-3 mt-2">
-        {filteredSubjects.length > 0 ? (
-          filteredSubjects.map((subj, idx) => {
+        {subjects
+          .filter(s => s.type === currentType && s.grade === currentGrade)
+          .map((subj, idx) => {
             const globalIdx = subjects.findIndex(
               s => s.subject === subj.subject && s.grade === subj.grade && s.type === subj.type
             );
@@ -152,12 +148,7 @@ const SubjectSelector = ({ tutor, selectedSubjectIndex, setSelectedSubjectIndex 
                 {t(subj.subject)}
               </button>
             );
-          })
-        ) : (
-          <p className="text-muted-foreground text-sm">
-            {t('noSubjectsFound', 'No subjects found for this selection.')}
-          </p>
-        )}
+          })}
       </div>
     </div>
   );
