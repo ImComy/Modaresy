@@ -55,21 +55,27 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
   const allRatings = tutor.subjects?.map(s => s.rating).filter(r => typeof r === 'number' && isFinite(r));
   const averageRating = allRatings?.length ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length : null;
 
+  const getDetailedLocationArray = () =>
+    Array.isArray(tutor.detailedLocation) ? tutor.detailedLocation : [];
+
   const updateDetailedLocation = (newList) => {
     handleFieldChange('detailedLocation', newList);
   };
 
   const addDetailedLocation = () => {
     const trimmed = newDetailLoc.trim();
-    if (trimmed && !(tutor.detailedLocation || []).includes(trimmed)) {
-      const updated = [...(tutor.detailedLocation || []), trimmed];
+    const currentLocations = getDetailedLocationArray();
+
+    if (trimmed && !currentLocations.includes(trimmed)) {
+      const updated = [...currentLocations, trimmed];
       updateDetailedLocation(updated);
       setNewDetailLoc('');
     }
   };
 
   const removeDetailedLocation = (index) => {
-    const updated = [...(tutor.detailedLocation || [])];
+    const currentLocations = getDetailedLocationArray();
+    const updated = [...currentLocations];
     updated.splice(index, 1);
     updateDetailedLocation(updated);
   };
@@ -374,7 +380,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
                 className={cn(
-                  "hidden md:block w-full bg-white dark:bg-gray-800 shadow-lg rounded-xl p-5 z-30 max-h-[350px] overflow-y-auto flex-1 min-w-0 md:max-w-xs -mt-[200px] mr-14 "
+                  "hidden md:block w-full bg-white dark:bg-gray-800 shadow-lg rounded-xl p-5 z-10 max-h-[350px] overflow-y-auto flex-1 min-w-0 md:max-w-xs -mt-[200px] mr-14 "
                 )}
               >
                 <div className="flex items-center gap-2 mb-4">

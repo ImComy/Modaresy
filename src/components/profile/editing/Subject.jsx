@@ -33,7 +33,7 @@ const SubjectPricingInfoEdit = ({
   additionalPricing: initialAdditionalPricing = [],
   bio: initialSubjectBio = "",
   subjectRating,
-  offer: initialOffer = { percentage: "", for: "group", from: "", to: "", description: "" },
+  offer: initialOffer = {},
   paymentTiming: initialPaymentTiming = "",
   paymentMethods: initialPaymentMethods = [],
   onChange,
@@ -57,11 +57,11 @@ const SubjectPricingInfoEdit = ({
   );
   const [bio, setBio] = useState(initialSubjectBio);
   const [offer, setOffer] = useState({
-    percentage: initialOffer.percentage?.toString() || "",
-    for: initialOffer.for || "group",
-    from: initialOffer.from || "",
-    to: initialOffer.to || "",
-    description: initialOffer.description || "",
+    percentage: initialOffer?.percentage?.toString() || "",
+    for: initialOffer?.for || "group",
+    from: initialOffer?.from || "",
+    to: initialOffer?.to || "",
+    description: initialOffer?.description || "",
   });
   const [paymentTiming, setPaymentTiming] = useState(
     initialPaymentTiming === true ? "true" : initialPaymentTiming === false ? "false" : ""

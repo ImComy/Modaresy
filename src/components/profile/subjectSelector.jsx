@@ -71,6 +71,7 @@ const SubjectSelector = ({ tutor, selectedSubjectIndex, setSelectedSubjectIndex 
             const isActive = selectedSubjectIndex === idx;
             return (
               <button
+                type="button"
                 key={idx}
                 onClick={() => setSelectedSubjectIndex(idx)}
                 className={`px-4 py-2 text-sm rounded-full transition-all duration-200 border shadow-sm flex items-center gap-2
@@ -136,6 +137,7 @@ const SubjectSelector = ({ tutor, selectedSubjectIndex, setSelectedSubjectIndex 
 
             return (
               <button
+                type="button"
                 key={idx}
                 onClick={() => setSelectedSubjectIndex(globalIdx)}
                 className={`px-4 py-2 text-sm rounded-full transition-all duration-200 border shadow-sm flex items-center gap-2
