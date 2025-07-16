@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import {
@@ -42,9 +42,29 @@ const TutorVideoManagerEdit = ({ introVideoUrl, otherVideos = [], onChange }) =>
   ];
   const [videos, setVideos] = useState(initialVideos);
   const [newVideo, setNewVideo] = useState({ title: '', url: '' });
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Sync videos state with props when they change (subject switch)
+  useEffect(() => {
+    const newVideos = [
+      ...(introVideoUrl
+        ? [{ id: 'intro', title: t('videoManager.introVideo'), url: introVideoUrl }]
+        : []),
+      ...otherVideos,
+    ];
+    if (JSON.stringify(videos) !== JSON.stringify(newVideos)) {
+      if (hasUnsavedChanges) {
+        console.warn('Subject switched with unsaved video changes.');
+      } else {
+        console.log('Syncing videos:', newVideos);
+        setVideos(newVideos);
+      }
+    }
+  }, [introVideoUrl, otherVideos, t]);
 
   const handleChangeAll = (newList) => {
     setVideos(newList);
+    setHasUnsavedChanges(true);
     const [intro, ...rest] = newList;
     onChange?.({
       introVideoUrl: intro?.url || '',
@@ -69,16 +89,26 @@ const TutorVideoManagerEdit = ({ introVideoUrl, otherVideos = [], onChange }) =>
     handleChangeAll(updated);
   };
 
+  const handleSave = () => {
+    setHasUnsavedChanges(false);
+    console.log('Changes saved:', { introVideoUrl: videos[0]?.url || '', otherVideos: videos.slice(1) });
+  };
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-      <Card className="overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="w-full max-w-3xl mx-auto"
+    >
+      <Card className="overflow-hidden shadow-sm">
         <CardHeader>
-          <CardTitle>{t('videoManager.videosTitle')}</CardTitle>
-          <CardDescription>{t('videoManager.videosDesc')}</CardDescription>
+          <CardTitle className="text-lg sm:text-xl">{t('videoManager.videosTitle')}</CardTitle>
+          <CardDescription className="text-sm">{t('videoManager.videosDesc')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 px-4 sm:px-6">
           {videos.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               {videos.map((video, index) => {
                 const thumbnail = getThumbnailUrl(video.url);
                 const isIntro = index === 0;
@@ -100,22 +130,22 @@ const TutorVideoManagerEdit = ({ introVideoUrl, otherVideos = [], onChange }) =>
                       value={video.title}
                       placeholder={t('videoManager.videoTitle')}
                       onChange={(e) => handleChange(video.id, 'title', e.target.value)}
-                      className="border-primary/30"
+                      className="border-primary/30 h-9 text-sm"
                     />
                     <Input
                       value={video.url}
                       placeholder={t('videoManager.videoUrl')}
                       onChange={(e) => handleChange(video.id, 'url', e.target.value)}
-                      className="border-primary/30"
+                      className="border-primary/30 h-9 text-sm"
                     />
                     {!isIntro && (
                       <Button
                         variant="ghost"
-                        className="self-end text-red-500 hover:text-red-700"
+                        className="self-end text-red-500 hover:text-red-700 h-9 w-9 sm:w-auto"
                         onClick={() => handleRemove(video.id)}
                       >
-                        <Trash className="w-4 h-4 mr-2" />
-                        {t('delete')}
+                        <Trash className="w-4 h-4 mr-2 sm:mr-2" />
+                        <span className="hidden sm:inline">{t('delete')}</span>
                       </Button>
                     )}
                     {isIntro && (
@@ -129,22 +159,25 @@ const TutorVideoManagerEdit = ({ introVideoUrl, otherVideos = [], onChange }) =>
 
           {/* Add New Video */}
           <div className="pt-6 border-t border-border space-y-4">
-            <h4 className="font-semibold">{t('videoManager.addNewVideo')}</h4>
+            <h4 className="font-semibold text-sm sm:text-base">{t('videoManager.addNewVideo')}</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 value={newVideo.title}
                 onChange={(e) => setNewVideo((v) => ({ ...v, title: e.target.value }))}
                 placeholder={t('videoManager.videoTitle')}
-                className="border-primary/30"
+                className="border-primary/30 h-9 text-sm"
               />
               <Input
                 value={newVideo.url}
                 onChange={(e) => setNewVideo((v) => ({ ...v, url: e.target.value }))}
                 placeholder={t('videoManager.videoUrl')}
-                className="border-primary/30"
+                className="border-primary/30 h-9 text-sm"
               />
             </div>
-            <Button onClick={handleAddVideo} className="mt-2 w-fit bg-primary hover:bg-primary/90">
+            <Button
+              onClick={handleAddVideo}
+              className="mt-2 w-full sm:w-fit bg-primary hover:bg-primary/90 h-9 text-sm"
+            >
               <Plus className="w-4 h-4 mr-2" />
               {t('videoManager.addVideo')}
             </Button>

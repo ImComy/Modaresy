@@ -13,7 +13,9 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* About Section */}
           <div>
-            <h3 className="text-lg font-semibold mb-3">Modaresy</h3>
+            <Link to="/" className="flex items-center space-x-2 rtl:space-x-reverse w-[100px]" onClick={() => setIsMobileMenuOpen(false)}>
+              <img src='/icon.svg' alt='Modaresy' className='primary'/>
+            </Link>
             <p className="text-sm text-muted-foreground mb-4">
               {t('heroSubtitle')} {/* Reusing subtitle */}
             </p>

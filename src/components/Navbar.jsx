@@ -347,24 +347,6 @@ const Navbar = () => {
                           <span>{t('dashboard')}</span>
                         </DropdownMenuItem>
                       </motion.div>
-                      <motion.div
-                        variants={dropdownItemVariants}
-                        initial="initial"
-                        animate="animate"
-                        exit="exit"
-                        transition={{ duration: 0.2, delay: 0.15 }}
-                      >
-                        <DropdownMenuItem
-                          onClick={() => navigate('/settings/teacher')}
-                          className={cn(
-                            'flex items-center gap-2 hover:bg-accent/50 !cursor-pointer',
-                            isRTL && '!flex-row-reverse !text-left'
-                          )}
-                        >
-                          <Settings className="h-4 w-4" />
-                          <span>{t('settingsNav')}</span>
-                        </DropdownMenuItem>
-                      </motion.div>
                     </>
                   )}
                   <DropdownMenuSeparator />
@@ -474,16 +456,6 @@ const Navbar = () => {
                         }}
                       >
                         <LayoutDashboard className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('dashboard')}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="justify-start w-full text-left"
-                        onClick={() => {
-                          navigate('/settings/teacher');
-                          setIsMobileMenuOpen(false);
-                        }}
-                      >
-                        <Settings className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('settingsNav')}
                       </Button>
                     </>
                   )}

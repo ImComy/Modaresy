@@ -98,7 +98,47 @@ export const mockTutors = [
           "Calculus I",
           "Exam Preparation (Thanaweya Amma, SAT)"
         ]
-      }
+      },
+      {
+      subject: "Chemistry",
+      grade: "12",
+      type: "General - scientific",
+      bio: "Complete Thanaweya Amma coverage with lab-focused insights and model exam walkthroughs.",
+      duration: 90,
+      lecturesPerWeek: 2,
+      yearsExp: 14,
+      price: 110,
+      rating: 4.9,
+      private: {
+        price: 850,
+        note: "Custom revision guide included for private students"
+      },
+      offer: {
+        percentage: 20,
+        from: "2025-07-01",
+        to: "2025-08-15",
+        description: "20% off July-August summer intensive program",
+        for: "private"
+      },
+      Groups: [
+        {
+          groupName: "Chem Essentials",
+          days: ["Sunday", "Wednesday"],
+          time: "6:00 PM - 7:30 PM",
+          isFull: false
+        }
+      ],
+      introVideoUrl: "",
+      otherVideos: [],
+      comments: [],
+      courseContent: [
+        "Chemical Bonds",
+        "Organic Chemistry",
+        "Quantitative Chemistry",
+        "Electrolysis & Redox",
+        "Thanaweya Revision"
+      ]
+    },
     ],
   },
   {
