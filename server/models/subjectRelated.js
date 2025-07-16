@@ -27,7 +27,7 @@ const ReviewSchema = new Schema({
   },
   Rate: {
     type: Number,
-    required: true,
+    required: true,//hi
     min: 0,
     max: 5
   },
