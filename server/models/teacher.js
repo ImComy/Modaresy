@@ -76,10 +76,27 @@ const TeacherSchema = new Schema({
 
   enrollments: {
     type: [mongoose.Types.ObjectId],
-    ref: 'Student'
+    ref: 'Enrollment'
+  },
+
+  enrollmentsRequests: {
+    type: [mongoose.Types.ObjectId],
+    ref: 'EnrollmentRequest'
   }
 }, {
   timestamps: true,
 });
 
+const EnrollmentSchema = new Schema({
+  studentId: {required: true, type: mongoose.Types.ObjectId, ref: 'Student'},
+  tutorId: {required: true, type: mongoose.Types.ObjectId, ref: 'Teacher'},
+  enrolledSince: {required: true, type: Date, default: Date.now}
+})
+const EnrollmentRequestSchma = new Schema({
+  studentId: {required: true, type: mongoose.Types.ObjectId, ref: 'Student'},
+  tutorId: {required: true, type: mongoose.Types.ObjectId, ref: 'Teacher'}
+})
+
+export const Enrollment = mongoose.model('Enrollment', EnrollmentSchema)
+export const EnrollmentRequest = mongoose.model('EnrollmentRequest', EnrollmentRequestSchma)
 export const Teacher = User.discriminator('Teacher', TeacherSchema);

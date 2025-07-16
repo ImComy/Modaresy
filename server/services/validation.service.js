@@ -1,9 +1,11 @@
 import {isEmail, isMobilePhone} from 'validator'
 import {
-    Governates,
     Districts,
     EducationStructure
 } from '../models/constants.js'
+import {
+  SubjectProfile
+} from '../models/subject.js'
 
 export function validatePhoneNumber(num) {
   return isMobilePhone(num, 'ar-EG');
@@ -29,6 +31,18 @@ export function validateEducationStructure_one(property_name, property_value, ed
 export function validateSector(sector, grade, educationSystem){
   if (!EducationStructure[educationSystem] || !EducationStructure[educationSystem].grades.includes(grade)) return false;
   return EducationStructure[educationSystem].sectors[grade].includes(sector);
+}
+
+export async function validateSubjectProfile(req, res){
+  try{
+    const {subject_profile_id} = req.body || req.params
+    const MatchSubjectProfile = await SubjectProfile.findById(subject_profile_id)
+    if (!MatchSubjectProfile) {return res.status(400).json({invalid: "subject profile not found"})}
+    req.populated_subjectProfile = MatchSubjectProfile
+    next()
+  }catch(err){
+    return res.status(400).json({message: "error in validating subject profile", err})
+  }
 }
 
 export {isEmail}

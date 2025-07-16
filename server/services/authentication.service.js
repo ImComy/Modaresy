@@ -129,7 +129,7 @@ export const rateLimiter = rateLimit({
 });
 
 export async function getProfileData(user){
-    const filtered_user = user.toObject()
+    let filtered_user = user.toObject()
 
     delete filtered_user.password
     delete filtered_user.verificationCode;
