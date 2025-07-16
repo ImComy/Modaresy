@@ -1,6 +1,8 @@
 import mongoose, { Schema } from 'mongoose';
 import { PricePeriod, PaymentTimings, PaymentMethods } from './constants.js';
-import { calculateSubjectProfileRating } from '../utils/rating.js';
+import { 
+  calculateSubjectProfileRating
+ } from '../events/subject_profile.js';
 
 // Offer Schema
 export const OfferSchema = new Schema({
@@ -32,7 +34,7 @@ const ReviewSchema = new Schema({
   Comment: {
     type: String
   },
-  Date: {
+  createdAt: {
     type: Date,
     default: Date.now
   }

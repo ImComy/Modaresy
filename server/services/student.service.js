@@ -40,3 +40,22 @@ export async function sendEnrollmentRequest(user, teacher){
         return {err, status: 400}
     }
 }
+
+export async function isEnrolled(req, res, next) {
+    try {
+      await req.teacher.populate('enrollments');
+  
+      const isEnrolled = req.teacher.enrollments.some(enrollment =>
+        enrollment._id.toString() === req.user._id.toString()
+      );
+  
+      if (!isEnrolled) {
+        return res.status(403).json({ error: "You are not enrolled with this tutor." });
+      }
+  
+      next();
+    } catch (err) {
+      return res.status(400).json({ error: "Error checking enrollment status", details: err.message });
+    }
+  }
+  

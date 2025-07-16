@@ -4,42 +4,48 @@ import {
   verifyToken
 } from '../services/authentication.service.js'
 import {
+  validateSubjectProfile
+} from '../services/validation.service.js'
+import {
   isTeacher,
-  getProfile,
-  updateProfile
+  getSubjectProfileReviews,
+  get_subject_profile,
+  get_subject_profiles,
+  getTeacherbyId
 } from '../services/tutor.service.js'
 import {
   getProfile,
-  updateProfile
+  updateProfile,
+  getTutors,
+  getTutor,
+  reviewTutor
 } from '../controllers/tutor.js'
+import {
+  isStudent,
+  isEnrolled
+} from '../services/student.service.js'
 
 const router = express.Router();
 
-router.get("/loadTutors/:NumberOfResults/:Grade/:Sector/:Language/:Governate/:District/:MinimumRating/:MinMonthlyRange/:MaxMonthlyRange");
+router.get("/loadTutors/:pages/:limit/:Grade/:Sector/:Language/:Governate/:District/:MinimumRating/:MinMonthlyRange/:MaxMonthlyRange",
+  getTutors
+);
 
-router.get("/loadTutor/:tutorID/:subjectProfileID");
+router.get("/loadTutor/:tutorID", getTeacherbyId, getTutor);
+
+// query pages,limit
+router.get("/loadTutorReviews/:subjectProfileID", getSubjectProfileReviews);
+
+router.get("/loadSubjectProfile/:subjectProfileID", get_subject_profile);
+
+router.get("/loadSubjectProfiles/:tutorID", getTeacherbyId, get_subject_profiles);
 
 router.get("/loadDashboard", verifyToken, isTeacher);
 
-router.post("/reviewTutor", verifyToken, isTeacher)
+router.post("/reviewTutor", verifyToken, isStudent, getTeacherbyId, validateSubjectProfile, isEnrolled, reviewTutor)
 
 router.get("/getProfile", isTeacher, getProfile)
 
 router.put("/updateProfile", isTeacher, updateProfile)
 
 export default router;
-
-/*
-const deepPopulateSubjectProfiles = {
-  path: "subject_profiles",
-  populate: [
-    { path: "subject_id", model: "Subject" },
-    { path: "private_pricing", model: "PrivatePricing" },
-    { path: "offer_id", model: "Offer" },
-    { path: "groups", model: "Group" },
-    { path: "reviews", model: "Review", populate: { path: "User_ID", model: "User" } },
-    { path: "additional_pricing", model: "AdditionalPricing" },
-    { path: "youtube", model: "YouTubeLink" }
-  ]
-};
-*/
