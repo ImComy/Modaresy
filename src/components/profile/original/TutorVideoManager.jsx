@@ -13,11 +13,11 @@ import { Badge } from '@/components/ui/badge';
 import { grades } from '@/data/formData';
 
 const videoSections = [
-  { value: 'introduction', labelKey: 'videoManager.videoSectionIntroduction' },
-  { value: 'sample_lesson', labelKey: 'videoManager.videoSectionSampleLesson' },
-  { value: 'topic_explanation', labelKey: 'videoManager.videoSectionTopicExplanation' },
-  { value: 'problem_solving', labelKey: 'videoManager.videoSectionProblemSolving' },
-  { value: 'other', labelKey: 'videoManager.videoSectionOther' },
+  { value: 'introduction', labelKey: 'tutorVideos.videoSectionIntroduction' },
+  { value: 'sample_lesson', labelKey: 'tutorVideos.videoSectionSampleLesson' },
+  { value: 'topic_explanation', labelKey: 'tutorVideos.videoSectionTopicExplanation' },
+  { value: 'problem_solving', labelKey: 'tutorVideos.videoSectionProblemSolving' },
+  { value: 'other', labelKey: 'tutorVideos.videoSectionOther' },
 ];
 
 const getVideoId = (url) => {
@@ -53,7 +53,7 @@ const TutorVideoManager = ({ introVideoUrl, otherVideos = [] }) => {
       ? {
           id: 'intro',
           url: introVideoUrl,
-          title: t('videoManager.introVideo'),
+          title: t('tutorVideos.introVideo'),
           section: 'introduction',
         }
       : null;
@@ -67,22 +67,22 @@ const TutorVideoManager = ({ introVideoUrl, otherVideos = [] }) => {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
       <Card className="overflow-hidden">
         <CardHeader>
-          <CardTitle>{t('videoManager.videosTitle')}</CardTitle>
-          <CardDescription>{t('videoManager.videosDesc')}</CardDescription>
+          <CardTitle>{t('tutorVideos.videosTitle')}</CardTitle>
+          <CardDescription>{t('tutorVideos.videosDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {allVideos.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
               <Youtube size={40} className="mb-4 text-primary" />
-              <h4 className="text-lg font-semibold">{t('videoManager.noVideosTitle')}</h4>
-              <p className="text-sm mt-1 max-w-md">{t('videoManager.noVideosDescription')}</p>
+              <h4 className="text-lg font-semibold">{t('tutorVideos.noVideosTitle')}</h4>
+              <p className="text-sm mt-1 max-w-md">{t('tutorVideos.noVideosDescription')}</p>
             </div>
           ) : (
             <>
               {/* Main Video Player */}
               <div>
                 <h4 className="font-medium text-foreground mb-2">
-                  {selectedVideo?.title || t('videoManager.untitledVideo')}
+                  {selectedVideo?.title || t('tutorVideos.untitledVideo')}
                 </h4>
                 {selectedEmbedUrl ? (
                   <motion.div
@@ -101,14 +101,14 @@ const TutorVideoManager = ({ introVideoUrl, otherVideos = [] }) => {
                     />
                   </motion.div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">{t('videoManager.invalidVideoUrl')}</p>
+                  <p className="text-sm text-muted-foreground">{t('tutorVideos.invalidVideoUrl')}</p>
                 )}
               </div>
 
               {/* Playlist */}
               {allVideos.length > 1 && (
                 <div>
-                  <h4 className="font-medium text-foreground mb-3">{t('videoManager.playlist')}</h4>
+                  <h4 className="font-medium text-foreground mb-3">{t('tutorVideos.playlist')}</h4>
                   <div
                     className={`
                       flex gap-4 py-3 -mx-1 px-1
@@ -133,7 +133,7 @@ const TutorVideoManager = ({ introVideoUrl, otherVideos = [] }) => {
                         >
                           <div className="space-y-1">
                             <p className="text-sm font-semibold truncate text-card-foreground">
-                              {video.title || t('videoManager.untitledVideo')}
+                              {video.title || t('tutorVideos.untitledVideo')}
                             </p>
                             <div className="flex flex-wrap items-center gap-1.5">
                               {video.section && sectionLabel && (
@@ -158,7 +158,7 @@ const TutorVideoManager = ({ introVideoUrl, otherVideos = [] }) => {
                               />
                             ) : (
                               <div className="w-full h-full bg-muted flex items-center justify-center text-destructive text-sm">
-                                {t('videoManager.invalidVideoUrl')}
+                                {t('tutorVideos.invalidVideoUrl')}
                               </div>
                             )}
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">

@@ -302,7 +302,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
               <div className="flex-1 min-w-0">
                 <div className="flex flex-col gap-5 text-base text-muted-foreground">
                   <div className="flex items-start gap-3">
-                    <Award size={18} className="mt-0.5 text-primary shrink-0" />
+                    <Award size={18} className="mt-3 text-primary shrink-0" />
                     <div className="flex-1">
                       <Input
                         type="number"
@@ -319,7 +319,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <MapPin size={18} className="mt-0.5 text-primary shrink-0" />
+                    <MapPin size={18} className="mt-3 text-primary shrink-0" />
                     <div className="flex-1">
                       <Select
                         value={tutor.location ?? ''} 
@@ -340,7 +340,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                   </div>
 
                   <div className="flex items-start gap-3 flex-wrap">
-                    <Building size={18} className="mt-0.5 text-primary shrink-0" />
+                    <Building size={18} className="mt-3 text-primary shrink-0" />
                     <div className="flex-1">
                       <div className="flex gap-2 mb-2">
                         <Input
@@ -505,7 +505,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
             <Separator className="my-4" />
 
             <div className="w-full">
-              <h2 className="text-xl font-semibold text-primary mb-2">{t('aboutMe')}</h2>
+              <h2 className="text-xl font-semibold mb-2 text-primary rtl:text-right">{t('aboutMe')}</h2>
               <Textarea
                 value={tutor.GeneralBio || ''}
                 onChange={(e) => handleFieldChange('GeneralBio', e.target.value)}

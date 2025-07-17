@@ -20,9 +20,9 @@ const Footer = () => {
               {t('heroSubtitle')} {/* Reusing subtitle */}
             </p>
             <div className="flex space-x-4 rtl:space-x-reverse">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Facebook size={20} /></a>
+              <a href="https://www.facebook.com/profile.php?id=61578144642612" className="text-muted-foreground hover:text-primary transition-colors"><Facebook size={20} /></a>
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Twitter size={20} /></a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Instagram size={20} /></a>
+              <a href="https://www.instagram.com/modaresy_?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" className="text-muted-foreground hover:text-primary transition-colors"><Instagram size={20} /></a>
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Linkedin size={20} /></a>
             </div>
           </div>
@@ -42,9 +42,8 @@ const Footer = () => {
           <div>
               <h4 className="text-md font-semibold mb-3">{t('contactInfo')}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>{t('emailAddress')}: info@modaresy.com</li> {/* Example email */}
-                <li>{t('phoneNumber')}: +20 123 456 7890</li> {/* Example phone */}
-                <li>{t('officeAddress')}: {t('cairoEgypt')}</li>
+                <li>{t('emailAddress')}: modaresyorg@gmail.com</li> 
+                <li>{t('phoneNumber')}: 01289099780</li> 
               </ul>
           </div>
         </div>

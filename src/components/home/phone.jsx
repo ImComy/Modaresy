@@ -57,7 +57,7 @@ const MobileComingSoon = () => {
             className="w-full lg:w-1/2"
           >
             <motion.div
-              className="inline-block mb-4 px-4 py-1 bg-gradient-to-r from-yellow-400 to-pink-500 text-white font-semibold rounded-full shadow-md text-sm"
+              className="inline-block mb-4 px-4 py-1 bg-gradient-to-r from-yellow-400 to-pink-500 text-white font-semibold rounded-full shadow-md text-md"
               initial={{ scale: 0.8, opacity: 0 }}
               whileInView={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.4 }}
