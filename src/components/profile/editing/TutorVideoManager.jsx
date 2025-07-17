@@ -144,7 +144,7 @@ const TutorVideoManagerEdit = ({ introVideoUrl, otherVideos = [], onChange }) =>
                         className="self-end text-red-500 hover:text-red-700 h-9 w-9 sm:w-auto"
                         onClick={() => handleRemove(video.id)}
                       >
-                        <Trash className="w-4 h-4 mr-2 sm:mr-2" />
+                        <Trash className="w-4 h-4 mr-2 sm:mr-2 rtl:ml-2 rtl:ml-2" />
                         <span className="hidden sm:inline">{t('delete')}</span>
                       </Button>
                     )}

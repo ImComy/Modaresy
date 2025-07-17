@@ -534,7 +534,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                   className="text-destructive"
                   onClick={() => handleRemoveGroup(i)}
                 >
-                  <Trash className="w-4 h-4 mr-2" />
+                  <Trash className="w-4 h-4 mr-2 rtl:ml-2" />
                   {t("remove")}
                 </Button>
               </div>

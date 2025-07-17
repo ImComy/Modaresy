@@ -72,7 +72,7 @@ const StudentProfilePage = () => {
       transition={{ duration: 0.4 }}
     >
       <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-6">
-        <h1 className="text-3xl font-bold mb-4">{t('settings')}</h1>
+        <h1 className="text-3xl font-bold mb-4">{t('settingss')}</h1>
 
         {/* Account Info */}
         <Card>
