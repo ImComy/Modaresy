@@ -1309,5 +1309,33 @@
   },
   "save": "حفظ",
   "cancel": "إلغاء",
-  "editProfile": "تعديل الملف الشخصي"
+  "editProfile": "تعديل الملف الشخصي",
+  "team": {
+    "title": "اتعرّف على الفريق",
+    "description": "اهي ماشية.",
+    "names": {
+      "Abu El-Magd": "أبو المجد",
+      "mohamed": "محمد",
+      "me": "أنا",
+      "Moaz Ashour": "معاذ عاشور",
+      "Mohmed Essam": "محمد عصام",
+      "Full Card Name": "أحمد كامل"
+    },
+    "roles": {
+      "business man": "رجل أعمال",
+      "Backend Engineer": "مهندس باك إند",
+      "Frontend Developer": "مطور فرونت إند",
+      "connections manager": "مدير العلاقات",
+      "idk but i love him too": "مش عارف بس بحبه بردو",
+      "Full Stack Developer": "مطور فول ستاك"
+    },
+    "bios": {
+      "Abu El-Magd": "أنا بحبه.",
+      "mohamed": "أموجص.",
+      "me": "معرفش.",
+      "Moaz Ashour": "أنا بسيح جواه.",
+      "Mohmed Essam": "زنجي.",
+      "Full Card Name": "مهووس بكل حاجة ليها علاقة بالبرمجة، من أول البنية التحتية لحد الواجهات التفاعلية. دايمًا بيدور على الجديد وعاوز يغيّر العالم."
+    }
+  }
 }
