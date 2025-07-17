@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User, Flag, Key, Bell, MessageSquare, BarChart2 } from 'lucide-react';
-import NavigationCard from '@/components/tutorSettings/nav';
+import NavigationCard from '@/components/admin/nav';
 import AccountManagement from '@/components/admin/AccountManagement';
 import ReportedContent from '@/components/admin/ReportedContent';
 import PasswordRequests from '@/components/admin/PasswordRequests';

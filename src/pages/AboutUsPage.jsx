@@ -3,16 +3,10 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Target, Lightbulb, HeartHandshake as Handshake } from 'lucide-react';
+import MeetTheTeam from '@/components/home/meetTheTeam';
 
 const AboutUsPage = () => {
   const { t } = useTranslation();
-
-  const teamMembers = [
-    { name: "Founder A", role: t('ceoFounder'), imgKey: "Founder working at desk" },
-    { name: "Developer B", role: t('leadDeveloper'), imgKey: "Developer coding on laptop" },
-    { name: "Designer C", role: t('uxDesigner'), imgKey: "Designer sketching interfaces" },
-    { name: "Marketer D", role: t('marketingLead'), imgKey: "Marketer presenting ideas" },
-  ];
 
   return (
     <motion.div
@@ -22,12 +16,12 @@ const AboutUsPage = () => {
       className="space-y-12"
     >
       {/* Hero Section */}
-      <section className="text-center py-12 bg-gradient-to-b from-primary/10 to-transparent rounded-lg">
+      <section className="text-center py-12 bg-gradient-to-b from-[hsl(var(--primary)/0.06)] to-transparent rounded-lg">
         <motion.h1
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="text-4xl md:text-5xl font-extrabold mb-4 text-primary"
+          className="pb-4 text-4xl sm:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))]"
         >
           {t('aboutUsTitle')}
         </motion.h1>
@@ -96,27 +90,7 @@ const AboutUsPage = () => {
 
       {/* Meet the Team */}
       <section className="text-center">
-        <h2 className="text-3xl font-bold mb-8">{t('meetTheTeam')}</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-          {teamMembers.map((member, index) => (
-            <motion.div
-              key={member.name}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 + index * 0.1 }}
-              className="flex flex-col items-center"
-            >
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden mb-3 border-2 border-secondary shadow-sm bg-muted">
-                  <img 
-                    class="w-full h-full object-cover"
-                    alt={member.name}
-                  src="https://images.unsplash.com/photo-1675023112817-52b789fd2ef0" />
-              </div>
-              <h3 className="font-semibold">{member.name}</h3>
-              <p className="text-sm text-secondary">{member.role}</p>
-            </motion.div>
-          ))}
-        </div>
+        <MeetTheTeam />
       </section>
 
     </motion.div>

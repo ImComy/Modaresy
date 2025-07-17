@@ -69,7 +69,7 @@ const VisionSection = () => {
           </p>
         </div>
 
-        <hr className="border-muted/20" />
+        <hr className="border-muted"/>
 
         {/* Mission Block */}
         <div>

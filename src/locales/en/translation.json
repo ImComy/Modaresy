@@ -1253,6 +1253,34 @@
   },
   "save": "Save",
   "cancel": "Cancel",
-  "editProfile": "Edit Profile"
+  "editProfile": "Edit Profile",
+  "team": {
+    "title": "Meet the Team",
+    "description": "It is what it is.",
+    "names": {
+      "Abu El-Magd": "Abu El-Magd",
+      "mohamed": "Mohamed",
+      "me": "Me",
+      "Moaz Ashour": "Moaz Ashour",
+      "Mohmed Essam": "Mohamed Essam",
+      "Full Card Name": "Ahmed Kamel"
+    },
+    "roles": {
+      "business man": "Businessman",
+      "Backend Engineer": "Backend Engineer",
+      "Frontend Developer": "Frontend Developer",
+      "connections manager": "Connections Manager",
+      "idk but i love him too": "Not sure, but I love him too",
+      "Full Stack Developer": "Full Stack Developer"
+    },
+    "bios": {
+      "Abu El-Magd": "I just love him.",
+      "mohamed": "Amogus.",
+      "me": "No idea.",
+      "Moaz Ashour": "I melt inside him.",
+      "Mohmed Essam": "zingy.",
+      "Full Card Name": "Obsessed with everything programming—from infrastructure to interactive interfaces. Always chasing the latest trends and aiming to change the world."
+    }
+  }
 }
 

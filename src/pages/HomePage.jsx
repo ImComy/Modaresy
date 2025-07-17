@@ -38,7 +38,7 @@ const HomePage = () => {
   const { i18n } = useTranslation();
   const isRTL = i18n.dir() === 'rtl'; 
   return (
-    <div className="flex flex-col gap-10 ">
+    <div className="flex flex-col gap-10">
       <div className="relative  roudned-lg">
         <HeroSection />
         <div
