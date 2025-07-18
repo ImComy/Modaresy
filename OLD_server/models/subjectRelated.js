@@ -39,11 +39,11 @@ const ReviewSchema = new Schema({
 });
 
 ReviewSchema.post('save', async function () {
-  await calculateSubjectProfileRating(this.subject_profile);
+  await calculateSubjectProfileRating(this.subject_profile, this.Rate);
 });
 
 ReviewSchema.post('remove', async function () {
-  await calculateSubjectProfileRating(this.subject_profile);
+  await calculateSubjectProfileRating(this.subject_profile, this.Rate);
 });
 
 // Additional Pricing Schema
