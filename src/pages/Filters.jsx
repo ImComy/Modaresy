@@ -8,6 +8,7 @@ import HorizontalFilters from '@/components/tutors/HorizontalFilters';
 import { mockTutors } from '@/data/enhanced';
 import { useTutorFilterSort } from '@/hooks/useTutorFilterSort';
 import { useNavigate } from 'react-router-dom';
+import { GeneralTutorGrid } from '../components/tutors/GeneralTutorGrid';
 
 const Filters = () => {
   const { t } = useTranslation();
@@ -42,7 +43,7 @@ const Filters = () => {
   };
 
   return (
-    <div className=" ">
+    <div className="flex flex-col gap-20 ">
       <section className="space-y-6 container mx-auto px-4">
         <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center">{t('findYourTutor')}</motion.h2>
         <HorizontalFilters
@@ -56,6 +57,10 @@ const Filters = () => {
           setSortBy={setSortBy}
         />
         <TutorGrid tutors={sortedTutors} filters={filters} />
+      </section>
+      <section className="space-y-6 container mx-auto px-4 -mt-20">
+        <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center mt-20">{t('RecommendedTutors')}</motion.h2>
+        <GeneralTutorGrid tutors={mockTutors} />
       </section>
     </div>
   );

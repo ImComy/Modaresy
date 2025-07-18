@@ -72,20 +72,6 @@ const AccountSection = ({ form, setForm }) => {
         </CardHeader>
         <CardContent className="space-y-6 p-4 sm:p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-            {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-xs sm:text-sm font-semibold text-muted-foreground">
-                {t('settings.form.name', 'Name')}
-              </Label>
-              <Input
-                id="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder={t('settings.form.namePlaceholder', 'Enter your name')}
-                className="bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02]"
-              />
-            </div>
-
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-muted-foreground">
