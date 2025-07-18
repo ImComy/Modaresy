@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User, Flag, Key, Bell, MessageSquare, BarChart2 } from 'lucide-react';
-import NavigationCard from '@/components/tutorSettings/nav';
+import NavigationCard from '@/components/admin/nav';
 import AccountManagement from '@/components/admin/AccountManagement';
 import ReportedContent from '@/components/admin/ReportedContent';
 import PasswordRequests from '@/components/admin/PasswordRequests';
@@ -58,7 +58,7 @@ const AdminPage = () => {
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))] text-[hsl(var(--foreground))] px-4 sm:px-8 py-6">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className=" mx-auto space-y-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-center text-[hsl(var(--primary))]">
           {t('adminDashboardTitle', 'Modaresy Admin Dashboard')}
         </h1>

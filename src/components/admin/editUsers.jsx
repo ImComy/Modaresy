@@ -5,24 +5,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import MultiSelect from '@/components/ui/multi-select';
-import { Plus, Trash2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import PfpUploadWithCrop from '@/components/pfpSignup';
-import BannerUploadWithCrop from '@/components/bannerSignup';
-import SocialsSection from '@/components/tutorSettings/social';
-import SubjectsSection from '@/components/tutorSettings/subjects';
-import ContentManagementSection from '@/components/Dashboard/content';
-import GroupsAndTablesSection from '@/components/Dashboard/groups';
 import AnalysisSection from '@/components/Dashboard/analysis';
-import PricesAndOffersSection from '@/components/Dashboard/prices';
+import TutorProfilePage from '@/pages/TutorProfilePage';
 
 // Define validation schema using Zod
 const formSchema = z.object({
+  id: z.string().min(1, 'User ID is required'),
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
@@ -48,28 +37,29 @@ const formSchema = z.object({
 
 const EditUserForm = ({ user, onSave, onCancel }) => {
   const { t } = useTranslation();
-  const isTutor = user.role === 'tutor';
-  const isStudent = user.role === 'student';
+  const isTutor = user?.role === 'tutor';
+  const isStudent = user?.role === 'student';
 
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: user.name || '',
-      email: user.email || '',
-      phone: user.phone || '',
+      id: user?.id || '',
+      name: user?.name || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
       password: '',
-      location: user.location || '',
-      sector: user.sector || '',
-      grade: user.grade || '',
-      pfp: user.pfp || null,
-      banner: user.banner || null,
-      achievements: user.achievements || [],
-      isTopTutor: user.isTopTutor || false,
-      detailedLocation: user.detailedLocation || [],
-      generalBio: user.generalBio || '',
-      socialLinks: user.socialLinks || {},
-      youtubeVideos: user.youtubeVideos || [],
-      subjects: user.subjects || [],
+      location: user?.location || '',
+      sector: user?.sector || '',
+      grade: user?.grade || '',
+      pfp: user?.pfp || null,
+      banner: user?.banner || null,
+      achievements: user?.achievements || [],
+      isTopTutor: user?.isTopTutor || false,
+      detailedLocation: user?.detailedLocation || [],
+      generalBio: user?.generalBio || '',
+      socialLinks: user?.socialLinks || {},
+      youtubeVideos: user?.youtubeVideos || [],
+      subjects: user?.subjects || [],
     },
   });
 
@@ -127,32 +117,21 @@ const EditUserForm = ({ user, onSave, onCancel }) => {
     [form]
   );
 
-  const achievementsOptions = [
-    { label: 'Certified Instructor', value: 'certified' },
-    { label: 'Top Performer 2024', value: 'top2024' },
-    { label: '100+ Students', value: '100plus' },
-  ];
-
   const onSubmit = (data) => {
     onSave?.(data);
   };
 
+  if (!user?.id) {
+    return (
+      <div className="text-red-500 p-4">
+        {t('error', 'Error: Invalid or missing user ID. Please select a valid user.')}
+      </div>
+    );
+  }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('name', 'Name')}</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder={t('name', 'Name')} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <FormField
           control={form.control}
           name="email"
@@ -239,169 +218,11 @@ const EditUserForm = ({ user, onSave, onCancel }) => {
 
         {isTutor && (
           <>
-            <FormField
-              control={form.control}
-              name="pfp"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('profilePicture', 'Profile Picture')}</FormLabel>
-                  <FormControl>
-                    <PfpUploadWithCrop
-                      formData={{ pfp: field.value }}
-                      setFormData={(newData) => form.setValue('pfp', newData.pfp)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="banner"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('banner', 'Banner')}</FormLabel>
-                  <FormControl>
-                    <BannerUploadWithCrop
-                      formData={{ banner: field.value }}
-                      setFormData={(newData) => form.setValue('banner', newData.banner)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="achievements"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('achievements', 'Achievements')}</FormLabel>
-                  <FormControl>
-                    <MultiSelect
-                      options={achievementsOptions}
-                      selected={field.value}
-                      onChange={field.onChange}
-                      placeholder={t('selectAchievements', 'Select Achievements')}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="isTopTutor"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-2">
-                  <FormControl>
-                    <Checkbox
-                      id="isTopTutor"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel htmlFor="isTopTutor">{t('isTopTutor', 'Top Tutor')}</FormLabel>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="space-y-2">
-              <FormLabel>{t('detailedLocations', 'Detailed Locations')}</FormLabel>
-              <div className="flex flex-wrap gap-2">
-                <AnimatePresence>
-                  {form.watch('detailedLocation')?.map((loc, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg border"
-                    >
-                      <FormField
-                        control={form.control}
-                        name={`detailedLocation.${index}`}
-                        render={({ field }) => (
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder={`${t('location', 'Location')} ${index + 1}`}
-                            />
-                          </FormControl>
-                        )}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveDetailedLocation(index)}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-              {form.watch('detailedLocation')?.length < 3 && (
-                <Button type="button" onClick={handleAddDetailedLocation}>
-                  <Plus className="w-4 h-4 mr-2" /> {t('addLocation', 'Add Location')}
-                </Button>
-              )}
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-semibold mb-2">{t('tutorProfilePreview', 'Tutor Profile Preview')}</h3>
+              <TutorProfilePage tutorId={Number(user.id)} isEditing={true} />
             </div>
-            <FormField
-              control={form.control}
-              name="generalBio"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('generalBio', 'General Bio')}</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      rows={6}
-                      placeholder={t('generalBio', 'General Bio')}
-                      className="w-full border rounded-lg p-2"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="subjects"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('subjects', 'Subjects')}</FormLabel>
-                  <FormControl>
-                    <SubjectsSection subjects={field.value} onChange={handleSubjectsChange} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="socialLinks"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('socialLinks', 'Social Links')}</FormLabel>
-                  <FormControl>
-                    <SocialsSection
-                      socialLinks={field.value}
-                      youtubeVideos={form.watch('youtubeVideos')}
-                      setSocialLinks={handleSocialLinksChange}
-                      onVideoChange={handleVideoChange}
-                      onAddVideo={handleAddVideo}
-                      onRemoveVideo={handleRemoveVideo}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <ContentManagementSection />
-            <GroupsAndTablesSection />
-            <PricesAndOffersSection />
-            <AnalysisSection />
+            <AnalysisSection id={user.id} />
           </>
         )}
 

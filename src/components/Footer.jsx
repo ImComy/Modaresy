@@ -13,14 +13,16 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* About Section */}
           <div>
-            <h3 className="text-lg font-semibold mb-3">Modaresy</h3>
+            <Link to="/" className="flex items-center space-x-2 rtl:space-x-reverse w-[100px]" onClick={() => setIsMobileMenuOpen(false)}>
+              <img src='/icon.svg' alt='Modaresy' className='primary'/>
+            </Link>
             <p className="text-sm text-muted-foreground mb-4">
               {t('heroSubtitle')} {/* Reusing subtitle */}
             </p>
             <div className="flex space-x-4 rtl:space-x-reverse">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Facebook size={20} /></a>
+              <a href="https://www.facebook.com/profile.php?id=61578144642612" className="text-muted-foreground hover:text-primary transition-colors"><Facebook size={20} /></a>
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Twitter size={20} /></a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Instagram size={20} /></a>
+              <a href="https://www.instagram.com/modaresy_?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" className="text-muted-foreground hover:text-primary transition-colors"><Instagram size={20} /></a>
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Linkedin size={20} /></a>
             </div>
           </div>
@@ -40,9 +42,8 @@ const Footer = () => {
           <div>
               <h4 className="text-md font-semibold mb-3">{t('contactInfo')}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>{t('emailAddress')}: info@modaresy.com</li> {/* Example email */}
-                <li>{t('phoneNumber')}: +20 123 456 7890</li> {/* Example phone */}
-                <li>{t('officeAddress')}: {t('cairoEgypt')}</li>
+                <li>{t('emailAddress')}: modaresyorg@gmail.com</li> 
+                <li>{t('phoneNumber')}: 01289099780</li> 
               </ul>
           </div>
         </div>

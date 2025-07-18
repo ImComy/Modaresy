@@ -1,20 +1,19 @@
 import { useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
-import { Search, UserCheck, MessageSquare, Sparkles, GraduationCap, MapPin as MapPinIcon } from 'lucide-react';
-import TutorGrid from '@/components/tutors/TutorGrid';
-import HorizontalFilters from '@/components/tutors/HorizontalFilters';
 import { mockTutors } from '@/data/enhanced';
 import { useTutorFilterSort } from '@/hooks/useTutorFilterSort';
-import { Card, CardContent } from '@/components/ui/card';
-import { useNavigate } from 'react-router-dom';
-import { GeneralTutorGrid } from '../components/tutors/GeneralTutorGrid';
-import TopTutors from '../components/tutors/topTutors';
+import TopTutors from '@/components/tutors/topTutors';
+import HeroSection from '@/components/home/hero';
+import ExploreSection from '@/components/home/explore';
+import StatsSection from '@/components/home/stats';
+import VisionSection from '../components/home/vision';
+import StudentBenefitsSection from '../components/home/students';
+import TutorBenefitsSection from '../components/home/tutor';
+import Mobile from '../components/home/phone';
 
 const HomePage = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const {
     searchTerm,
     setSearchTerm,
@@ -27,14 +26,6 @@ const HomePage = () => {
     sortedTutors,
   } = useTutorFilterSort(mockTutors);
 
-  const fadeIn = {
-    hidden: { opacity: 0 },
-    visible: (i = 1) => ({
-      opacity: 1,
-      transition: { duration: 0.3, delay: i * 0.1 },
-    }),
-  };
-
   const fadeInUp = {
     hidden: { opacity: 0, y: 15 },
     visible: (i = 1) => ({
@@ -44,119 +35,34 @@ const HomePage = () => {
     }),
   };
 
+  const { i18n } = useTranslation();
+  const isRTL = i18n.dir() === 'rtl'; 
   return (
-    <div className=" ">
-      <section className="relative py-10 md:py-20 lg:py-24 overflow-hidden bg-gradient-to-b from-background via-blue-50 dark:via-blue-900/10 to-background">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 left-0 w-64 h-64 bg-primary/5 rounded-full filter blur-3xl opacity-50 animate-pulse"></div>
-          <div className="absolute bottom-0 right-0 w-72 h-72 bg-secondary/5 rounded-full filter blur-3xl opacity-40 animate-pulse animation-delay-2000"></div>
+    <div className="flex flex-col gap-10">
+      <div className="relative  roudned-lg">
+        <HeroSection />
+        <div
+        className={`absolute bottom-0 hidden lg:block w-[600px] ${
+          isRTL ? 'left-0' : 'right-0'
+        }`}>
+          <StatsSection />
         </div>
-        <div className="container mx-auto px-4 relative z-10 grid lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-5 text-center lg:text-left rtl:lg:text-right leading-relaxed">
-            <motion.div variants={fadeInUp} initial="hidden" animate="visible" custom={1}>
-              <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-2">
-                <Sparkles size={12} className="inline mr-1 rtl:ml-1" /> {t('platformHighlight')}
-              </span>
-            </motion.div>
-            <motion.h1
-              variants={fadeInUp} initial="hidden" animate="visible" custom={2}
-              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-800 dark:from-primary dark:to-blue-400 py-2"
-            >
-              {t('heroTitle')}
-            </motion.h1>
-            <motion.p
-              variants={fadeInUp} initial="hidden" animate="visible" custom={3}
-              className="text-lg md:text-xl text-muted-foreground"
-            >
-              {t('heroSubtitle')}
-            </motion.p>
-            <motion.div
-              variants={fadeInUp} initial="hidden" animate="visible" custom={4}
-              className="pt-3"
-            >
-              <Button size="lg" onClick={() => navigate('/filters')} className="shadow-lg hover:shadow-primary/40 transition-shadow duration-300">
-                {t('getStarted')} <Search size={18} className="ml-2 rtl:mr-2 rtl:ml-0" />
-              </Button>
-            </motion.div>
-          </div>
-          <motion.div
-            variants={fadeIn}
-            initial="visible"
-            animate="visible"
-            custom={2}
-            className="relative hidden lg:block"
-          >
-            <div className="grid grid-cols-2 gap-4">
-              <motion.div variants={fadeInUp} custom={2.5}>
-                <Card className="shadow-md hover:shadow-lg transition-shadow glass-effect hover:scale-105 hover:-translate-y-1 transition-transform duration-300 ease-out">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <motion.div className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-2 rounded-full"
-                      whileHover={{ scale: [1, 1.3, 1.1], transition: { duration: 0.35, ease: "easeOut" } }}>
-                      <GraduationCap size={20} />
-                    </motion.div>
-                    <motion.div whileHover={{ y: -3, transition: { duration: 0.3 } }} className="flex flex-col">
-                      <p className="font-semibold text-sm">{t("subjectsCount")}</p>
-                      <p className="text-xs text-muted-foreground">{t("subjectsAvailable")}</p>
-                    </motion.div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-              <motion.div variants={fadeInUp} custom={3}>
-                <Card className="shadow-md hover:shadow-lg transition-shadow glass-effect mt-8 hover:scale-105 hover:-translate-y-1 transition-transform duration-300 ease-out">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <motion.div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-full"
-                      whileHover={{ scale: [1, 1.3, 1.1], transition: { duration: 0.35, ease: "easeOut" } }}>
-                      <UserCheck size={20} />
-                    </motion.div>
-                    <motion.div whileHover={{ y: -3, transition: { duration: 0.3 } }} className="flex flex-col">
-                      <p className="font-semibold text-sm">{t("verifiedTutors")}</p>
-                      <p className="text-xs text-muted-foreground">{t("verifiedTutorsDesc")}</p>
-                    </motion.div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-              <motion.div variants={fadeInUp} custom={3.5}>
-                <Card className="shadow-md hover:shadow-lg transition-shadow glass-effect -mt-4 hover:scale-105 hover:-translate-y-1 transition-transform duration-300 ease-out">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <motion.div className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 p-2 rounded-full"
-                      whileHover={{ scale: [1, 1.3, 1.1], transition: { duration: 0.35, ease: "easeOut" } }}>
-                      <MapPinIcon size={20} />
-                    </motion.div>
-                    <motion.div whileHover={{ y: -3, transition: { duration: 0.3 } }} className="flex flex-col">
-                      <p className="font-semibold text-sm">{t("locationsCovered")}</p>
-                      <p className="text-xs text-muted-foreground">{t("locationsCoveredDesc")}</p>
-                    </motion.div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-              <motion.div variants={fadeInUp} custom={4}>
-                <Card className="shadow-md hover:shadow-lg transition-shadow glass-effect mt-4 hover:scale-105 hover:-translate-y-1 transition-transform duration-300 ease-out">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <motion.div className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-full"
-                      whileHover={{ scale: [1, 1.3, 1.1], transition: { duration: 0.35, ease: "easeOut" } }}>
-                      <MessageSquare size={20} />
-                    </motion.div>
-                    <motion.div whileHover={{ y: -3, transition: { duration: 0.3 } }} className="flex flex-col">
-                      <p className="font-semibold text-sm">{t("easyCommunication")}</p>
-                      <p className="text-xs text-muted-foreground">{t("easyCommunicationDesc")}</p>
-                    </motion.div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-      <section>
-      </section>
-      <section className="space-y-6 container mx-auto px-4">
-        <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center">{t('TopTutors')}</motion.h2>
+      </div>
+      <ExploreSection />
+      <div className="block md:hidden"><StatsSection /></div>
+      
+      <section className=" container mx-auto px-4  roudned-lg">
+        <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center mb-5">{t('TopTutors')}</motion.h2>
         <TopTutors tutors={mockTutors} />
       </section>
-      <section className="space-y-6 container mx-auto px-4">
-        <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center mt-20">{t('RecommendedTutors')}</motion.h2>
-        <GeneralTutorGrid tutors={mockTutors} />
+      <section>
+        <VisionSection />
       </section>
+      <section>
+        <StudentBenefitsSection />
+      </section>
+      <TutorBenefitsSection />
+      <Mobile />
     </div>
   );
 };

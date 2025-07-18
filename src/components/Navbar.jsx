@@ -123,15 +123,8 @@ const Navbar = () => {
       className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
     >
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link to="/" className="flex items-center space-x-2 rtl:space-x-reverse" onClick={() => setIsMobileMenuOpen(false)}>
-          <motion.div
-            whileHover={{ rotate: 5, scale: 1.05 }}
-            transition={{ duration: 0.2 }}
-            className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-primary-foreground font-bold text-lg"
-          >
-            M
-          </motion.div>
-          <span className="font-bold text-lg tracking-tight">{t("Modaresy")}</span>
+        <Link to="/" className="flex items-center space-x-2 rtl:space-x-reverse w-[100px]" onClick={() => setIsMobileMenuOpen(false)}>
+          <img src='/icon.svg' alt='Modaresy' className='primary'/>
         </Link>
 
         <div className="hidden md:flex items-center space-x-6 rtl:space-x-reverse">
@@ -354,24 +347,6 @@ const Navbar = () => {
                           <span>{t('dashboard')}</span>
                         </DropdownMenuItem>
                       </motion.div>
-                      <motion.div
-                        variants={dropdownItemVariants}
-                        initial="initial"
-                        animate="animate"
-                        exit="exit"
-                        transition={{ duration: 0.2, delay: 0.15 }}
-                      >
-                        <DropdownMenuItem
-                          onClick={() => navigate('/settings/teacher')}
-                          className={cn(
-                            'flex items-center gap-2 hover:bg-accent/50 !cursor-pointer',
-                            isRTL && '!flex-row-reverse !text-left'
-                          )}
-                        >
-                          <Settings className="h-4 w-4" />
-                          <span>{t('settingsNav')}</span>
-                        </DropdownMenuItem>
-                      </motion.div>
                     </>
                   )}
                   <DropdownMenuSeparator />
@@ -481,16 +456,6 @@ const Navbar = () => {
                         }}
                       >
                         <LayoutDashboard className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('dashboard')}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="justify-start w-full text-left"
-                        onClick={() => {
-                          navigate('/settings/teacher');
-                          setIsMobileMenuOpen(false);
-                        }}
-                      >
-                        <Settings className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('settingsNav')}
                       </Button>
                     </>
                   )}

@@ -69,7 +69,7 @@ const NavigationCard = ({ navItems, selectedSection, setSelectedSection, handleS
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="sticky top-14 sm:top-20 z-30 bg-transparent rounded-lg px-2 sm:px-0"
+      className="sticky top-14 sm:top-20 z-50 bg-transparent rounded-lg px-2 sm:px-0"
     >
       <Card className="w-[60px] md:w-full bg-background border border-transparent rounded-lg p-2 sm:p-4">
 

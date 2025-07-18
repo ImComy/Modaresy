@@ -1193,6 +1193,184 @@
   "noUsersFound": "No users found",
   "previous": "Previous",
   "next": "Next",
-  "pageOf": "Page {{current}} of {{total}}"
+  "pageOf": "Page {{current}} of {{total}}",
+  "heroSection": {
+    "title": "Get the tutor you want,\nwith just one click.",
+    "subtitle": "Browse hundreds of top-rated teachers in every subject. No stress, no limits. just results.",
+    "button": "Find Your Tutor"
+  },
+  "vision": {
+    "title": "Our Vision",
+    "statement": "Creating a truly competitive market between tutors",
+    "description": "One that values the quality of explanation and education—not just popularity—to fight exploitation, ease student stress, and show compassion to parents."
+  },
+  "mission": {
+    "title": "Our Mission",
+    "statement": "Empowering good educators and guiding students",
+    "description": "We aim to highlight competent teachers and connect them with students seeking high-quality learning—beyond the limits of fame-based perception."
+  },
+  "students": {
+    "title": "What We Offer for Students",
+    "location": {
+      "title": "Tutors Near You",
+      "description": "Easily find tutors close to your area."
+    },
+    "affordability": {
+      "title": "Affordable for Everyone",
+      "description": "High-quality lessons at prices that fit all budgets."
+    },
+    "flexibility": {
+      "title": "Flexible Scheduling",
+      "description": "Choose from different time slots that suit your routine."
+    },
+    "accessibility": {
+      "title": "Easy Access",
+      "description": "You can evaluate your future teacher by watching some of his introductory videos"
+    }
+  },
+    "tutorss": {
+      "title": "How Modaresy Benefits Tutors",
+      "freeAdvertising": {
+        "title": "Free Advertising",
+        "description": "Modaresy promotes your profile to students for free—no paid ads or commissions."
+      },
+      "noRisk": {
+        "title": "No Risk Involved",
+        "description": "You don’t pay or commit to anything. Just create your profile and let students find you."
+      },
+      "winWin": {
+        "title": "A Win-Win Opportunity",
+        "description": "You gain exposure and students get more choices. Everyone wins."
+      },
+      "standOut": {
+        "title": "Stand Out Easily",
+        "description": "Let your teaching quality speak for itself without needing fame or expensive marketing."
+      }
+    },
+  "mobileComingSoon": {
+    "title": "Mobile Experience Coming Soon!",
+    "badge": "Coming Soon",
+    "description": "We're working hard to bring you a smooth, full-featured mobile version of Modaresy. Stay tuned for updates!"
+  },
+  "save": "Save",
+  "cancel": "Cancel",
+  "editProfile": "Edit Profile",
+  "team": {
+    "title": "Meet the Team",
+    "description": "It is what it is.",
+    "names": {
+      "Abu El-Magd": "Abu El-Magd",
+      "mohamed": "Mohamed",
+      "me": "Me",
+      "Moaz Ashour": "Moaz Ashour",
+      "Mohmed Essam": "Mohamed Essam",
+      "Full Card Name": "Ahmed Kamel"
+    },
+    "roles": {
+      "business man": "Businessman",
+      "Backend Engineer": "Backend Engineer",
+      "Frontend Developer": "Frontend Developer",
+      "connections manager": "Connections Manager",
+      "idk but i love him too": "Not sure, but I love him too",
+      "Full Stack Developer": "Full Stack Developer"
+    },
+    "bios": {
+      "Abu El-Magd": "I just love him.",
+      "mohamed": "Amogus.",
+      "me": "No idea.",
+      "Moaz Ashour": "I melt inside him.",
+      "Mohmed Essam": "zingy.",
+      "Full Card Name": "Obsessed with everything programming—from infrastructure to interactive interfaces. Always chasing the latest trends and aiming to change the world."
+    }
+  },
+  "stats": {
+    "students": "Student",
+    "tutors": "Tutor",
+    "subjects": "Subject"
+  },
+  "changeBanner": "Change Banner",
+  "changeAvatar": "Change Avatar",
+  "yourName": "Your name",
+  "noRating": "No ratings yet",
+  "editSocials": "Edit Social Media",
+  "selectPlatform": "Select platform",
+  "enterUrl": "Enter URL",
+  "done": "Done",
+  "yearsExp": "Years of experience",
+  "selectLocation": "Select location",
+  "addArea": "Add area",
+  "teachesSubjects": "Subjects you teach",
+  "subject": "Subject",
+  "grade": "Grade",
+  "type": "Type",
+  "addSubject": "Add Subject",
+  "aboutMe": "About Me",
+  "writeSomethingAboutYou": "Write something about yourself...",
+  "note": "Note",
+  "videosTitle": "Your Videos",
+  "videosDesc": "Manage your introduction and other videos. Only YouTube links are supported.",
+  "introVideo": "Introduction Video",
+  "introVideoLabel": "This is your main introduction video.",
+  "videoTitle": "Video title",
+  "videoUrl": "YouTube video URL",
+  "addNewVideo": "Add New Video",
+  "addVideo": "Add Video",
+  "invalidVideoUrl": "Invalid or unsupported video URL",
+"bookingSchedule": "Booking Schedule",
+  "grade": "Grade",
+  "unnamedGroup": "Unnamed Group",
+  "full": "Full",
+  "available": "Available",
+  "groupName": "Group Name",
+  "days": "Days",
+  "selectDays": "Select Days",
+  "timeRange": "Time Range",
+  "startTime": "Start Time",
+  "endTime": "End Time",
+  "note": "Note",
+  "optional": "Optional",
+  "markAsFull": "Mark as Full",
+  "remove": "Remove",
+  "addGroup": "Add Group",
+  "tutorAvailability": "Tutor Availability",
+  "tutorCommTimes": "Tutor Communication Times",
+  "selectDay": "Select Day",
+  "add": "Add",
+  "update": "Update",
+  "cancel": "Cancel",
+  "commNote": "Communication Note",
+  "commNotePlaceholder": "Enter any additional communication notes...",
+  "noCommInfo": "No communication information available",
+  "invalidTimeRange": "Invalid time range: End time must be after start time",
+  "videoManager": {
+    "videosTitle": "Video Manager",
+    "videosDesc": "Add or edit YouTube video links to display for students",
+    "introVideo": "Introductory Video",
+    "invalidVideoUrl": "Invalid video URL",
+    "videoTitle": "Video Title",
+    "videoUrl": "Video URL",
+    "delete": "Delete",
+    "introVideoLabel": "This is the main introductory video",
+    "addNewVideo": "Add New Video",
+    "addVideo": "Add Video"
+  },
+  "accountNav" : "Account Management",
+  "accountDesc": "Manage your personal information and account settings.",
+  "settingss": "Settings",
+  "tutorVideos": {
+    "videosTitle": "Tutor Videos",
+    "videosDesc": "Watch the tutor's YouTube videos to learn about their teaching style",
+    "introVideo": "Introductory Video",
+    "noVideosTitle": "No Videos Available",
+    "noVideosDescription": "No videos have been added yet. Check back later!",
+    "untitledVideo": "Untitled Video",
+    "invalidVideoUrl": "Invalid Video URL",
+    "playlist": "Playlist",
+    "videoSectionIntroduction": "Introduction",
+    "videoSectionSampleLesson": "Sample Lesson",
+    "videoSectionTopicExplanation": "Topic Explanation",
+    "videoSectionProblemSolving": "Problem Solving",
+    "videoSectionOther": "Other"
+  }
 }
 

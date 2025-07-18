@@ -1249,5 +1249,183 @@
   "noUsersFound": "لا يوجد مستخدمون",
   "previous": "السابق",
   "next": "التالي",
-  "pageOf": "الصفحة {{current}} من {{total}}"
+  "pageOf": "الصفحة {{current}} من {{total}}",
+  "heroSection": {
+    "title": "احصل على المُعلم اللي محتاجه،\nبضغطة واحدة بس.",
+    "subtitle": "تصفح مئات المدرسين المميزين في كل المواد. من غير تعب، من غير قيود . بس نتائج.",
+    "button": "دور على المدرس المناسب"
+  },
+  "vision": {
+    "title": "رؤيتنا",
+    "statement": "خلق سوق تنافسي حقيقي بين المدرسين",
+    "description": "يعتمد على جودة الشرح والتعليم فعلاً، وليس فقط الشهرة والسمعة، لمحاربة الاستغلال وتوفير الراحة للطلاب والرأفة بأولياء الأمور."
+  },
+  "mission": {
+    "title": "مهمتنا",
+    "statement": "دعم المعلمين الجيدين وتوجيه الطلاب",
+    "description": "نهدف إلى تسليط الضوء على المعلمين ذوي الكفاءة وربطهم بالطلاب الباحثين عن جودة التعليم، بعيدًا عن المفاهيم السائدة المبنية على الشهرة فقط."
+  },
+  "students": {
+    "title": "ماذا سنقدم للطلاب؟",
+    "location": {
+      "title": "مدرسين قريبين منك",
+      "description": "ستتمكن من اختيار المدرسين الأقرب إلى منطقتك بكل سهولة."
+    },
+    "affordability": {
+      "title": "أسعار مناسبة للجميع",
+      "description": "دروس بجودة عالية وبأسعار معقولة تناسب مختلف الفئات."
+    },
+    "flexibility": {
+      "title": "مواعيد مرنة",
+      "description": "اختر من بين مواعيد مختلفة تناسب جدولك اليومي."
+    },
+    "accessibility": {
+      "title": "سهولة الوصول",
+      "description": "يمكنك تقييم معلمك المستقبلي من خلال مشاهدة بعض مقاطع الفيديو التعريفية الخاصة به"
+    }
+  },
+  "tutorss": {
+    "title": "إزاي مدرّسي هتفيد المُعلّمين",
+    "freeAdvertising": {
+      "title": "دعاية مجانية",
+      "description": "مدرّسي بتساعدك توصل لطلبة من غير ما تدفع أي حاجة، لا إعلانات ولا عمولات."
+    },
+    "noRisk": {
+      "title": "مفيش أي مخاطرة",
+      "description": "مش مطلوب منك تدفع ولا تلتزم بحاجة. بس سجل بياناتك وخلي الطلبة تلاقيك."
+    },
+    "winWin": {
+      "title": "مكسب للطرفين",
+      "description": "أنت بتكسب انتشار والطلبة بيلاقوا اختيارات أكتر. الكل كسبان."
+    },
+    "standOut": {
+      "title": "خليك مميز",
+      "description": "خلّي جودة شغلك هي اللي تتكلم عنك، مش شهرة ولا تسويق غالي."
+    }
+  },
+  "mobileComingSoon": {
+    "title": "تجربة جديدة تماما للموبايل قريباً",
+    "badge": "قريباً",
+    "description": "نحن نعمل جاهدين لنقدم لك نسخة محمولة سلسة ومتكاملة المزايا من مرسي. ترقبوا التحديثات!"
+  },
+  "save": "حفظ",
+  "cancel": "إلغاء",
+  "editProfile": "تعديل الملف الشخصي",
+  "team": {
+    "title": "اتعرّف على الفريق",
+    "description": "اهي ماشية.",
+    "names": {
+      "Abu El-Magd": "أبو المجد",
+      "mohamed": "محمد",
+      "me": "أنا",
+      "Moaz Ashour": "معاذ عاشور",
+      "Mohmed Essam": "محمد عصام",
+      "Full Card Name": "أحمد كامل"
+    },
+    "roles": {
+      "business man": "رجل أعمال",
+      "Backend Engineer": "مهندس باك إند",
+      "Frontend Developer": "مطور فرونت إند",
+      "connections manager": "مدير العلاقات",
+      "idk but i love him too": "مش عارف بس بحبه بردو",
+      "Full Stack Developer": "مطور فول ستاك"
+    },
+    "bios": {
+      "Abu El-Magd": "أنا بحبه.",
+      "mohamed": "أموجص.",
+      "me": "معرفش.",
+      "Moaz Ashour": "أنا بسيح جواه.",
+      "Mohmed Essam": "زنجي.",
+      "Full Card Name": "مهووس بكل حاجة ليها علاقة بالبرمجة، من أول البنية التحتية لحد الواجهات التفاعلية. دايمًا بيدور على الجديد وعاوز يغيّر العالم."
+    }
+  },
+  "stats": {
+    "students": "طالب",
+    "tutors": "مدرس",
+    "subjects": "مادة"
+  },
+  "changeBanner": "تغيير صورة الغلاف",
+  "changeAvatar": "تغيير الصورة الشخصية",
+  "yourName": "اسمك",
+  "noRating": "لا توجد تقييمات بعد",
+  "editSocials": "تعديل وسائل التواصل",
+  "selectPlatform": "اختر المنصة",
+  "enterUrl": "أدخل الرابط",
+  "done": "تم",
+  "yearsExp": "سنوات الخبرة",
+  "selectLocation": "اختر الموقع",
+  "addArea": "أضف منطقة",
+  "teachesSubjects": "المواد التي تُدرسها",
+  "subject": "المادة",
+  "grade": "الصف الدراسي",
+  "type": "النوع",
+  "addSubject": "إضافة مادة",
+  "aboutMe": "نبذة عني",
+  "writeSomethingAboutYou": "اكتب شيئًا عن نفسك...",
+  "note": "ملاحظة",
+  "videosTitle": "فيديوهاتك",
+  "videosDesc": "قم بإدارة فيديو التعريف والفيديوهات الأخرى. الروابط المدعومة هي من YouTube فقط.",
+  "introVideo": "فيديو المقدمة",
+  "introVideoLabel": "هذا هو فيديو المقدمة الرئيسي الخاص بك.",
+  "videoTitle": "عنوان الفيديو",
+  "videoUrl": "رابط فيديو YouTube",
+  "addNewVideo": "إضافة فيديو جديد",
+  "addVideo": "إضافة الفيديو",
+  "invalidVideoUrl": "رابط فيديو غير صالح أو غير مدعوم",
+"bookingSchedule": "جدول الحجز",
+  "grade": "الصف",
+  "unnamedGroup": "مجموعة بدون اسم",
+  "full": "ممتلئ",
+  "available": "متاح",
+  "groupName": "اسم المجموعة",
+  "days": "الأيام",
+  "selectDays": "اختر الأيام",
+  "timeRange": "الفترة الزمنية",
+  "startTime": "وقت البداية",
+  "endTime": "وقت النهاية",
+  "note": "ملاحظة",
+  "optional": "اختياري",
+  "markAsFull": "علم كـ ممتلئ",
+  "remove": "إزالة",
+  "addGroup": "إضافة مجموعة",
+  "tutorAvailability": "توفر المعلم",
+  "tutorCommTimes": "أوقات تواصل المعلم",
+  "selectDay": "اختر يوم",
+  "add": "إضافة",
+  "update": "تحديث",
+  "cancel": "إلغاء",
+  "commNote": "ملاحظة التواصل",
+  "commNotePlaceholder": "أدخل أي ملاحظات إضافية للتواصل...",
+  "noCommInfo": "لا توجد معلومات تواصل متاحة",
+  "invalidTimeRange": "الفترة الزمنية غير صالحة: وقت النهاية يجب أن يكون بعد وقت البداية",
+  "videoManager": {
+    "videosTitle": "إدارة الفيديوهات",
+    "videosDesc": "أضف أو عدل روابط فيديوهات يوتيوب لعرضها للطلاب",
+    "introVideo": "فيديو تعريفي",
+    "invalidVideoUrl": "رابط الفيديو غير صالح",
+    "videoTitle": "عنوان الفيديو",
+    "videoUrl": "رابط الفيديو",
+    "delete": "حذف",
+    "introVideoLabel": "هذا هو الفيديو التعريفي الرئيسي",
+    "addNewVideo": "إضافة فيديو جديد",
+    "addVideo": "إضافة الفيديو"
+  },
+  "accountNav" : "ادارة الحساب",
+  "accountDesc": "اتحكم بمعلوماتك الشخصية من هنا",
+  "settingss": "الاعدادات",
+  "tutorVideos": {
+    "videosTitle": "فيديوهات المعلم",
+    "videosDesc": "شاهد فيديوهات يوتيوب الخاصة بالمعلم للتعرف على أسلوبه التعليمي",
+    "introVideo": "فيديو تعريفي",
+    "noVideosTitle": "لا توجد فيديوهات",
+    "noVideosDescription": "لم يتم إضافة فيديوهات بعد. تحقق لاحقًا!",
+    "untitledVideo": "فيديو بدون عنوان",
+    "invalidVideoUrl": "رابط الفيديو غير صالح",
+    "playlist": "قائمة التشغيل",
+    "videoSectionIntroduction": "مقدمة",
+    "videoSectionSampleLesson": "درس نموذجي",
+    "videoSectionTopicExplanation": "شرح الموضوع",
+    "videoSectionProblemSolving": "حل المشكلات",
+    "videoSectionOther": "أخرى"
+  }
 }

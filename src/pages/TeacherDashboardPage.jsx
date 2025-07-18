@@ -1,12 +1,10 @@
 import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { TrendingUp, Table2, Tag, FileText, Settings } from 'lucide-react';
+import { TrendingUp, User } from 'lucide-react';
 
 import AnalysisSection from '@/components/Dashboard/analysis';
-import GroupsAndTablesSection from '@/components/Dashboard/groups';
-import PricesAndOffersSection from '@/components/Dashboard/prices';
-import ContentManagementSection from '@/components/Dashboard/content';
+import AccountSection from '@/components/Dashboard/account';
 import SaveButton from '@/components/ui/save';
 
 const TeacherDashboardPage = () => {
@@ -15,11 +13,14 @@ const TeacherDashboardPage = () => {
   const [activeSection, setActiveSection] = useState('analysis');
   const [unsavedSections, setUnsavedSections] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+  });
   const lastSectionRef = useRef('analysis');
-
-  const handleSettingsClick = () => {
-    window.location.href = 'http://localhost:5173/settings/teacher';
-  };
 
   const markDirty = (sectionId) => {
     setUnsavedSections((prev) => ({ ...prev, [sectionId]: true }));
@@ -27,7 +28,6 @@ const TeacherDashboardPage = () => {
 
   const handleSave = async (sectionId) => {
     setIsSaving(true);
-    // future: send data to backend here
     await new Promise((r) => setTimeout(r, 1200));
     setUnsavedSections((prev) => ({ ...prev, [sectionId]: false }));
     setIsSaving(false);
@@ -44,26 +44,30 @@ const TeacherDashboardPage = () => {
     setActiveSection(newSection);
   };
 
-  // Auto-save on browser/tab close
-useEffect(() => {
-  const handleBeforeUnload = () => {
-    const currentSection = lastSectionRef.current;
-    if (unsavedSections[currentSection]) {
-      // mock "save" sync — in real app this could trigger localStorage or API
-      console.log(`Auto-saving before unload: ${currentSection}`);
-    }
-  };
-  window.addEventListener('beforeunload', handleBeforeUnload);
-  return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-}, [unsavedSections]);
-
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const currentSection = lastSectionRef.current;
+      if (unsavedSections[currentSection]) {
+        console.log(`Auto-saving before unload: ${currentSection}`);
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [unsavedSections]);
 
   const sections = [
-    { id: 'analysis', label: t('analysis'), icon: <TrendingUp className="h-5 w-5" /> },
-    { id: 'groupsAndTables', label: t('groupsAndTables'), icon: <Table2 className="h-5 w-5" /> },
-    { id: 'pricesAndOffers', label: t('pricesAndOffers'), icon: <Tag className="h-5 w-5" /> },
-    { id: 'contentManagement', label: t('contentManagement'), icon: <FileText className="h-5 w-5" /> },
-    { id: 'settings', label: t('settingsNav'), icon: <Settings className="h-5 w-5" /> },
+    {
+      id: 'analysis',
+      label: t('analysis'),
+      icon: <TrendingUp className="h-6 w-6" />,
+      description: t('analysisDesc', 'View and analyze your teaching performance and student progress.'),
+    },
+    {
+      id: 'account',
+      label: t('accountNav'),
+      icon: <User className="h-6 w-6" />,
+      description: t('accountDesc', 'Manage your personal information and account settings.'),
+    },
   ];
 
   return (
@@ -75,72 +79,46 @@ useEffect(() => {
         <p className="text-lg text-muted-foreground">{t('dashboardOverview')}</p>
       </section>
 
-      <div
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 p-3 bg-muted/20 rounded-lg shadow-lg"
-      >
+      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gradient-to-r from-muted/5 to-muted/10 rounded-xl shadow-lg gap-5">
         {sections.map((section) => (
           <motion.button
             key={section.id}
-            whileHover={{ y: -5 }}
+            whileHover={{ scale: 1.05, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)' }}
             whileTap={{ scale: 0.95 }}
-            dir={i18n.language === 'ar' ? 'rtl' : 'ltr'} 
-            onClick={
-              section.id === 'settings'
-                ? handleSettingsClick
-                : () => handleTabChange(section.id)
-            }
-            className={`shadow-lg hover:shadow-xl transition-shadow bg-gradient-to-br from-muted/10 to-muted/30 border border-border/50 rounded-xl p-6 text-left ${
-              activeSection === section.id && section.id !== 'settings'
-                ? 'ring-2 ring-primary'
-                : ''
-            }`}
+            dir={isRTL ? 'rtl' : 'ltr'}
+            onClick={() => handleTabChange(section.id)}
+            className={`flex flex-col items-center justify-center gap-2 px-6 py-4 rounded-lg font-semibold text-base transition-all duration-300 ${
+              activeSection === section.id
+                ? 'bg-primary text-primary-foreground shadow-inner'
+                : 'bg-background text-foreground hover:bg-muted/80'
+            } sm:flex-1 border border-border/30`}
           >
-            <div className="flex items-center justify-between pb-2 gap-2">
-              <div className="flex items-center gap-2">
-                {section.icon}
-                <h3 className="text-base font-semibold text-foreground text-[15px]">
-                  {section.label}
-                </h3>
-              </div>
+            <div className="flex items-center gap-3">
+              {section.icon}
+              <span>{section.label}</span>
             </div>
-
-            <p
-              className={`text-sm text-muted-foreground ${
-                i18n.language === 'ar' ? 'text-right' : 'text-left'
-              }`}
-            >
-              {t(`${section.id}Desc`)}
+            <p className={`hidden md:block text-sm text-muted-foreground text-center ${
+              activeSection === section.id ? 'text-primary-foreground/80' : ''
+            }`}>
+              {section.description}
             </p>
           </motion.button>
         ))}
       </div>
 
-      {/* Content Area */}
       {activeSection === 'analysis' && <AnalysisSection />}
-      {activeSection === 'groupsAndTables' && (
+      {activeSection === 'account' && (
         <>
-          <GroupsAndTablesSection markDirty={() => markDirty('groupsAndTables')} />
-          <SaveButton
-            isLoading={isSaving}
-            onClick={() => handleSave('groupsAndTables')}
+          <AccountSection
+            form={form}
+            setForm={(newForm) => {
+              setForm(newForm);
+              markDirty('account');
+            }}
           />
-        </>
-      )}
-      {activeSection === 'pricesAndOffers' && (
-        <>
-          <PricesAndOffersSection markDirty={() => markDirty('pricesAndOffers')} />
           <SaveButton
             isLoading={isSaving}
-            onClick={() => handleSave('pricesAndOffers')}
-          />
-        </>
-      )}
-      {activeSection === 'contentManagement' && (
-        <>
-          <ContentManagementSection markDirty={() => markDirty('contentManagement')} />
-          <SaveButton
-            isLoading={isSaving}
-            onClick={() => handleSave('contentManagement')}
+            onClick={() => handleSave('account')}
           />
         </>
       )}
