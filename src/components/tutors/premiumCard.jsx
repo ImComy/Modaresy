@@ -4,9 +4,10 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Quote } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import i18next from 'i18next';
 
 const PremiumShortTutorCard = ({ tutor }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -24,9 +25,14 @@ const PremiumShortTutorCard = ({ tutor }) => {
       )}
     >
       {/* Premium badge */}
-      <div className="absolute top-3 left-3 z-10 bg-yellow-400 text-black text-xs font-semibold px-3 py-1 rounded-full shadow">
+        <div
+        className={cn(
+            'absolute top-3 z-10 bg-yellow-400 text-black text-xs font-semibold px-3 py-1 rounded-full shadow',
+            i18n.dir() === 'rtl' ? 'right-3' : 'left-3'
+        )}
+        >
         ★ Premium
-      </div>
+        </div>
 
       {/* Image side */}
       <div className="w-full sm:w-1/2 aspect-[4/3]">
