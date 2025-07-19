@@ -1,13 +1,37 @@
 import express from "express";
-import { verifyToken } from "../middleware/auth.js";
-import { reviewTutor, contactTutor, addToWishlist, removeFromWishlist, reportTutor } from "../controllers/studentController.js";
+import { 
+    verifyToken
+} from "../services/authentication.service.js";
+import {
+    getWishlist
+} from "../services/student.service.js"
+import {
+    getTeacherbyId
+} from '../services/tutor.service.js'
+
+import { 
+    contactTutor, 
+    addToWishlist, 
+    removeFromWishlist, 
+    //reportTutor, 
+    getProfile, 
+    updateProfile,
+    requestEnrollment,
+    isStudent
+} from "../controllers/student.js";
 
 const router = express.Router();
 
-router.post("/reviewTutor", verifyToken, reviewTutor)
-router.post("/contactTutor", verifyToken, contactTutor)
-router.post("/addWishlist", verifyToken, addToWishlist)
-router.delete("/removeWishlist", verifyToken, removeFromWishlist)
-router.post("/reportTutor", verifyToken, reportTutor)
+router.use(verifyToken)
+router.use(isStudent)
+
+router.post("/contactTutor", getTeacherbyId, contactTutor)
+router.post("/requestEnrollment", getTeacherbyId, requestEnrollment)
+router.post("/addWishlist", getWishlist, addToWishlist)
+router.delete("/removeWishlist", getWishlist, removeFromWishlist)
+//router.post("/reportTutor", reportTutor)
+
+router.get("/getProfile", getProfile)
+router.put("/updateProfile", updateProfile)
 
 export default router;

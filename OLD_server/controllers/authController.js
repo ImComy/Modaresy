@@ -20,13 +20,11 @@ export async function createAccount(req, res) {
   try{
     const body = req.body
     const { type } = body;
-    const hashed_password = await hash_password(body.password)
+    body.password = await hash_password(body.password)
 
-    if (!hashed_password) {
+    if (!body.password) {
       return res.status(500).json({ error: "Password hashing failed" });
     }
-
-    body.password = hashed_password
 
     let user;
     if (type === "Student") {

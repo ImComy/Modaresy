@@ -1,12 +1,15 @@
-import mongoose, { Schema } from 'mongoose';
+import { Schema } from 'mongoose';
 import { User } from './user.js';
 import {
   Education_Systems
-} from '../models/constants.js'
+} from './constants.js'
+
 import {
-  validateEducationStructure_one,
-  validateSector
-} from '../services/validation.service.js'
+  validateEducationSystem,
+  validateGrade,
+  validateSector,
+  validateLanguage
+} from '../utils/constantsValidation.js';
 
 const StudentSchema = new Schema({
   education_system: {
@@ -18,8 +21,8 @@ const StudentSchema = new Schema({
     type: String,
     required: [true, "Student's grade isn't specified"],
     validate: {
-      validator: function(v){
-        return validateEducationStructure_one("grades", v, this.education_system)
+      validator: function (grade) {
+        return validateGrade(this.education_system, grade);
       },
       message: "Grade is invalid for the selected education system",
     },
@@ -28,8 +31,8 @@ const StudentSchema = new Schema({
     type: String,
     required: [true, "Student's sector isn't specified"],
     validate: {
-      validator: function(v){
-        return validateSector(v, this.grade, this.education_system)
+      validator: function (sector) {
+        return validateSector(this.education_system, this.grade, sector);
       },
       message: "Sector doesn't match the student's grade and education system",
     },
@@ -39,16 +42,11 @@ const StudentSchema = new Schema({
     required: [true, "Studying language isn't specified"],
     validate: {
       validator: function (lang) {
-        return validateEducationStructure_one("languages", lang, this.education_system);
+        return validateLanguage(this.education_system, lang);
       },
       message: "Invalid studying language",
     },
   },
-  wishlist_id: {
-    required: true,
-    type: mongoose.Types.ObjectId,
-    ref: "Wishlist"
-  }
 }, { timestamps: true });
 
 export const Student = User.discriminator("Student", StudentSchema);
