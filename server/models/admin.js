@@ -7,11 +7,6 @@ const AdminSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
-  email: {
-    type: String,
-    unique: true,
-    sparse: true // allow some accounts to use username only
-  },
   password: {
     type: String,
     required: true

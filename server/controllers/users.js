@@ -29,10 +29,10 @@ export async function createAccount(req, res, next) {
 export async function login(req, res){
   const input_data = req.body
 
-  const {isMatch, id} = await compareHash(input_data.password, input_data.email);
+  const {isMatch, id} = await compareHash(input_data.password, input_data.email, "User");
   if (!isMatch) return res.status(400).json({error: "password or email is invalid"})
   
-  const token = await get_token(id)
+  const token = await get_token(id, "User");
   if (!token) return res.status(400).json({error: "cannot generate a token!"});
 
   return res.status(200).json({message: "user login successfully!", token})
