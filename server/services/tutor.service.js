@@ -1,7 +1,7 @@
 // Modules
 
 // Models
-import {Teacher, EnrollmentRequest, Enrollment} from '../models/teacher.js'
+import {Teacher, Enrollment} from '../models/teacher.js'
 import Review from "../models/subjectRelated.js";
 import SubjectProfile from '../models/subject.js';
 
@@ -124,4 +124,40 @@ export async function enrollStudent(student, teacher) {
     }catch(err){
         return {error:"error enrolling student", err}
     }
+}
+
+export async function createNewTutor(req, res) {
+  try{
+    const { 
+      name,
+      email,
+      password,
+      address,
+      about_me,
+      experience_years,
+      education_system,
+      sectors,
+      languages,
+      grades
+    } = req.body;
+    if (!name || !email || !password || !address || !about_me || !experience_years || !education_system || !sectors || !languages || !grades) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+    const newTutor = new Teacher({
+      name,
+      email,
+      password,
+      address,
+      about_me,
+      experience_years,
+      education_system,
+      sectors,
+      languages,
+      grades
+    });
+    await newTutor.save();
+    return res.status(201).json({ message: "Tutor created successfully", tutor: newTutor });
+  }catch(err) {
+    return res.status(500).json({ error: "Internal server error: " + err.message });
+  }
 }

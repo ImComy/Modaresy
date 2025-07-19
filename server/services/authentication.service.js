@@ -19,11 +19,13 @@ export async function hash_password(req, res, next) {
     return res.status(400).json({ error: "Error hashing password:"+ err })
   }
 }
-export async function compareHash(password, email) {
-    const user = await User.findOne({email})
+export async function compareHash(password, email, type = "User") {
+  let Model = type === "Admin" ? Admin : User;
+    const user = await Model.findOne({email})
     if (!user) return false
     return {isMatch: await bcrypt.compare(password, user.password), id: user._id}
 }
+
 
 export async function sendVerificationCode(req, res) {
   const { email, type } = req.body;
@@ -65,10 +67,27 @@ export async function verifyUserAccount(req, res) {
   }
 }
 
-export async function get_token(id){
-  const user = await User.findById(id)
+export async function get_token(id, type = "User") {
+  let Model = type === "Admin" ? Admin : User;
+  const user = await Model.findById(id)
   if (!user) return false
- return jwt.sign({id: user._id, type: user.type}, process.env.JWT_PRIVATE_KEY, {expiresIn: "30d"})
+
+  if (type === "Admin") {
+    res.cookie("admin_token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+  } else if (type === "User") {
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+  }
+  return jwt.sign({ id: user._id, type: user.type }, process.env.JWT_PRIVATE_KEY, { expiresIn: "30d" })
 }
 
 export function logout(req, res) {
