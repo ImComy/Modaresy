@@ -1,4 +1,4 @@
-export const userTypes = Object.freeze(["Teacher", "Student"]);
+export const User_Types = Object.freeze(["Teacher", "Student"]);
 
 export const weekDays = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 
@@ -24,7 +24,6 @@ export const PaymentMethods = Object.freeze([
   "Credit Card",
   "Fawry"
 ]);
-
 export const Education_Systems = Object.freeze(["National", "Azhar"]);
 
 export const EducationStructure = Object.freeze({
@@ -41,7 +40,7 @@ export const EducationStructure = Object.freeze({
   Azhar: {
     grades: Object.freeze(["Secondary 1", "Secondary 2", "Secondary 3"]),
     sectors: Object.freeze({
-      "Secondary 1": ["Scientific", "Literature"],
+      "Secondary 1": ["General"],
       "Secondary 2": ["Scientific", "Literature"],
       "Secondary 3": ["Mathematics", "Scientific", "Literature"]
     }),
@@ -68,37 +67,31 @@ export const SubjectsBySystem = Object.freeze({
 });
 
 export const Governates = Object.freeze([
-"Alexandria",
-"Assiut",
-"Aswan",
-"Beheira",
-"Bani Suef",
-"Cairo",
-"Daqahliya",
-"Damietta",
-"Fayyoum",
-"Gharbiya",
-"Giza",
-"Helwan",
-"Ismailia",
-"Kafr El Sheikh",
-"Luxor",
-"Marsa Matrouh",
-"Minya",
-"Monofiya",
-"New Valley",
-"North Sinai",
-"Port Said",
-"Qalioubiya",
-"Qena",
-"Red Sea",
-"Sharqiya",
-"Sohag",
-"South Sinai",
-"Suez",
-"Tanta"
+  "Cairo", "Cairo - Nasr City", "Cairo - Heliopolis", "Cairo - Maadi",
+  "Giza", "Giza - Mohandessin", "Giza - 6th of October",
+  "Alexandria", "Alexandria - Sidi Gaber", "Alexandria - Smouha",
+  "Dakahlia", "Dakahlia - Mansoura",
+  "Red Sea", "Red Sea - Hurghada", "Red Sea - El Gouna",
+  "Beheira", "Beheira - Damanhour",
+  "Fayoum",
+  "Gharbia", "Gharbia - Tanta",
+  "Ismailia",
+  "Monufia", "Monufia - Shebin El Kom",
+  "Minya",
+  "Qalyubia", "Qalyubia - Benha", "Qalyubia - Shubra El Kheima",
+  "New Valley", "New Valley - Kharga",
+  "Suez",
+  "Aswan", "Aswan - Abu Simbel",
+  "Assiut",
+  "Beni Suef",
+  "Port Said", "Port Said - Port Fouad",
+  "Damietta",
+  "Sohag",
+  "North Sinai", "North Sinai - Arish",
+  "South Sinai", "South Sinai - Sharm El Sheikh", "South Sinai - Dahab",
+  "Kafr El Sheikh",
+  "Matrouh", "Matrouh - Marsa Matruh", "Matrouh - Siwa",
+  "Luxor",
+  "Qena",
+  "Sharqia", "Sharqia - Zagazig"
 ]);
-
-const Districts = Object.freeze({
-  "Ismailia": ["El-shiekh zayed", "Ard Elgamiaat", "Elkhamsaa", "Elsabaa"]
-})

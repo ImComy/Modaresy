@@ -1,8 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import { PricePeriod, PaymentTimings, PaymentMethods } from './constants.js';
-import { 
-  calculateSubjectProfileRating
- } from '../events/subject_profile.js';
+import { calculateSubjectProfileRating } from '../utils/rating.js';
 
 // Offer Schema
 export const OfferSchema = new Schema({
@@ -34,18 +32,18 @@ const ReviewSchema = new Schema({
   Comment: {
     type: String
   },
-  createdAt: {
+  Date: {
     type: Date,
     default: Date.now
   }
 });
 
 ReviewSchema.post('save', async function () {
-  await calculateSubjectProfileRating(this.subject_profile, true);
+  await calculateSubjectProfileRating(this.subject_profile, this.Rate);
 });
 
 ReviewSchema.post('remove', async function () {
-  await calculateSubjectProfileRating(this.subject_profile, false);
+  await calculateSubjectProfileRating(this.subject_profile, this.Rate);
 });
 
 // Additional Pricing Schema

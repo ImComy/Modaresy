@@ -1,5 +1,5 @@
 import express from "express"
-import users from "./routes/users.js"
+import auth from "./routes/authRoutes.js"
 import tutors from "./routes/tutors.js"
 import students from "./routes/students.js"
 import admins from "./routes/admins.js"
@@ -25,11 +25,11 @@ const port = process.env.port;
 app.use(express.json());
 app.use(cookieParser());
 
-app.use('/users', users)
+app.use('/auth', auth)
 app.use('/tutors', tutors)
 app.use('/students', students)
 app.use('/admins', admins)
 
 app.listen(port, () => {
-  console.log(`Modaresy is listening on port ${port}`)
+  console.log(`Example app listening on port ${port}`)
 })

@@ -1,24 +1,16 @@
 import mongoose, { Schema } from 'mongoose';
+import { User } from './user.js';
+import {
+  validateEducationStructure_many
+} from '../services/validation.service.js'
+
 import {
   Education_Systems
 } from './constants.js'
 
-import {
-  validateGrade,
-  validateSector,
-  validateLanguage,
-  validateEducationSystem
-} from '../utils/constantsValidation.js';
-import { User } from './user.js';
-
 const TeacherSchema = new Schema({
   social_media: { type: [String] },
   address: { type: String, required: true },
-
-  isTop: { type: Boolean, default: false, required: true },
-  isRecommended: { type: Boolean, default: false, required: true },
-  isReady: { type: Boolean, default: false, required: true },
-
   about_me: { type: String, required: true },
 
   education_system: {
@@ -32,18 +24,6 @@ const TeacherSchema = new Schema({
     ref: 'SubjectProfile',
   }],
 
-  availability: {
-    type: Schema.Types.ObjectId,
-    ref: 'PersonalAvailability',
-    default: null,
-  },
-
-  achievements: {
-    type: Schema.Types.ObjectId,
-    ref: 'Achievement',
-    default: null,
-  },
-
   experience_years: {
     type: Number,
     default: 0,
@@ -53,11 +33,10 @@ const TeacherSchema = new Schema({
   grades: {
     type: [String],
     validate: {
-      validator: function (value) {
-        return Array.isArray(value) &&
-          value.every(grade => validateGrade(this.education_system, grade));
+      validator: function (grades){
+        return validateEducationStructure_many("grades", grades, this.education_system)
       },
-      message: "One or more selected grades are invalid for the selected education system",
+      message: "One or more selected grades are invalid for the selected education system"
     },
     required: true,
   },
@@ -65,9 +44,8 @@ const TeacherSchema = new Schema({
   languages: {
     type: [String],
     validate: {
-      validator: function (value) {
-        return Array.isArray(value) &&
-          value.every(lang => validateLanguage(lang));
+      validator: function (languages) {
+        return validateEducationStructure_many("languages", languages, this.education_system)
       },
       message: "One or more selected languages are invalid",
     },
@@ -81,7 +59,7 @@ const TeacherSchema = new Schema({
         return Array.isArray(value) &&
           value.every(sector =>
             (this.grades || []).every(grade =>
-              validateSector(this.education_system, grade, sector)
+              validateSector(sector, grade, this.education_system)
             )
           );
       },
@@ -94,9 +72,37 @@ const TeacherSchema = new Schema({
     type: Number,
     required: true,
     default: 0
+  },
+
+  enrollments: {
+    type: [mongoose.Types.ObjectId],
+    ref: 'Enrollment'
+  },
+
+  enrollmentsRequests: {
+    type: [mongoose.Types.ObjectId],
+    ref: 'EnrollmentRequest'
   }
 }, {
   timestamps: true,
 });
 
+const EnrollmentSchema = new Schema({
+  studentId: {required: true, type: mongoose.Types.ObjectId, ref: 'Student'},
+  tutorId: {required: true, type: mongoose.Types.ObjectId, ref: 'Teacher'},
+  enrolledSince: {required: true, type: Date, default: Date.now},
+  status: {
+    type: String,
+    enum: ['pending', 'accepted', 'rejected'],
+    default: 'pending'
+  }
+})
+const EnrollmentRequestSchma = new Schema({
+  studentId: {required: true, type: mongoose.Types.ObjectId, ref: 'Student'},
+  tutorId: {required: true, type: mongoose.Types.ObjectId, ref: 'Teacher'},
+  requestedAt: {required: true, type: Date, default: Date.now}
+})
+
+export const Enrollment = mongoose.model('Enrollment', EnrollmentSchema)
+export const EnrollmentRequest = mongoose.model('EnrollmentRequest', EnrollmentRequestSchma)
 export const Teacher = User.discriminator('Teacher', TeacherSchema);
