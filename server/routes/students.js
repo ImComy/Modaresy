@@ -6,7 +6,7 @@ import {
     getWishlist
 } from "../services/student.service.js"
 import {
-    getTeacherById
+    getTeacherbyId
 } from '../services/tutor.service.js'
 
 import { 
@@ -18,15 +18,15 @@ import {
     updateProfile,
     requestEnrollment,
     isStudent
-} from "../controllers/studentController.js";
+} from "../controllers/student.js";
 
 const router = express.Router();
 
 router.use(verifyToken)
 router.use(isStudent)
 
-router.post("/contactTutor", getTeacherById, contactTutor)
-router.post("/requestEnrollment", getTeacherById, requestEnrollment)
+router.post("/contactTutor", getTeacherbyId, contactTutor)
+router.post("/requestEnrollment", getTeacherbyId, requestEnrollment)
 router.post("/addWishlist", getWishlist, addToWishlist)
 router.delete("/removeWishlist", getWishlist, removeFromWishlist)
 //router.post("/reportTutor", reportTutor)
