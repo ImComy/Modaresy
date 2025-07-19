@@ -90,11 +90,17 @@ const TeacherSchema = new Schema({
 const EnrollmentSchema = new Schema({
   studentId: {required: true, type: mongoose.Types.ObjectId, ref: 'Student'},
   tutorId: {required: true, type: mongoose.Types.ObjectId, ref: 'Teacher'},
-  enrolledSince: {required: true, type: Date, default: Date.now}
+  enrolledSince: {required: true, type: Date, default: Date.now},
+  status: {
+    type: String,
+    enum: ['pending', 'accepted', 'rejected'],
+    default: 'pending'
+  }
 })
 const EnrollmentRequestSchma = new Schema({
   studentId: {required: true, type: mongoose.Types.ObjectId, ref: 'Student'},
-  tutorId: {required: true, type: mongoose.Types.ObjectId, ref: 'Teacher'}
+  tutorId: {required: true, type: mongoose.Types.ObjectId, ref: 'Teacher'},
+  requestedAt: {required: true, type: Date, default: Date.now}
 })
 
 export const Enrollment = mongoose.model('Enrollment', EnrollmentSchema)

@@ -1,7 +1,7 @@
 // Modules
 
 // Models
-import Teacher from '../models/teacher.js'
+import {Teacher, EnrollmentRequest, Enrollment} from '../models/teacher.js'
 import Review from "../models/subjectRelated.js";
 import SubjectProfile from '../models/subject.js';
 
@@ -92,5 +92,36 @@ export async function get_subject_profiles(req, res){
         return res.status(200).json(teacher.subject_profiles)
     }catch(err){
         return res.status(400).json({error:"error getting subject profiles", err})
+    }
+}
+
+export async function getEnrollmentRequest(req, res, next){
+    try{
+        const { enrollmentRequestId } = req.body;
+        if (!enrollmentRequestId) return res.status(400).json({error:"enrollmentRequestId is required"})
+        
+        const EnrollmentRequest = await EnrollmentRequest.findById(enrollmentRequestId);
+        if (!EnrollmentRequest) return res.status(404).json({warn:"cannot find enrollment request"})
+        
+        req.EnrollmentRequest = EnrollmentRequest;
+        next();
+    }catch(err){
+        return res.status(400).json({message:"error getting the enrollment request" ,err})
+    }
+}
+
+export async function enrollStudent(student, teacher) {
+    try{
+      const my_enrollment = new Enrollment({
+        studentId: student._id,
+        tutorId: teacher._id,
+        status: 'accepted',
+      });
+      teacher.enrollments.push(my_enrollment._id);
+      await my_enrollment.save();
+      await teacher.save();
+      return {message: "enrollment successful"}
+    }catch(err){
+        return {error:"error enrolling student", err}
     }
 }

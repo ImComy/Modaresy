@@ -14,6 +14,21 @@ export function isStudent(req, res, next){
     }
 }
 
+export async function getStudentById(req, res, next){
+    try{
+        const {studentId} = req.body || req.params;
+        if (!studentId) return res.status(400).json({error:"studentId is required"})
+        if (typeof studentId !== 'string') return res.status(400).json({error:"studentId must be a string"})
+
+        const student = await User.findById(studentId);
+        if (!student) return res.status(404).json({warn:"cannot find student"})
+        req.student = student
+        next()
+    }catch(err){
+        return res.status(400).json({message:"error getting the student" ,err})
+    }
+}
+
 export async function getWishlist(req, res, next){
     try{
         const wishlist = await Wishlist.findById(req.user.wishlist_id);

@@ -4,6 +4,9 @@ import {
 import {
     Review
 } from '../models/subjectRelated.js'
+import {
+    enrollStudent
+} from '../services/tutor.service.js';
 
 export async function getProfile(req, res){    
     return res.status(200).json({userdata: getProfileData(req.user)})
@@ -64,5 +67,35 @@ export async function reviewTutor(req, res){
         return res.status(200).json(my_review);
     }catch(err){
         return res.status(400).json({ error: "Error reviewing tutor", err });
+    }
+}
+
+export async function acceptEnrollment(req, res) {
+    try {
+        const { tutorId } = req.body;
+        if (tutorId !== req.user._id.toString()) {
+            return res.status(403).json({ error: "You are not authorized to accept this enrollment" });
+        }
+        const result = await enrollStudent(req.user, req.student);
+        if (result.status !== 200) {
+            return res.status(result.status).json({ error: result.message });
+        }
+        await req.enrollment.delete();
+        return res.status(200).json(result);
+    } catch (err) {
+        return res.status(400).json({ error: "Error accepting enrollment", err });
+    }
+}
+
+export async function rejectEnrollment(req, res) {
+    try {
+        const { tutorId } = req.body;
+        if (tutorId !== req.user._id.toString()) {
+            return res.status(403).json({ error: "You are not authorized to reject this enrollment" });
+        }
+        await req.enrollment.delete();
+        return res.status(200).json({ message: "Enrollment request rejected successfully" });
+    } catch (err) {
+        return res.status(400).json({ error: "Error rejecting enrollment", err });
     }
 }
