@@ -1,25 +1,22 @@
 import React from 'react';
+import { useParams } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import TutorProfileHeaderDisplay from './original/TutorProfileHeader';
 import TutorProfileHeaderEdit from './editing/TutorProfileHeader';
-import { useAuth } from '@/context/AuthContext';
-import { useParams } from 'react-router-dom';
+import { handleFieldChange } from '@/handlers/tutorEdit/common';
 
+// Main TutorProfileHeader component to toggle between display and edit modes
 const TutorProfileHeader = ({ tutor, setTutor, isEditing, markDirty }) => {
   const { id } = useParams();
   const { authState } = useAuth();
   const { isLoggedIn, userId } = authState;
   const isOwner = isLoggedIn && userId === parseInt(id);
 
-  const handleChange = (field, value) => {
-    setTutor(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-    if (markDirty) markDirty();
-  };
-
   return isEditing ? (
-    <TutorProfileHeaderEdit tutor={tutor} onChange={handleChange} />
+    <TutorProfileHeaderEdit
+      tutor={tutor}
+      onChange={(field, value) => handleFieldChange(field, value, setTutor, markDirty)}
+    />
   ) : (
     <TutorProfileHeaderDisplay tutor={tutor} isOwner={isOwner} />
   );

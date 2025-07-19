@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { User } from './user.js';
+import User from './user.js';
 import {
   validateEducationStructure_many
 } from '../services/validation.service.js'

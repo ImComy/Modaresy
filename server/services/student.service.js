@@ -1,7 +1,7 @@
 // Modules
 
 // Models
-import Wishlist from '../models/misc.js'
+import { Wishlist } from '../models/misc.js'
 
 // Constants
 

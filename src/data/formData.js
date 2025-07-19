@@ -39,10 +39,12 @@ export const locations = [
     // Add more governorates as needed
 ];
 
-    export const subjects = [
+export const subjects = [
     'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Geology',
     'Arabic', 'English', 'French', 'German', 'Italian', 'Spanish',
     'History', 'Geography', 'Philosophy', 'Psychology',
     'Computer Science', 'Art', 'Music'
     // Add more subjects
-    ];
+];
+
+export const API_BASE_URL = import.meta.env.SERVER_URL;

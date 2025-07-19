@@ -89,12 +89,12 @@ const TutorCard = ({ tutor }) => {
         <Card className="relative h-full flex flex-col rounded-xl overflow-hidden border bg-muted">
           <div className="relative w-full h-32 rounded-t-xl">
             <img
-              src={tutor.bannerimg || 'https://placehold.co/600x400'}
+              src={tutor.bannerimg || 'https://placehold.co/Tutor'}
               alt="Banner"
               className="w-full h-full object-cover rounded-t-xl"
               onError={(e) => {
                 e.currentTarget.onerror = null;
-                e.currentTarget.src = 'https://placehold.co/600x400';
+                e.currentTarget.src = 'https://placehold.co/Tutor';
               }}
             />
             <div className="absolute left-1/2 transform -translate-x-1/2 top-full -mt-14">

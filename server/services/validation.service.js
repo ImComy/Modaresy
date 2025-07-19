@@ -1,4 +1,4 @@
-import {isEmail, isMobilePhone} from 'validator'
+import validator from 'validator';
 import {
     Districts,
     EducationStructure
@@ -6,6 +6,7 @@ import {
 import {
   SubjectProfile
 } from '../models/subject.js'
+const { isEmail, isMobilePhone } = validator;
 
 export function validatePhoneNumber(num) {
   return isMobilePhone(num, 'ar-EG');

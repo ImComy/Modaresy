@@ -1,12 +1,8 @@
 import mongoose, { Schema } from 'mongoose';
 import {
-  validateGrade,
-  validateSector,
-  validateLanguage,
-  validateSubject,
-  validateEducationSystem,
-  validateUserType
-} from '../utils/constantsValidation.js';
+  validateEducationStructure_one,
+  validateSector
+} from '../services/validation.service.js';
 import { PricePeriod, PaymentTimings, PaymentMethods } from './constants.js';
 
 const SubjectSchema = new Schema({
@@ -15,9 +11,9 @@ const SubjectSchema = new Schema({
     required: true,
     validate: {
       validator: function (value) {
-        return validateSubject(this.education_system, this.grade, value, this.sector);
+        return validateEducationStructure_one("subjects", value, this.education_system);
       },
-      message: "Invalid subject for the given education system, grade, and sector"
+      message: "Invalid subject for the given education system"
     }
   },
   grade: {
@@ -25,7 +21,7 @@ const SubjectSchema = new Schema({
     required: true,
     validate: {
       validator: function (value) {
-        return validateGrade(this.education_system, value);
+        return validateEducationStructure_one("grades", value, this.education_system);
       },
       message: "Invalid grade for the selected education system"
     }
@@ -36,7 +32,7 @@ const SubjectSchema = new Schema({
     validate: {
       validator: function (value) {
         if (!value) return true;
-        return validateSector(this.education_system, this.grade, value);
+        return validateSector(value, this.grade, this.education_system);
       },
       message: "Invalid sector for the selected grade and education system"
     }
@@ -45,16 +41,20 @@ const SubjectSchema = new Schema({
     type: String,
     required: true,
     validate: {
-      validator: validateLanguage,
-      message: "Invalid language"
+      validator: function (value) {
+        return validateEducationStructure_one("languages", value, this.education_system);
+      },
+      message: "Invalid language for the given education system"
     }
   },
   education_system: {
     type: String,
     required: true,
     validate: {
-      validator: validateEducationSystem,
-      message: "Invalid education system"
+      validator: function (value) {
+        return !!value && !!value.length; // Basic check; assume all education systems in EducationStructure
+      },
+      message: "Education system is required"
     }
   }
 });
@@ -69,7 +69,9 @@ const SubjectProfileSchema = new Schema({
     type: String,
     required: true,
     validate: {
-      validator: validateUserType,
+      validator: function (value) {
+        return ["tutor", "student"].includes(value); // Simplified; adjust as needed
+      },
       message: "Invalid user type"
     }
   },

@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { User } from './user.js';
+import User from './user.js';
 import {
   Education_Systems
 } from '../models/constants.js'
@@ -51,4 +51,6 @@ const StudentSchema = new Schema({
   }
 }, { timestamps: true });
 
-export const Student = User.discriminator("Student", StudentSchema);
+const Student = User.discriminator("Student", StudentSchema);
+export default Student;
+

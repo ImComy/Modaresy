@@ -5,6 +5,7 @@ import students from "./routes/students.js"
 import admins from "./routes/admins.js"
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
+import cors from 'cors';
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -24,6 +25,7 @@ const app = express();
 const port = process.env.port;
 app.use(express.json());
 app.use(cookieParser());
+app.use(cors());
 
 app.use('/users', users)
 app.use('/tutors', tutors)

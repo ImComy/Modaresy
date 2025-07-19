@@ -99,6 +99,6 @@ export const Governates = Object.freeze([
 "Tanta"
 ]);
 
-const Districts = Object.freeze({
+export const Districts = Object.freeze({
   "Ismailia": ["El-shiekh zayed", "Ard Elgamiaat", "Elkhamsaa", "Elsabaa"]
 })

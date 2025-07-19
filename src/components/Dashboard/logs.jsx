@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Dialog } from '@headlessui/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatRelativeTime } from '@/lib/utils';
 
 const initialLogs = [
   { id: 1, type: 'contact', labelKey: 'activity.contact.label', detailsKey: 'activity.contact.details', date: '2025-06-22T09:30:00Z', read: false },
@@ -29,16 +30,6 @@ const iconMap = {
   review: <ClipboardCheck className="text-primary w-5 h-5" />,
   rating: <Star className="text-primary w-5 h-5" />,
   booking: <CalendarDays className="text-primary w-5 h-5" />,
-};
-
-const formatRelativeTime = (isoDate, t) => {
-  const diff = Date.now() - new Date(isoDate).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return t('time.minutesAgo', { count: mins });
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return t('time.hoursAgo', { count: hrs });
-  const days = Math.floor(hrs / 24);
-  return t('time.daysAgo', { count: days });
 };
 
 const ActivityLogs = () => {
