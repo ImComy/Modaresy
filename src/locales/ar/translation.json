@@ -438,7 +438,6 @@
   "Remove": "ازالة",
   "yearsOfExperince": "سنوات خبرة",
   "Modaresy": "مدرسّي",
-  "topRated": "أعلى تقييم",
   "subjectOverview": "نظرة عامة على المادة",
   "noBio": "لا توجد سيرة ذاتية متاحة لهذه المادة.",
   "discount": "خصم",
@@ -647,7 +646,6 @@
   "achievements": {
     "title": "الإنجازات",
     "description": "حصل عليها هذا المعلم بناءً على الأداء والتقييمات المتكررة.",
-    "topRated": "معلم من الأعلى تقييماً",
     "monthlyTop": "معلم الشهر",
     "award": "حاصل على جائزة",
     "consistent": "أداء ثابت ومميز",
@@ -1427,5 +1425,6 @@
     "videoSectionTopicExplanation": "شرح الموضوع",
     "videoSectionProblemSolving": "حل المشكلات",
     "videoSectionOther": "أخرى"
-  }
+  },
+  "topRated": "مُعلم مُميز"
 }

@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { BookOpen, Award, Building, GraduationCap, MapPin, Plus, Trash, X } from 'lucide-react';
+import { BookOpen, Award, Building, MapPin, Plus, Trash, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import renderStars from '@/components/ui/renderStars';
 import { locations } from '@/data/formData';
@@ -40,7 +40,7 @@ const socialIcons = {
 };
 
 const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation(); // Access i18n for direction
   const [newDetailLoc, setNewDetailLoc] = useState('');
   const [socials, setSocials] = useState(tutor.socials || {});
   const [subjects, setSubjects] = useState(tutor.subjects || []);
@@ -138,8 +138,13 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
     setCropOverlay({ open: false, image: null, shape: 'banner' });
   };
 
+  const totalYearsExp = subjects.reduce((sum, subject) => sum + (parseInt(subject.yearsExp) || 0), 0);
+
+  // Get the current language direction
+  const textDirection = i18n.dir();
+
   return (
-    <>
+    <div dir={textDirection}> {/* Apply direction at the root */}
       {cropOverlay.open && (
         <BannerCropOverlay
           rawImage={cropOverlay.image}
@@ -202,6 +207,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
             </div>
 
             <Input
+              dir="auto" // Let browser determine direction based on content
               className="mt-3 text-center font-bold text-lg w-full max-w-xs border-primary/30 focus:border-primary transition-colors"
               value={tutor.name}
               onChange={(e) => handleFieldChange('name', e.target.value)}
@@ -230,7 +236,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
           {/* Social Media Overlay */}
           {socialEditOpen && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full shadow-xl">
+              <div dir={textDirection} className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full shadow-xl">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-semibold">{t('editSocials')}</h2>
                   <Button variant="ghost" onClick={() => setSocialEditOpen(false)}>
@@ -241,6 +247,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                   {Object.entries(socials).map(([platform, url]) => (
                     <div key={platform} className="flex items-center gap-2">
                       <Input
+                        dir="auto"
                         value={url}
                         onChange={(e) => handleSocialChange(platform, e.target.value)}
                         placeholder={`${platform.charAt(0).toUpperCase() + platform.slice(1)} URL`}
@@ -272,6 +279,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                       </SelectContent>
                     </Select>
                     <Input
+                      dir="auto"
                       value={newSocial.url}
                       onChange={(e) => setNewSocial((prev) => ({ ...prev, url: e.target.value }))}
                       placeholder={t('enterUrl')}
@@ -296,7 +304,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="md:col-span-2 space-y-4 flex flex-col items-center text-center md:items-start md:text-left"
+            className="md:col-span-2 space-y-4 flex flex-col items-center text-center md:items-start md:text-start" // Use text-start for RTL
           >
             <div className="flex flex-col md:flex-row w-full gap-6">
               <div className="flex-1 min-w-0">
@@ -304,17 +312,9 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                   <div className="flex items-start gap-3">
                     <Award size={18} className="mt-3 text-primary shrink-0" />
                     <div className="flex-1">
-                      <Input
-                        type="number"
-                        value={Math.max(...(subjects?.map(s => s.yearsExp || 0) || [0]))}
-                        onChange={(e) => {
-                          const maxYears = parseInt(e.target.value) || 0;
-                          setSubjects(subjects.map(s => ({ ...s, yearsExp: maxYears })));
-                          handleFieldChange('subjects', subjects.map(s => ({ ...s, yearsExp: maxYears })));
-                        }}
-                        placeholder={t('yearsExp')}
-                        className="w-full max-w-xs border-primary/30 focus:border-primary transition-colors"
-                      />
+                      <div className="w-full max-w-xs border-primary/30 focus:border-primary transition-colors bg-muted/50 p-2 rounded-md">
+                        {totalYearsExp} {t('yearsExp')}
+                      </div>
                     </div>
                   </div>
 
@@ -322,7 +322,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                     <MapPin size={18} className="mt-3 text-primary shrink-0" />
                     <div className="flex-1">
                       <Select
-                        value={tutor.location ?? ''} 
+                        value={tutor.location ?? ''}
                         onValueChange={(val) => handleFieldChange('location', val)}
                       >
                         <SelectTrigger className="w-full max-w-xs border-primary/30 focus:border-primary transition-colors">
@@ -344,12 +344,13 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                     <div className="flex-1">
                       <div className="flex gap-2 mb-2">
                         <Input
+                          dir="auto"
                           value={newDetailLoc}
                           onChange={(e) => setNewDetailLoc(e.target.value)}
                           placeholder={t('addArea')}
                           className="max-w-xs border-primary/30 focus:border-primary transition-colors"
                         />
-                        <Button size="sm" onClick={addDetailedLocation}>
+                        <Button type="button" size="sm" onClick={addDetailedLocation}>
                           <Plus size={16} />
                         </Button>
                       </div>
@@ -361,6 +362,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                           >
                             {loc}
                             <Button
+                              type="button"
                               variant="ghost"
                               size="icon"
                               onClick={() => removeDetailedLocation(index)}
@@ -380,7 +382,8 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
                 className={cn(
-                  "hidden md:block w-full bg-white dark:bg-gray-800 shadow-lg rounded-xl p-5 z-10 max-h-[350px] overflow-y-auto flex-1 min-w-0 md:max-w-xs -mt-[200px] mr-14 "
+                  "hidden md:block w-full bg-white dark:bg-gray-800 shadow-lg rounded-xl p-5 z-10 max-h-[350px] overflow-y-auto flex-1 min-w-0 md:max-w-xs -mt-[200px]",
+                  textDirection === 'rtl' ? 'ml-14' : 'mr-14' // Adjust margin for RTL
                 )}
               >
                 <div className="flex items-center gap-2 mb-4">
@@ -391,13 +394,18 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                   {subjects.map((subject, index) => (
                     <div key={index} className="space-y-2 border-b pb-2">
                       <div className="flex items-center gap-2">
-                        <Input
-                          value={subject.subject}
-                          onChange={(e) => handleSubjectChange(index, 'subject', e.target.value)}
-                          placeholder={t('subject')}
-                          className="border-primary/30 focus:border-primary transition-colors"
-                        />
+                        <div className="flex-1">
+                          <label className="text-sm text-muted-foreground">{t('subject')}</label>
+                          <Input
+                            dir="auto"
+                            value={subject.subject}
+                            onChange={(e) => handleSubjectChange(index, 'subject', e.target.value)}
+                            placeholder={t('subject')}
+                            className="border-primary/30 focus:border-primary transition-colors"
+                          />
+                        </div>
                         <Button
+                          type="button"
                           variant="ghost"
                           size="icon"
                           onClick={() => removeSubject(index)}
@@ -405,25 +413,36 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                           <Trash size={12} className="text-destructive" />
                         </Button>
                       </div>
-                      <Input
-                        value={subject.grade}
-                        onChange={(e) => handleSubjectChange(index, 'grade', e.target.value)}
-                        placeholder={t('grade')}
-                        className="border-primary/30 focus:border-primary transition-colors"
-                      />
-                      <Input
-                        value={subject.type}
-                        onChange={(e) => handleSubjectChange(index, 'type', e.target.value)}
-                        placeholder={t('type')}
-                        className="border-primary/30 focus:border-primary transition-colors"
-                      />
-                      <Input
-                        type="number"
-                        value={subject.yearsExp}
-                        onChange={(e) => handleSubjectChange(index, 'yearsExp', e.target.value)}
-                        placeholder={t('yearsExp')}
-                        className="border-primary/30 focus:border-primary transition-colors"
-                      />
+                      <div>
+                        <label className="text-sm text-muted-foreground">{t('grade')}</label>
+                        <Input
+                          dir="auto"
+                          value={subject.grade}
+                          onChange={(e) => handleSubjectChange(index, 'grade', e.target.value)}
+                          placeholder={t('grade')}
+                          className="border-primary/30 focus:border-primary transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-muted-foreground">{t('type')}</label>
+                        <Input
+                          dir="auto"
+                          value={subject.type}
+                          onChange={(e) => handleSubjectChange(index, 'type', e.target.value)}
+                          placeholder={t('type')}
+                          className="border-primary/30 focus:border-primary transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-muted-foreground">{t('yearsExp')}</label>
+                        <Input
+                          type="number"
+                          value={subject.yearsExp}
+                          onChange={(e) => handleSubjectChange(index, 'yearsExp', e.target.value)}
+                          placeholder={t('yearsExp')}
+                          className="border-primary/30 focus:border-primary transition-colors"
+                        />
+                      </div>
                     </div>
                   ))}
                   <Button
@@ -456,12 +475,16 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                 {subjects.map((subject, index) => (
                   <div key={index} className="space-y-2 border-b pb-2">
                     <div className="flex items-center gap-2">
-                      <Input
-                        value={subject.subject}
-                        onChange={(e) => handleSubjectChange(index, 'subject', e.target.value)}
-                        placeholder={t('subject')}
-                        className="border-primary/30 focus:border-primary transition-colors"
-                      />
+                      <div className="flex-1">
+                        <label className="text-sm text-muted-foreground">{t('subject')}</label>
+                        <Input
+                          dir="auto"
+                          value={subject.subject}
+                          onChange={(e) => handleSubjectChange(index, 'subject', e.target.value)}
+                          placeholder={t('subject')}
+                          className="border-primary/30 focus:border-primary transition-colors"
+                        />
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -470,25 +493,36 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
                         <Trash size={12} className="text-destructive" />
                       </Button>
                     </div>
-                    <Input
-                      value={subject.grade}
-                      onChange={(e) => handleSubjectChange(index, 'grade', e.target.value)}
-                      placeholder={t('grade')}
-                      className="border-primary/30 focus:border-primary transition-colors"
-                    />
-                    <Input
-                      value={subject.type}
-                      onChange={(e) => handleSubjectChange(index, 'type', e.target.value)}
-                      placeholder={t('type')}
-                      className="border-primary/30 focus:border-primary transition-colors"
-                    />
-                    <Input
-                      type="number"
-                      value={subject.yearsExp}
-                      onChange={(e) => handleSubjectChange(index, 'yearsExp', e.target.value)}
-                      placeholder={t('yearsExp')}
-                      className="border-primary/30 focus:border-primary transition-colors"
-                    />
+                    <div>
+                      <label className="text-sm text-muted-foreground">{t('grade')}</label>
+                      <Input
+                        dir="auto"
+                        value={subject.grade}
+                        onChange={(e) => handleSubjectChange(index, 'grade', e.target.value)}
+                        placeholder={t('grade')}
+                        className="border-primary/30 focus:border-primary transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">{t('type')}</label>
+                      <Input
+                        dir="auto"
+                        value={subject.type}
+                        onChange={(e) => handleSubjectChange(index, 'type', e.target.value)}
+                        placeholder={t('type')}
+                        className="border-primary/30 focus:border-primary transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">{t('yearsExp')}</label>
+                      <Input
+                        type="number"
+                        value={subject.yearsExp}
+                        onChange={(e) => handleSubjectChange(index, 'yearsExp', e.target.value)}
+                        placeholder={t('yearsExp')}
+                        className="border-primary/30 focus:border-primary transition-colors"
+                      />
+                    </div>
                   </div>
                 ))}
                 <Button
@@ -505,8 +539,9 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
             <Separator className="my-4" />
 
             <div className="w-full">
-              <h2 className="text-xl font-semibold mb-2 text-primary rtl:text-right">{t('aboutMe')}</h2>
+              <h2 className="text-xl font-semibold mb-2 text-primary">{t('aboutMe')}</h2>
               <Textarea
+                dir="auto"
                 value={tutor.GeneralBio || ''}
                 onChange={(e) => handleFieldChange('GeneralBio', e.target.value)}
                 className="w-full min-h-[120px] bg-muted/50 p-4 rounded-md border border-primary/30 focus:border-primary transition-colors"
@@ -516,7 +551,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
           </motion.div>
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 };
 

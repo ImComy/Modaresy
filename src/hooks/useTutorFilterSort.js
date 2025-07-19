@@ -47,14 +47,12 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
   const [filters, setFilters] = useState(getInitialFilters);
   const [sortBy, setSortBy] = useState(getInitialSortBy);
 
-  // 🧠 Create Fuse instance ONCE per tutors change
   const fuse = useMemo(() => new Fuse(initialTutors, {
     keys: ['name', 'subjects.subject'],
     threshold: 0.4,
     includeScore: true,
   }), [initialTutors]);
 
-  // 🧠 Smart search results
   const fuzzySearchResults = useMemo(() => {
     if (!searchTerm) return initialTutors;
     return fuse.search(searchTerm).map(result => result.item);
@@ -146,27 +144,34 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
   }, [fuzzySearchResults, filters]);
 
   const sortedTutors = useMemo(() => {
-    const sorted = [...filteredTutors];
-    switch (sortBy) {
-      case 'ratingDesc':
-        sorted.sort((a, b) => getMaxRating(b) - getMaxRating(a));
-        break;
-      case 'rateAsc':
-        sorted.sort((a, b) => getMinPrice(a) - getMinPrice(b));
-        break;
-      case 'rateDesc':
-        sorted.sort((a, b) => getMinPrice(b) - getMinPrice(a));
-        break;
-      case 'nameAsc':
-        sorted.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'nameDesc':
-        sorted.sort((a, b) => b.name.localeCompare(a.name));
-        break;
-      default:
-        break;
-    }
-    return sorted;
+    const topTutors = filteredTutors.filter(t => t.isTopRated);
+    const otherTutors = filteredTutors.filter(t => !t.isTopRated);
+
+    const applySort = (list) => {
+      const sorted = [...list];
+      switch (sortBy) {
+        case 'ratingDesc':
+          sorted.sort((a, b) => getMaxRating(b) - getMaxRating(a));
+          break;
+        case 'rateAsc':
+          sorted.sort((a, b) => getMinPrice(a) - getMinPrice(b));
+          break;
+        case 'rateDesc':
+          sorted.sort((a, b) => getMinPrice(b) - getMinPrice(a));
+          break;
+        case 'nameAsc':
+          sorted.sort((a, b) => a.name.localeCompare(b.name));
+          break;
+        case 'nameDesc':
+          sorted.sort((a, b) => b.name.localeCompare(a.name));
+          break;
+        default:
+          break;
+      }
+      return sorted;
+    };
+
+    return [...applySort(topTutors), ...applySort(otherTutors)];
   }, [filteredTutors, sortBy]);
 
   return {

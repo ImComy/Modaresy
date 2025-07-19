@@ -629,7 +629,7 @@
   "achievements": {
     "title": "Achievements",
     "description": "earned by this tutor based on consistent performance and ratings.",
-    "topRated": "Top Rated Tutor",
+    "topRated": "Sponsered",
     "monthlyTop": "Top Tutor This Month",
     "award": "Award Winner",
     "consistent": "Consistently Excellent",
@@ -1371,6 +1371,7 @@
     "videoSectionTopicExplanation": "Topic Explanation",
     "videoSectionProblemSolving": "Problem Solving",
     "videoSectionOther": "Other"
-  }
+  },
+  "topRated": "Premium Tutor"
 }
 

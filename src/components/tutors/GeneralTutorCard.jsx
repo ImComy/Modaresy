@@ -11,7 +11,8 @@ import {
   Users,
   GraduationCap,
   ChevronDown,
-  Calendar
+  Calendar,
+  Award
 } from 'lucide-react';
 import renderStars from '@/components/ui/renderStars';
 import { useWishlist } from '@/context/WishlistContext';
@@ -67,7 +68,6 @@ const TutorCard = ({ tutor }) => {
     0
   );
 
-
   const grouped = tutor.subjects.reduce((acc, subj) => {
     const key = subj.type || 'Other';
     if (!acc[key]) acc[key] = [];
@@ -82,12 +82,34 @@ const TutorCard = ({ tutor }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      whileHover={{ y: -2, transition: { duration: 0.15 } }}
+      whileHover={{
+        y: -2,
+        scale: tutor.isTopRated ? 1.01 : 1,
+        transition: { duration: 0.2 },
+      }}
       className="h-full"
     >
-      <Link to={`/tutor/${tutor.id}`} className="block h-full">
-        <Card className="relative h-full flex flex-col rounded-xl overflow-hidden border bg-muted">
-          <div className="relative w-full h-32 rounded-t-xl">
+      <Link
+        to={`/tutor/${tutor.id}`}
+        className={cn(
+          'block h-full transition-all duration-300',
+          tutor.isTopRated && 'hover:shadow-yellow-300'
+        )}
+      >
+        <Card
+          className={cn(
+            'relative h-full flex flex-col rounded-xl overflow-hidden border transition-all duration-300',
+            tutor.isTopRated
+              ? 'border-yellow-400 bg-gradient-to-tr from-yellow-200/50 via-muted to-muted hover:shadow-[0_0_25px_rgba(234,179,8,0.3)] hover:border-yellow-300'
+              : 'bg-muted'
+          )}
+        >
+          <div
+            className={cn(
+              'relative w-full h-32',
+              tutor.isTopRated ? 'border-b-4 border-yellow-400 rounded-t-xl' : 'rounded-t-xl'
+            )}
+          >
             <img
               src={tutor.bannerimg || 'https://placehold.co/Tutor'}
               alt="Banner"
@@ -98,10 +120,13 @@ const TutorCard = ({ tutor }) => {
               }}
             />
             <div className="absolute left-1/2 transform -translate-x-1/2 top-full -mt-14">
-              <div className="h-24 w-24 border-2 border-primary rounded-md bg-background z-50">
-                <Avatar className="h-full w-full rounded-sm">
-                  <AvatarImage src={tutor.img} alt={tutor.name} className="object-cover" />
-                  <AvatarFallback className="rounded-sm">
+              <div className={cn(
+                'h-24 w-24 rounded-lg bg-background z-50',
+                tutor.isTopRated ? 'border-2 border-yellow-400' : 'border-2 border-primary'
+              )}>
+                <Avatar className="h-full w-full rounded-md">
+                  <AvatarImage src={tutor.img} alt={tutor.name} className="object-cover rounded-md" />
+                  <AvatarFallback className="rounded-md">
                     {tutor.name?.split(' ').map((n) => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
@@ -110,13 +135,13 @@ const TutorCard = ({ tutor }) => {
           </div>
 
           {tutor.isTopRated && (
-            <div className="absolute top-2 left-2 bg-yellow-400 text-black text-xs px-2 py-0.5 rounded-md font-semibold shadow z-10">
-              🌟 {t('topRated', 'Top Rated')}
+            <div className="flex items-center gap-1 absolute top-2 left-2 bg-yellow-400 text-black text-xs px-2 py-0.5 rounded-md font-semibold shadow z-10">
+              <Award size={15}/> {t('topRated', 'Sponsored')}
             </div>
           )}
 
           <CardContent className="flex-1 pt-12 pb-4 px-4 flex flex-col justify-between">
-           <div className="text-center space-y-1">
+            <div className="text-center space-y-1">
               <h3 className="font-bold text-lg text-foreground">{tutor.name}</h3>
               <div className="flex items-center justify-center gap-1 text-muted-foreground">
                 {averageRating ? (
@@ -139,6 +164,7 @@ const TutorCard = ({ tutor }) => {
                 </div>
               </div>
             </div>
+
             {Object.entries(grouped).map(([type, subjects], i, arr) => {
               const onlyOneType = arr.length === 1;
               const isOpen = openTypes[type] ?? onlyOneType;
@@ -147,31 +173,33 @@ const TutorCard = ({ tutor }) => {
                 <div
                   key={type}
                   className={clsx(
-                    'relative transition-all rounded-xl ',
+                    'relative transition-all rounded-xl',
                     isOpen
-                      ? 'p-4 pt-6 bg-primary/5 border border-primary mt-5'
+                      ? tutor.isTopRated
+                        ? 'p-4 pt-6 mt-5 border border-yellow-400 bg-yellow-50/20'
+                        : 'p-4 pt-6 mt-5 border border-primary bg-primary/5'
                       : 'p-0 border-none mt-2'
                   )}
                 >
-                  {/* Floating Label & Toggle Button */}
                   <div
                     className={clsx(
                       'flex items-center gap-2',
                       isOpen ? 'absolute -top-3 ltr:left-4 rtl:right-4' : 'mb-1 px-1'
                     )}
                   >
-                    <span className="px-3 py-0.5 text-[11px] font-semibold rounded-full shadow-sm border border-green-300 bg-green-100 text-green-700">
+                    <span className={cn(
+                      'px-3 py-0.5 text-[11px] font-semibold rounded-full shadow-sm',
+                      tutor.isTopRated
+                        ? 'border border-yellow-400 bg-yellow-100 text-yellow-800'
+                        : 'border border-green-300 bg-green-100 text-green-700'
+                    )}>
                       {type}
                     </span>
-
                     <button
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setOpenTypes((prev) => ({
-                          ...prev,
-                          [type]: !isOpen,
-                        }));
+                        toggleType(type);
                       }}
                       className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white hover:bg-primary/90 border border-primary shadow-sm transition"
                       aria-label={`Toggle ${type}`}
@@ -199,7 +227,12 @@ const TutorCard = ({ tutor }) => {
                           {subjects.map((subject, idx) => (
                             <div
                               key={idx}
-                              className="flex items-center gap-1 px-2 py-1 rounded-md border text-xs text-primary border-primary bg-primary/10 max-w-xs truncate"
+                              className={cn(
+                                'flex items-center gap-1 px-2 py-1 rounded-md text-xs max-w-xs truncate',
+                                tutor.isTopRated
+                                  ? 'border border-yellow-400 text-muted bg-yellow-50/30'
+                                  : 'border border-primary text-primary bg-primary/10'
+                              )}
                               title={`${subject.subject} - ${subject.grade}`}
                             >
                               <GraduationCap size={12} className="flex-shrink-0" />
@@ -215,6 +248,7 @@ const TutorCard = ({ tutor }) => {
                 </div>
               );
             })}
+
             <div className="mt-4 w-full flex justify-between items-center pt-4 border-t border-border text-sm">
               {authState.isLoggedIn && (
                 <Button
@@ -234,8 +268,13 @@ const TutorCard = ({ tutor }) => {
                 as={Link}
                 to={`/tutor/${tutor.id}`}
                 size="sm"
-                variant="outline"
-                className="border-primary text-primary hover:bg-primary hover:text-white transition-colors duration-200 px-3 py-1 rounded-md font-semibold"
+                variant={tutor.isTopRated ? 'default' : 'outline'}
+                className={cn(
+                  'transition-colors duration-200 px-3 py-1 rounded-md font-semibold',
+                  tutor.isTopRated
+                    ? 'text-white bg-[linear-gradient(135deg,_#FFD700,_#FFB700)] hover:brightness-110'
+                    : 'border-primary text-primary hover:bg-primary hover:text-white'
+                )}
                 onClick={(e) => e.stopPropagation()}
               >
                 {t('viewProfile', 'View Profile')}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ShortTutorCard from './shortcard';
 import { useTranslation } from 'react-i18next';
+import PremiumShortTutorCard from './premiumCard'
 
 const TUTORS_PER_PAGE = 4;
 const TOP_TUTOR_IDS = [1, 13, 11, 9];
@@ -31,7 +32,7 @@ export const TopTutors = ({ tutors }) => {
           className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
           {currentTutors.map((tutor) => (
-            <ShortTutorCard key={tutor.id} tutor={tutor} />
+            <PremiumShortTutorCard key={tutor.id} tutor={tutor} />
           ))}
         </motion.div>
       </AnimatePresence>
