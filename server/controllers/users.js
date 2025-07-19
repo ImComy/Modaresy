@@ -1,5 +1,5 @@
 import Student from '../models/student.js'
-import Teacher from '../models/teacher.js'
+import {Teacher} from '../models/teacher.js'
 
 import {
   get_token,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -6,108 +6,47 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/components/ui/use-toast';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import MultiSelect from '@/components/ui/multi-select';
-import { grades, sectors, locations, subjects as allSubjectsList } from '@/data/formData';
+import { SearchableSelectContent } from '@/components/ui/searchSelect';
+import PasswordInputs from '@/components/ui/password';
 import PfpUploadWithCrop from '@/components/pfpSignup';
 import BannerUploadWithCrop from '@/components/bannerSignup';
-import { SearchableSelectContent } from '@/components/ui/searchSelect';
-import i18next from 'i18next';
+import { grades, sectors, locations } from '@/data/formData';
+import { useFormLogic } from '@/handlers/form';
 
-const subjectOptions = allSubjectsList.map(subject => ({
-  value: subject.toLowerCase().replace(/\s+/g, '-'),
-  label: subject
-}));
-const gradeOptions = grades.map(g => ({ value: g.value, label: g.labelKey }));
-const sectorOptions = sectors.map(s => ({ value: s.value, label: s.labelKey }));
+const initialFormData = {
+  name: '',
+  email: '',
+  phone: '',
+  password: '',
+  confirmPassword: '',
+  role: 'student',
+  grade: '',
+  sector: '',
+  location: '',
+  subjects: [],
+  targetGrades: [],
+  targetSectors: [],
+  photoUrl: '',
+  agreedToTerms: false,
+  banner: '',
+  pfp: '',
+};
 
 const SignupPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-    role: 'student',
-    grade: '',
-    sector: '',
-    location: '',
-    subjects: [],
-    targetGrades: [],
-    targetSectors: [],
-    photoUrl: '',
-    agreedToTerms: false,
-    banner: '',
-    pfp: '',
-  });
-  const [errors, setErrors] = useState({});
-
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
-    if (name === 'password' && errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: null }));
-    if (name === 'confirmPassword' && errors.password) setErrors(prev => ({ ...prev, password: null }));
-  };
-
-  const handleSelectChange = (name, value) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
-  };
-  const [isRTL, setIsRTL] = useState(i18next.dir() === 'rtl');
-
-  useEffect(() => {
-    const updateDir = () => setIsRTL(i18next.dir() === 'rtl');
-
-    i18next.on('languageChanged', updateDir);
-    return () => {
-      i18next.off('languageChanged', updateDir);
-    };
-  }, []);
-
-  const validatePhone = (phone) => /^\+?\d{10,15}$/.test(phone);
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.name) newErrors.name = t('nameRequired');
-    if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = t('emailInvalid');
-    if (!formData.phone || !validatePhone(formData.phone)) newErrors.phone = t('phoneInvalid');
-    if (!formData.password || formData.password.length < 6) newErrors.password = t('passwordLengthError');
-    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = t('passwordMismatch');
-    if (!formData.agreedToTerms) newErrors.agreedToTerms = t('termsRequired');
-    if (formData.role === 'student' && !formData.grade) newErrors.grade = t('gradeInvalid');
-
-    if (!formData.location) newErrors.location = t('locationRequired');
-
-    if (formData.role === 'teacher') {
-      if (formData.subjects.length === 0) newErrors.subjects = t('subjectsRequired');
-      if (formData.targetGrades.length === 0) newErrors.targetGrades = t('targetGradesRequired');
-      if (formData.targetSectors.length === 0) newErrors.targetSectors = t('targetSectorsRequired');
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!validateForm()) {
-      toast({ title: t('error'), description: t('validationError'), variant: 'destructive' });
-      return;
-    }
-    console.log('Submitting signup data:', formData);
-    toast({ title: t('signupSuccess'), description: t('signupSuccessDesc') });
-    navigate('/login');
-  };
+  const {
+    formData,
+    errors,
+    isRTL,
+    handleChange,
+    handleSelectChange,
+    handleSubmit,
+    setFormData,
+  } = useFormLogic(initialFormData, navigate, t, { isSignup: true });
 
   return (
     <motion.div
@@ -116,12 +55,12 @@ const SignupPage = () => {
       transition={{ duration: 0.3 }}
       className="flex justify-center items-center py-8 md:py-12"
     >
-      <Card className="w-full max-w-lg shadow-lg glass-effect">
-        <CardHeader className="text-center">
+      <Card className="w-full max-w-lg shadow-2xl border border-border/20 bg-background/95 backdrop-blur-lg rounded-2xl overflow-hidden">
+        <CardHeader className="p-4 sm:p-6 bg-gradient-to-r from-primary/10 to-transparent text-center">
           <CardTitle className="text-2xl md:text-3xl font-bold">{t('signupTitle')}</CardTitle>
           <CardDescription>{t('signupSubtitle')}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Role Selection */}
             <div className="space-y-2">
@@ -156,39 +95,55 @@ const SignupPage = () => {
                   </>
                 )}
               </RadioGroup>
-
             </div>
 
             {/* Common Fields */}
-            <div className="space-y-1">
-              <Label htmlFor="name">{t('name')}</Label>
-              <Input id="name" name="name" value={formData.name} onChange={handleInputChange} error={errors.name} />
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-xs sm:text-sm font-semibold text-muted-foreground">{t('name')}</Label>
+              <Input
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={(e) => handleChange(e, 'name')}
+                placeholder={t('settings.form.namePlaceholder', 'Enter your name')}
+                className={`bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] ${errors.name ? 'border-destructive' : ''}`}
+              />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="email">{t('email')}</Label>
-              <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} error={errors.email} />
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-muted-foreground">{t('email')}</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleChange(e, 'email')}
+                placeholder={t('settings.form.emailPlaceholder', 'Enter your email')}
+                className={`bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] ${errors.email ? 'border-destructive' : ''}`}
+              />
               {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="password">{t('password')}</Label>
-              <Input id="password" name="password" type="password" value={formData.password} onChange={handleInputChange} error={errors.password || errors.confirmPassword} />
-              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
-              <Input id="confirmPassword" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleInputChange} error={errors.confirmPassword} />
-              {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="phone">{t('phone')}</Label>
-              <Input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} error={errors.phone} placeholder="+201234567890" />
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold text-muted-foreground">{t('phone')}</Label>
+              <Input
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={(e) => handleChange(e, 'phone')}
+                placeholder={t('settings.form.phonePlaceholder', 'Enter your phone number')}
+                className={`bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] ${errors.phone ? 'border-destructive' : ''}`}
+              />
               {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="location">{t('location')}</Label>
+
+            {/* Password Fields */}
+            <PasswordInputs form={formData} handleChange={(e) => handleChange(e)} errors={errors} />
+
+            {/* Location */}
+            <div className="space-y-2">
+              <Label htmlFor="location" className="text-xs sm:text-sm font-semibold text-muted-foreground">{t('location')}</Label>
               <Select name="location" value={formData.location} onValueChange={(value) => handleSelectChange('location', value)}>
-                <SelectTrigger id="location" error={errors.location}>
+                <SelectTrigger id="location" className={`bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] ${errors.location ? 'border-destructive' : ''}`}>
                   <SelectValue placeholder={t('selectLocation')} />
                 </SelectTrigger>
                 <SearchableSelectContent
@@ -202,14 +157,14 @@ const SignupPage = () => {
             {/* Student Specific Fields */}
             {formData.role === 'student' && (
               <>
-                <div className="space-y-1">
-                  <Label htmlFor="grade">{t('grade')}</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="grade" className="text-xs sm:text-sm font-semibold text-muted-foreground">{t('grade')}</Label>
                   <Select
                     name="grade"
                     value={formData.grade}
                     onValueChange={(value) => handleSelectChange('grade', value)}
                   >
-                    <SelectTrigger id="grade" error={errors.grade}>
+                    <SelectTrigger id="grade" className={`bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] ${errors.grade ? 'border-destructive' : ''}`}>
                       <SelectValue placeholder={t('selectGrade')} />
                     </SelectTrigger>
                     <SearchableSelectContent
@@ -219,11 +174,10 @@ const SignupPage = () => {
                   </Select>
                   {errors.grade && <p className="text-xs text-destructive">{errors.grade}</p>}
                 </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="sector">{t('sector')}</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="sector" className="text-xs sm:text-sm font-semibold text-muted-foreground">{t('sector')}</Label>
                   <Select name="sector" value={formData.sector} onValueChange={(value) => handleSelectChange('sector', value)}>
-                    <SelectTrigger id="sector">
+                    <SelectTrigger id="sector" className="bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02]">
                       <SelectValue placeholder={t('selectSectorOptional')} />
                     </SelectTrigger>
                     <SearchableSelectContent
@@ -237,12 +191,10 @@ const SignupPage = () => {
 
             {/* Teacher Specific Fields */}
             {formData.role === 'teacher' && (
-              <>
-                <div className="space-y-6">
-                  <PfpUploadWithCrop formData={formData} setFormData={setFormData} />
-                  <BannerUploadWithCrop formData={formData} setFormData={setFormData} />
-                </div>
-              </>
+              <div className="space-y-6">
+                <PfpUploadWithCrop formData={formData} setFormData={setFormData} />
+                <BannerUploadWithCrop formData={formData} setFormData={setFormData} />
+              </div>
             )}
 
             {/* Terms Agreement */}

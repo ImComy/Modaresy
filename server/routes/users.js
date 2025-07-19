@@ -11,7 +11,7 @@ import {
   verifyUserAccount,
   logout,
   hash_password
-} from "../services/authentication.service.js"
+} from '../services/authentication.service.js';
 
 const router = express.Router();
 

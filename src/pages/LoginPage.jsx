@@ -5,23 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
-import i18next from 'i18next';
+import { useFormLogic } from '@/handlers/form';
+
+const initialFormData = {
+  email: '',
+  password: '',
+};
 
 const LoginPage = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
   const { t } = useTranslation();
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    toast({
-      title: t('loginSuccessTitle'),
-      description: t('loginSuccessDesc'),
-    });
-    navigate('/');
-  };
+  const navigate = useNavigate();
+  const { formData, errors, handleChange, handleSubmit } = useFormLogic(initialFormData, navigate, t, { isLogin: true });
 
   return (
     <motion.div
@@ -36,29 +31,43 @@ const LoginPage = () => {
           <CardDescription>{t('loginDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">{t('email')}</Label>
-              <Input id="email" type="email" placeholder={t('emailPlaceholder')} required />
+              <Input
+                id="email"
+                type="email"
+                placeholder={t('emailPlaceholder')}
+                value={formData.email}
+                onChange={(e) => handleChange(e, 'email')}
+                className={`border ${errors.email ? 'border-destructive' : 'border-border/50'} rounded-lg h-10 text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02]`}
+                required
+              />
+              {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">{t('password')}</Label>
-                <Link
-                  to="/forgot-password"
-                  className="text-sm text-primary hover:underline"
-                >
+                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                   {t('forgotPassword')}
                 </Link>
               </div>
-              <Input id="password" type="password" required />
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => handleChange(e, 'password')}
+                className={`border ${errors.password ? 'border-destructive' : 'border-border/50'} rounded-lg h-10 text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02]`}
+                required
+              />
+              {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
             </div>
             <Button type="submit" className="w-full">{t('loginBtn')}</Button>
           </form>
         </CardContent>
         <CardFooter className="flex justify-center text-sm">
           <p className="text-muted-foreground">
-            {t('noAccount')}&nbsp;
+            {t('noAccount')} 
             <Link to="/signup" className="text-primary hover:underline font-medium">
               {t('signup')}
             </Link>

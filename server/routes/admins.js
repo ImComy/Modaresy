@@ -3,7 +3,7 @@ import {
     verifyAdmin,
     rateLimiter,
     hash_password
- } from "../services/authentication.service";
+ } from "../services/authentication.service.js";
 import {
     login,
     removeStudent,

@@ -2,8 +2,8 @@
 
 // Models
 import {Teacher, Enrollment} from '../models/teacher.js'
-import Review from "../models/subjectRelated.js";
-import SubjectProfile from '../models/subject.js';
+import { Review } from "../models/subjectRelated.js";
+import { SubjectProfile } from '../models/subject.js';
 
 // Constants
 
