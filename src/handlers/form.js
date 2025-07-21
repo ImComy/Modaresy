@@ -14,43 +14,35 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
 
   useEffect(() => {
     if (isSignup) {
-      const updateDir = () => setIsRTL(i18next.dir() === 'rtl');
-      i18next.on('languageChanged', updateDir);
-      return () => i18next.off('languageChanged', updateDir);
+      const updateDirection = () => setIsRTL(i18next.dir() === 'rtl');
+      i18next.on('languageChanged', updateDirection);
+      return () => i18next.off('languageChanged', updateDirection);
     }
   }, [isSignup]);
 
-  const handleChange = (e, fieldName) => {
-    const { id, value } = e && e.target ? e.target : { id: fieldName, value };
-    setFormData((prev) => ({ ...prev, [id]: value }));
+  const handleChange = (e, field) => {
+    const value = e?.target?.value ?? '';
+    setFormData((prev) => ({ ...prev, [field]: value }));
 
-    // Validate email
-    if (id === 'email') {
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: null }));
+    }
+
+    if (field === 'email') {
       setErrors((prev) => ({
         ...prev,
         email: validationService.validateEmail(value) ? null : t('emailInvalid'),
       }));
-    }
-
-    // Validate phone number
-    if (id === 'phone') {
+    } else if (field === 'phone') {
       setErrors((prev) => ({
         ...prev,
         phone: validationService.validatePhoneNumber(value) ? null : t('phoneInvalid'),
       }));
-    }
-
-    // Validate password
-    if (id === 'password' && isSignup) {
+    } else if (field === 'password' && isSignup) {
       setErrors((prev) => ({
         ...prev,
         password: value.length >= 6 ? null : t('passwordLengthError'),
       }));
-    }
-
-    // Clear errors for other fields
-    if (errors[id] && id !== 'email' && id !== 'phone' && id !== 'password') {
-      setErrors((prev) => ({ ...prev, [id]: null }));
     }
   };
 
@@ -64,35 +56,44 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
   const validateForm = () => {
     const newErrors = {};
 
-    // Common validations
+    // Shared
     if (!validationService.validateEmail(formData.email)) {
       newErrors.email = t('emailInvalid');
     }
     if (formData.phone && !validationService.validatePhoneNumber(formData.phone)) {
       newErrors.phone = t('phoneInvalid');
     }
-    if (isSignup && formData.password && formData.password.length < 6) {
-      newErrors.password = t('passwordLengthError');
-    }
-    if (isSignup && formData.password && formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = t('passwordMismatch');
-    }
+
     if (isLogin && !formData.password) {
       newErrors.password = t('passwordRequired');
     }
 
-    // Signup-specific validations
+    // Signup specific
     if (isSignup) {
       if (!formData.name) newErrors.name = t('nameRequired');
       if (!formData.agreedToTerms) newErrors.agreedToTerms = t('termsRequired');
-      if (!formData.location) newErrors.location = t('locationRequired');
-      if (formData.role === 'student' && !formData.grade) {
-        newErrors.grade = t('gradeInvalid');
+      if (!formData.governate) newErrors.governate = t('locationRequired');
+      if (!formData.district) newErrors.district = t('districtRequired');
+      if (!formData.education_system) newErrors.education_system = t('educationSystemRequired');
+      if (!formData.studying_language) newErrors.studying_language = t('languageRequired');
+      if (!formData.wishlist_id) newErrors.wishlist_id = t('wishlistRequired');
+
+      if (!formData.password || formData.password.length < 6) {
+        newErrors.password = t('passwordLengthError');
       }
-      if (formData.role === 'teacher') {
-        if (formData.subjects.length === 0) newErrors.subjects = t('subjectsRequired');
-        if (formData.targetGrades.length === 0) newErrors.targetGrades = t('targetGradesRequired');
-        if (formData.targetSectors.length === 0) newErrors.targetSectors = t('targetSectorsRequired');
+      if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = t('passwordMismatch');
+      }
+
+      if (formData.user_type === 'Student') {
+        if (!formData.grade) newErrors.grade = t('gradeInvalid');
+        if (!formData.sector) newErrors.sector = t('sectorRequired');
+      }
+
+      if (formData.user_type === 'Teacher') {
+        if (!formData.subjects?.length) newErrors.subjects = t('subjectsRequired');
+        if (!formData.targetGrades?.length) newErrors.targetGrades = t('targetGradesRequired');
+        if (!formData.targetSectors?.length) newErrors.targetSectors = t('targetSectorsRequired');
       }
     }
 
@@ -102,6 +103,7 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!validateForm()) {
       toast({
         title: t('error'),
@@ -111,28 +113,66 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
       return;
     }
 
-    if (isSignup) {
-      console.log('Submitting signup data:', formData);
-      toast({
-        title: t('signupSuccess'),
-        description: t('signupSuccessDesc'),
-      });
-      navigate('/login');
-    } else if (isLogin) {
-      try {
+    try {
+      if (isSignup) {
+        const basePayload = {
+          name: formData.name,
+          email: formData.email,
+          phone_number: formData.phone,
+          password: formData.password,
+          photoUrl: formData.pfp,
+          banner: formData.banner,
+          type: formData.user_type,
+        };
+
+        const studentPayload = {
+          governate: formData.governate,
+          district: formData.district,
+          education_system: formData.education_system,
+          grade: formData.grade,
+          sector: formData.sector,
+          language: formData.studying_language,
+          wishlist_id: formData.wishlist_id || 'default-wishlist',
+        };
+
+        const teacherPayload = {
+          location: formData.governate,
+          subjects: formData.subjects || [],
+          targetGrades: formData.targetGrades || [],
+          targetSectors: formData.targetSectors || [],
+        };
+
+        const payload =
+          formData.user_type === 'Student'
+            ? { ...basePayload, ...studentPayload }
+            : { ...basePayload, ...teacherPayload };
+
+        await authService.signup(payload);
+
+        toast({
+          title: t('signupSuccess'),
+          description: t('signupSuccessDesc'),
+        });
+
+        navigate('/login');
+      }
+
+      if (isLogin) {
         await authService.login(formData.email, formData.password);
+
         toast({
           title: t('loginSuccessTitle'),
           description: t('loginSuccessDesc'),
         });
+
         navigate('/');
-      } catch (error) {
-        toast({
-          title: t('error'),
-          description: error.message || t('loginError'),
-          variant: 'destructive',
-        });
       }
+    } catch (error) {
+      toast({
+        title: t('error'),
+        description: error?.message || (isSignup ? t('signupError') : t('loginError')),
+        variant: 'destructive',
+      });
     }
   };
 

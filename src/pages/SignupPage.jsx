@@ -1,4 +1,5 @@
-import React from 'react';
+// SignupPage.jsx
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -13,22 +14,24 @@ import { SearchableSelectContent } from '@/components/ui/searchSelect';
 import PasswordInputs from '@/components/ui/password';
 import PfpUploadWithCrop from '@/components/pfpSignup';
 import BannerUploadWithCrop from '@/components/bannerSignup';
-import { grades, sectors, locations } from '@/data/formData';
+
+import { grades, sectors, locations, languages } from '@/data/formData';
 import { useFormLogic } from '@/handlers/form';
 
 const initialFormData = {
   name: '',
   email: '',
-  phone: '',
+  phone_number: '',
   password: '',
   confirmPassword: '',
-  role: 'student',
+  user_type: 'Student',
+  education_system: 'National',
+  studying_language: '',
   grade: '',
   sector: '',
-  location: '',
-  subjects: [],
-  targetGrades: [],
-  targetSectors: [],
+  governate: '',
+  district: '',
+  wishlist_id: 'default',
   photoUrl: '',
   agreedToTerms: false,
   banner: '',
@@ -48,6 +51,15 @@ const SignupPage = () => {
     setFormData,
   } = useFormLogic(initialFormData, navigate, t, { isSignup: true });
 
+  const isStudent = formData.user_type === 'Student';
+
+  useEffect(() => {
+    const secondaryGrades = ['secondary-1', 'secondary-2', 'secondary-3'];
+    if (formData.grade && !secondaryGrades.includes(formData.grade)) {
+      setFormData((prev) => ({ ...prev, sector: 'general' }));
+    }
+  }, [formData.grade]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -55,163 +67,159 @@ const SignupPage = () => {
       transition={{ duration: 0.3 }}
       className="flex justify-center items-center py-8 md:py-12"
     >
-      <Card className="w-full max-w-lg shadow-2xl border border-border/20 bg-background/95 backdrop-blur-lg rounded-2xl overflow-hidden">
+      <Card className="w-full max-w-2xl shadow-2xl border border-border/20 bg-background/95 backdrop-blur-lg rounded-2xl overflow-hidden">
         <CardHeader className="p-4 sm:p-6 bg-gradient-to-r from-primary/10 to-transparent text-center">
           <CardTitle className="text-2xl md:text-3xl font-bold">{t('signupTitle')}</CardTitle>
           <CardDescription>{t('signupSubtitle')}</CardDescription>
         </CardHeader>
+
         <CardContent className="p-4 sm:p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Role Selection */}
             <div className="space-y-2">
               <Label>{t('selectRole')}</Label>
               <RadioGroup
-                name="role"
-                value={formData.role}
-                onValueChange={(value) => handleSelectChange('role', value)}
+                name="user_type"
+                value={formData.user_type}
+                onValueChange={(value) => handleSelectChange('user_type', value)}
                 className={`flex gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}
               >
-                {isRTL ? (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="teacher" id="role-teacher" />
-                      <Label htmlFor="role-teacher" className="font-normal">{t('teacher')}</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="student" id="role-student" />
-                      <Label htmlFor="role-student" className="font-normal">{t('student')}</Label>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="student" id="role-student" />
-                      <Label htmlFor="role-student" className="font-normal">{t('student')}</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="teacher" id="role-teacher" />
-                      <Label htmlFor="role-teacher" className="font-normal">{t('teacher')}</Label>
-                    </div>
-                  </>
-                )}
+                {['Student', 'Teacher'].map((value) => (
+                  <div key={value} className="flex items-center gap-2">
+                    <RadioGroupItem value={value} id={`role-${value}`} />
+                    <Label htmlFor={`role-${value}`} className="font-normal">
+                      {t(value.toLowerCase())}
+                    </Label>
+                  </div>
+                ))}
               </RadioGroup>
             </div>
 
-            {/* Common Fields */}
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-xs sm:text-sm font-semibold text-muted-foreground">{t('name')}</Label>
-              <Input
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={(e) => handleChange(e, 'name')}
-                placeholder={t('settings.form.namePlaceholder', 'Enter your name')}
-                className={`bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] ${errors.name ? 'border-destructive' : ''}`}
-              />
-              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-muted-foreground">{t('email')}</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleChange(e, 'email')}
-                placeholder={t('settings.form.emailPlaceholder', 'Enter your email')}
-                className={`bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] ${errors.email ? 'border-destructive' : ''}`}
-              />
-              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold text-muted-foreground">{t('phone')}</Label>
-              <Input
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={(e) => handleChange(e, 'phone')}
-                placeholder={t('settings.form.phonePlaceholder', 'Enter your phone number')}
-                className={`bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] ${errors.phone ? 'border-destructive' : ''}`}
-              />
-              {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
-            </div>
+            {['name', 'email', 'phone_number'].map((field) => (
+              <div key={field} className="space-y-2">
+                <Label htmlFor={field}>{t(field)}</Label>
+                <Input
+                  id={field}
+                  type={field === 'email' ? 'email' : 'text'}
+                  value={formData[field]}
+                  onChange={(e) => handleChange(e, field)}
+                />
+                {errors[field] && <p className="text-xs text-destructive">{errors[field]}</p>}
+              </div>
+            ))}
 
-            {/* Password Fields */}
-            <PasswordInputs form={formData} handleChange={(e) => handleChange(e)} errors={errors} />
+            <PasswordInputs form={formData} handleChange={handleChange} errors={errors} />
 
-            {/* Location */}
             <div className="space-y-2">
-              <Label htmlFor="location" className="text-xs sm:text-sm font-semibold text-muted-foreground">{t('location')}</Label>
-              <Select name="location" value={formData.location} onValueChange={(value) => handleSelectChange('location', value)}>
-                <SelectTrigger id="location" className={`bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] ${errors.location ? 'border-destructive' : ''}`}>
+              <Label htmlFor="governate">{t('location')}</Label>
+              <Select value={formData.governate} onValueChange={(val) => handleSelectChange('governate', val)}>
+                <SelectTrigger id="governate">
                   <SelectValue placeholder={t('selectLocation')} />
                 </SelectTrigger>
                 <SearchableSelectContent
-                  items={locations.map(loc => ({ value: loc.value, label: loc.label }))}
+                  items={locations.map((loc) => ({ value: loc.label, label: loc.label }))}
                   searchPlaceholder={t('searchLocation')}
                 />
               </Select>
-              {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
+              {errors.governate && <p className="text-xs text-destructive">{errors.governate}</p>}
             </div>
 
-            {/* Student Specific Fields */}
-            {formData.role === 'student' && (
+            <div className="space-y-2">
+              <Label htmlFor="district">{t('district')}</Label>
+              <Input id="district" value={formData.district} onChange={(e) => handleChange(e, 'district')} />
+              {errors.district && <p className="text-xs text-destructive">{errors.district}</p>}
+            </div>
+
+            {isStudent && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="grade" className="text-xs sm:text-sm font-semibold text-muted-foreground">{t('grade')}</Label>
+                  <Label htmlFor="education_system">{t('educationSystem')}</Label>
                   <Select
-                    name="grade"
-                    value={formData.grade}
-                    onValueChange={(value) => handleSelectChange('grade', value)}
+                    value={formData.education_system}
+                    onValueChange={(val) => handleSelectChange('education_system', val)}
                   >
-                    <SelectTrigger id="grade" className={`bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] ${errors.grade ? 'border-destructive' : ''}`}>
+                    <SelectTrigger id="education_system">
+                      <SelectValue placeholder={t('selectEducationSystem')} />
+                    </SelectTrigger>
+                    <SearchableSelectContent
+                      items={['National', 'Azhar'].map((val) => ({ value: val, label: val }))}
+                    />
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="studying_language">{t('studyingLanguage')}</Label>
+                  <Select
+                    value={formData.studying_language}
+                    onValueChange={(val) => handleSelectChange('studying_language', val)}
+                  >
+                    <SelectTrigger id="studying_language">
+                      <SelectValue placeholder={t('selectLanguage')} />
+                    </SelectTrigger>
+                    <SearchableSelectContent
+                      items={languages.map((lang) => ({
+                        value: lang.value,
+                        label: t(lang.labelKey),
+                      }))}
+                    />
+                  </Select>
+                  {errors.studying_language && <p className="text-xs text-destructive">{errors.studying_language}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="grade">{t('grade')}</Label>
+                  <Select value={formData.grade} onValueChange={(val) => handleSelectChange('grade', val)}>
+                    <SelectTrigger id="grade">
                       <SelectValue placeholder={t('selectGrade')} />
                     </SelectTrigger>
                     <SearchableSelectContent
-                      items={grades.map(grade => ({ value: grade.value, label: t(grade.labelKey) }))}
-                      searchPlaceholder={t('searchGrade')}
+                      items={grades.map((grade) => ({ value: grade.value, label: t(grade.labelKey) }))}
                     />
                   </Select>
                   {errors.grade && <p className="text-xs text-destructive">{errors.grade}</p>}
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="sector" className="text-xs sm:text-sm font-semibold text-muted-foreground">{t('sector')}</Label>
-                  <Select name="sector" value={formData.sector} onValueChange={(value) => handleSelectChange('sector', value)}>
-                    <SelectTrigger id="sector" className="bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02]">
+                  <Label htmlFor="sector">{t('sector')}</Label>
+                  <Select value={formData.sector} onValueChange={(val) => handleSelectChange('sector', val)}>
+                    <SelectTrigger id="sector">
                       <SelectValue placeholder={t('selectSectorOptional')} />
                     </SelectTrigger>
                     <SearchableSelectContent
-                      items={sectors.map(sector => ({ value: sector.value, label: t(sector.labelKey) }))}
-                      searchPlaceholder={t('searchSector')}
+                      items={sectors.map((sec) => ({ value: sec.value, label: t(sec.labelKey) }))}
                     />
                   </Select>
+                  {errors.sector && <p className="text-xs text-destructive">{errors.sector}</p>}
                 </div>
               </>
             )}
 
-            {/* Teacher Specific Fields */}
-            {formData.role === 'teacher' && (
-              <div className="space-y-6">
+            {formData.user_type === 'Teacher' && (
+              <>
                 <PfpUploadWithCrop formData={formData} setFormData={setFormData} />
                 <BannerUploadWithCrop formData={formData} setFormData={setFormData} />
-              </div>
+              </>
             )}
 
-            {/* Terms Agreement */}
             <div className="flex items-center space-x-2 rtl:space-x-reverse">
-              <Checkbox id="agreedToTerms" name="agreedToTerms" checked={formData.agreedToTerms} onCheckedChange={(checked) => handleSelectChange('agreedToTerms', checked)} />
-              <Label htmlFor="agreedToTerms" className="text-xs text-muted-foreground font-normal">
-                <Trans i18nKey="agreeToTerms">By signing up, you agree to our <Link to="/terms" className="underline hover:text-primary">Terms of Service</Link> and <Link to="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.</Trans>
+              <Checkbox
+                id="agreedToTerms"
+                checked={formData.agreedToTerms}
+                onCheckedChange={(checked) => handleSelectChange('agreedToTerms', checked)}
+              />
+              <Label htmlFor="agreedToTerms" className="text-xs font-normal">
+                <Trans i18nKey="agreeToTerms">
+                  By signing up, you agree to our <Link to="/terms" className="underline">Terms</Link> and <Link to="/privacy" className="underline">Privacy Policy</Link>.
+                </Trans>
               </Label>
             </div>
             {errors.agreedToTerms && <p className="text-xs text-destructive">{errors.agreedToTerms}</p>}
-            {errors.form && <p className="text-sm text-destructive text-center">{errors.form}</p>}
 
             <Button type="submit" className="w-full">{t('signup')}</Button>
           </form>
 
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            {t('alreadyHaveAccount')} <Link to="/login" className="font-medium text-primary hover:underline">{t('login')}</Link>
+            {t('alreadyHaveAccount')}{' '}
+            <Link to="/login" className="font-medium text-primary hover:underline">{t('login')}</Link>
           </p>
         </CardContent>
       </Card>

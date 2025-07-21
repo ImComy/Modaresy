@@ -4,7 +4,6 @@ const defaultHeaders = {
   "Content-Type": "application/json",
 };
 
-// Utility function to handle fetch requests
 async function apiFetch(endpoint, options = {}) {
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -13,7 +12,7 @@ async function apiFetch(endpoint, options = {}) {
         ...defaultHeaders,
         ...options.headers,
       },
-      credentials: "include", // Include cookies for backend's cookie-based auth
+      credentials: "include", // send cookies
     });
     const data = await response.json();
     if (!response.ok) {
@@ -21,40 +20,47 @@ async function apiFetch(endpoint, options = {}) {
     }
     return data;
   } catch (error) {
-    console.error(`Error fetching ${endpoint}:`, error);
+    console.error(`API error on ${endpoint}:`, error);
     throw error;
   }
 }
 
-// Utility to add auth token (for routes requiring verifyToken)
+// Attach bearer token to headers if available
 function withAuth(headers = {}) {
-  const token = localStorage.getItem("token"); // Adjust based on your token storage
+  const token = localStorage.getItem("token");
   return token ? { ...headers, Authorization: `Bearer ${token}` } : headers;
 }
 
-// Authentication-related API calls
 export const authService = {
-  // Login user and store token
+  // Signup (create account)
+  async signup(userData) {
+    return apiFetch(`/users/createAccount`, {
+      method: "POST",
+      body: JSON.stringify(userData),
+    });
+  },
+
+  // Login
   async login(email, password) {
     const response = await apiFetch(`/users/login`, {
       method: "POST",
       body: JSON.stringify({ email, password }),
-      credentials: "include", // Send cookies for backend to set token
     });
-    // Assuming backend returns { token } on successful login
+
     if (response.token) {
-      localStorage.setItem("token", response.token); // Store token
+      localStorage.setItem("token", response.token);
     }
+
     return response;
   },
 
-  // Logout user
+  // Logout
   async logout() {
     const response = await apiFetch(`/users/logout`, {
-      method: "POST",
-      credentials: "include", // Clear cookie-based token
+      method: "DELETE",
+      headers: withAuth(),
     });
-    localStorage.removeItem("token"); // Clear stored token
+    localStorage.removeItem("token");
     return response;
   },
 
@@ -62,22 +68,17 @@ export const authService = {
   async sendVerificationCode(email, type) {
     return apiFetch(`/users/sendVerificationCode`, {
       method: "POST",
+      headers: withAuth(),
       body: JSON.stringify({ email, type }),
     });
   },
 
-  // Verify user account
+  // Verify account
   async verifyUserAccount(phone_number, code) {
     return apiFetch(`/users/verifyUserAccount`, {
       method: "POST",
-      body: JSON.stringify({ phone_number, code }),
-    });
-  },
-
-  // Get user profile (requires authentication)
-  async getProfile() {
-    return apiFetch(`/users/getProfile`, {
       headers: withAuth(),
+      body: JSON.stringify({ phone_number, code }),
     });
   },
 };

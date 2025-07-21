@@ -1,6 +1,6 @@
 import validator from 'validator';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 const defaultHeaders = {
   "Content-Type": "application/json",
