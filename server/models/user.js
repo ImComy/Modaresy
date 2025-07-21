@@ -4,7 +4,8 @@ import {
 } from '../models/constants.js'
 import {
   isEmail,
-  validatePhoneNumber
+  validatePhoneNumber,
+  validateDistrict
 } from '../services/validation.service.js'
 
 export const options = { discriminatorKey: 'type', collection: 'Users' };

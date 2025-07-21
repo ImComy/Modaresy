@@ -25,7 +25,10 @@ const app = express();
 const port = process.env.port;
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173', 
+  credentials: true,
+}));
 
 app.use('/users', users)
 app.use('/tutors', tutors)

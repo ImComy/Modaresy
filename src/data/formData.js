@@ -1,42 +1,54 @@
-// Mock data for form selects
 
 export const grades = [
-    { value: 'primary-1', labelKey: 'primary1' },
-    { value: 'primary-2', labelKey: 'primary2' },
-    { value: 'primary-3', labelKey: 'primary3' },
-    { value: 'primary-4', labelKey: 'primary4' },
-    { value: 'primary-5', labelKey: 'primary5' },
-    { value: 'primary-6', labelKey: 'primary6' },
-    { value: 'prep-1', labelKey: 'prep1' },
-    { value: 'prep-2', labelKey: 'prep2' },
-    { value: 'prep-3', labelKey: 'prep3' },
-    { value: 'secondary-1', labelKey: 'secondary1' },
-    { value: 'secondary-2', labelKey: 'secondary2' },
-    { value: 'secondary-3', labelKey: 'secondary3' },
-    { value: 'university', labelKey: 'university' },
-    { value: 'other', labelKey: 'other' },
+  { value: 'Secondary 1', labelKey: 'secondary1' },
+  { value: 'Secondary 2', labelKey: 'secondary2' },
+  { value: 'Secondary 3', labelKey: 'secondary3' }
 ];
 
 export const sectors = [
-    { value: 'general', labelKey: 'general' }, // For Primary/Prep
-    { value: 'scientific', labelKey: 'scientific' }, // For Secondary
-    { value: 'literary', labelKey: 'literary' }, // For Secondary
-    // { value: 'language', labelKey: 'language' }, // Example if needed
-    { value: 'other', labelKey: 'other' },
+  { value: 'General', labelKey: 'general' },
+  { value: 'Scientific', labelKey: 'scientific' },
+  { value: 'Literature', labelKey: 'literature' },
+  { value: 'Mathematics', labelKey: 'mathematics' },
+];
+
+export const languages = [
+  { value: 'Arabic', labelKey: 'arabic' },
+  { value: 'English', labelKey: 'english' },
+  { value: 'French', labelKey: 'french' },
+  { value: 'German', labelKey: 'german' },
 ];
 
 export const locations = [
-    { value: 'cairo', label: 'Cairo' },
-    { value: 'giza', label: 'Giza' },
-    { value: 'alexandria', label: 'Alexandria' },
-    { value: 'qalyubia', label: 'Qalyubia' },
-    { value: 'dakahlia', label: 'Dakahlia' },
-    { value: 'sharqia', label: 'Sharqia' },
-    { value: 'gharbia', label: 'Gharbia' },
-    { value: 'monufia', label: 'Monufia' },
-    { value: 'beheira', label: 'Beheira' },
-    { value: 'online', label: 'Online Only' },
-    // Add more governorates as needed
+  { value: 'Alexandria', label: 'Alexandria' },
+  { value: 'Assiut', label: 'Assiut' },
+  { value: 'Aswan', label: 'Aswan' },
+  { value: 'Beheira', label: 'Beheira' },
+  { value: 'Bani Suef', label: 'Bani Suef' },
+  { value: 'Cairo', label: 'Cairo' },
+  { value: 'Daqahliya', label: 'Daqahliya' },
+  { value: 'Damietta', label: 'Damietta' },
+  { value: 'Fayyoum', label: 'Fayyoum' },
+  { value: 'Gharbiya', label: 'Gharbiya' },
+  { value: 'Giza', label: 'Giza' },
+  { value: 'Helwan', label: 'Helwan' },
+  { value: 'Ismailia', label: 'Ismailia' },
+  { value: 'Kafr El Sheikh', label: 'Kafr El Sheikh' },
+  { value: 'Luxor', label: 'Luxor' },
+  { value: 'Marsa Matrouh', label: 'Marsa Matrouh' },
+  { value: 'Minya', label: 'Minya' },
+  { value: 'Monofiya', label: 'Monofiya' },
+  { value: 'New Valley', label: 'New Valley' },
+  { value: 'North Sinai', label: 'North Sinai' },
+  { value: 'Port Said', label: 'Port Said' },
+  { value: 'Qalioubiya', label: 'Qalioubiya' },
+  { value: 'Qena', label: 'Qena' },
+  { value: 'Red Sea', label: 'Red Sea' },
+  { value: 'Sharqiya', label: 'Sharqiya' },
+  { value: 'Sohag', label: 'Sohag' },
+  { value: 'South Sinai', label: 'South Sinai' },
+  { value: 'Suez', label: 'Suez' },
+  { value: 'Tanta', label: 'Tanta' },
 ];
 
 export const subjects = [
