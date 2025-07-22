@@ -1371,6 +1371,22 @@
     "videoSectionTopicExplanation": "Topic Explanation",
     "videoSectionProblemSolving": "Problem Solving",
     "videoSectionOther": "Other"
-  }
+  },
+  "placeholder": {
+    "name": "Enter your full name",
+    "email": "Enter your email address",
+    "phone_number": "Enter your phone number",
+    "selectLocation": "Select a location",
+    "district": "Enter your district",
+    "selectEducationSystem": "Select education system",
+    "selectLanguage": "Select language",
+    "selectGrade": "Select grade",
+    "selectSector": "Select sector",
+    "searchLocation": "Search for a location"
+  },
+  "district": "District",
+  "educationSystem": "Education System",
+  "studyingLanguage": "Studying Language",
+  "phone_number": "Phone Number"
 }
 

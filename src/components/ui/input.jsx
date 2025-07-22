@@ -1,17 +1,30 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-const Input = React.forwardRef(({ className, type, error, ...props }, ref) => {
+const Input = React.forwardRef(({ className, type = 'text', error, ...props }, ref) => {
   return (
-    (<input
+    <input
       type={type}
+      ref={ref}
       className={cn(
-        'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
-        error && 'border-destructive focus-visible:ring-destructive', // Add error styling
+        // Base styles
+        'w-full h-10 sm:h-8 px-3 text-xs sm:text-sm rounded-lg border transition-all duration-200',
+        'bg-input text-foreground placeholder:text-muted-foreground',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+        'hover:scale-[1.01] focus:scale-[1.02] ring-offset-background',
+
+        // Border + ring colors
+        error
+          ? 'border-destructive focus-visible:ring-destructive'
+          : 'border-border/50 focus-visible:ring-primary',
+
+        // Disabled state
+        'disabled:opacity-50 disabled:cursor-not-allowed',
+
         className
       )}
-      ref={ref}
-      {...props} />)
+      {...props}
+    />
   );
 });
 Input.displayName = 'Input';

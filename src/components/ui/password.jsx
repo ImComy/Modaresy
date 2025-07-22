@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
+import clsx from 'clsx';
 
 const PasswordInputs = ({ form, handleChange }) => {
   const { t } = useTranslation();
@@ -13,14 +14,15 @@ const PasswordInputs = ({ form, handleChange }) => {
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [strengthLabel, setStrengthLabel] = useState('');
   const [passwordsMatch, setPasswordsMatch] = useState(null);
+  const [isPasswordValid, setIsPasswordValid] = useState(false);
 
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
   const toggleConfirmPasswordVisibility = () => setShowConfirmPassword((prev) => !prev);
 
-  // Password strength checker
   useEffect(() => {
     const password = form.password || '';
     let strength = 0;
+
     if (password.length >= 8) strength += 1;
     if (/[A-Z]/.test(password)) strength += 1;
     if (/[a-z]/.test(password)) strength += 1;
@@ -28,6 +30,7 @@ const PasswordInputs = ({ form, handleChange }) => {
     if (/[^A-Za-z0-9]/.test(password)) strength += 1;
 
     setPasswordStrength(strength);
+    setIsPasswordValid(strength >= 4);
 
     if (strength === 0) {
       setStrengthLabel(t('passwordStrength.weak', 'Weak'));
@@ -37,7 +40,6 @@ const PasswordInputs = ({ form, handleChange }) => {
       setStrengthLabel(t('passwordStrength.strong', 'Strong'));
     }
 
-    // Password match check
     if (form.password && form.confirmPassword) {
       setPasswordsMatch(form.password === form.confirmPassword);
     } else {
@@ -51,21 +53,39 @@ const PasswordInputs = ({ form, handleChange }) => {
     return 'bg-green-500';
   };
 
+  const passwordError = form.password && !isPasswordValid;
+  const confirmError = form.confirmPassword && passwordsMatch === false;
+
   return (
     <>
-      {/* Password */}
+      {/* Password Input */}
       <div className="space-y-2">
-        <Label htmlFor="password" className="text-xs sm:text-sm font-semibold text-muted-foreground">
+        <Label
+          htmlFor="password"
+          className={clsx(
+            'text-xs sm:text-sm font-semibold',
+            passwordError ? 'text-destructive' : 'text-muted-foreground'
+          )}
+        >
           {t('settings.form.password', 'Password')}
         </Label>
-        <div className="relative">
+        <motion.div
+          className="relative"
+          animate={passwordError ? { x: [-5, 5, -5, 5, 0] } : {}}
+          transition={{ duration: 0.2 }}
+        >
           <Input
             id="password"
             type={showPassword ? 'text' : 'password'}
             value={form.password || ''}
-            onChange={handleChange}
+            onChange={(e) => handleChange(e, 'password')}
             placeholder={t('settings.form.passwordPlaceholder', 'Enter your password')}
-            className="bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] pr-12"
+            className={clsx(
+              'bg-input border rounded-lg h-10 sm:h-11 text-xs sm:text-sm pr-12 transition-all duration-300',
+              passwordError
+                ? 'border-destructive focus:ring-destructive'
+                : 'border-border/50 focus:ring-primary'
+            )}
           />
           <Button
             type="button"
@@ -80,7 +100,8 @@ const PasswordInputs = ({ form, handleChange }) => {
               <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             )}
           </Button>
-        </div>
+        </motion.div>
+
         {form.password && (
           <div className="space-y-1">
             <div className="text-xs sm:text-sm text-muted-foreground">
@@ -100,17 +121,32 @@ const PasswordInputs = ({ form, handleChange }) => {
 
       {/* Confirm Password */}
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword" className="text-xs sm:text-sm font-semibold text-muted-foreground">
+        <Label
+          htmlFor="confirmPassword"
+          className={clsx(
+            'text-xs sm:text-sm font-semibold',
+            confirmError ? 'text-destructive' : 'text-muted-foreground'
+          )}
+        >
           {t('settings.form.confirmPassword', 'Confirm Password')}
         </Label>
-        <div className="relative">
+        <motion.div
+          className="relative"
+          animate={confirmError ? { x: [-5, 5, -5, 5, 0] } : {}}
+          transition={{ duration: 0.2 }}
+        >
           <Input
             id="confirmPassword"
             type={showConfirmPassword ? 'text' : 'password'}
             value={form.confirmPassword || ''}
-            onChange={handleChange}
+            onChange={(e) => handleChange(e, 'confirmPassword')}
             placeholder={t('settings.form.confirmPasswordPlaceholder', 'Confirm your password')}
-            className="bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] pr-12"
+            className={clsx(
+              'bg-input border rounded-lg h-10 sm:h-11 text-xs sm:text-sm pr-12 transition-all duration-300',
+              confirmError
+                ? 'border-destructive focus:ring-destructive'
+                : 'border-border/50 focus:ring-primary'
+            )}
           />
           <Button
             type="button"
@@ -125,13 +161,13 @@ const PasswordInputs = ({ form, handleChange }) => {
               <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             )}
           </Button>
-        </div>
+        </motion.div>
+
         {passwordsMatch !== null && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className={`text-xs sm:text-sm ${passwordsMatch ? 'text-green-500' : 'text-destructive'}`}
+            className={`text-xs sm:text-sm mt-1 ${passwordsMatch ? 'text-green-500' : 'text-destructive'}`}
           >
             {passwordsMatch
               ? t('passwordMatch.match', 'Passwords match')

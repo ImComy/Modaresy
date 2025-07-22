@@ -3,12 +3,14 @@ import i18next from 'i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { validationService } from '@/api/validation';
 import { authService } from '@/api/authentication';
+import { wishlistService } from '@/api/wishlist';
 
 export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
   const [isRTL, setIsRTL] = useState(i18next.dir() === 'rtl');
+  const [wishlists, setWishlists] = useState([]);
 
   const { isSignup = false, isLogin = false } = config;
 
@@ -33,10 +35,10 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
         ...prev,
         email: validationService.validateEmail(value) ? null : t('emailInvalid'),
       }));
-    } else if (field === 'phone') {
+    } else if (field === 'phone_number') { // Changed from 'phone' to 'phone_number'
       setErrors((prev) => ({
         ...prev,
-        phone: validationService.validatePhoneNumber(value) ? null : t('phoneInvalid'),
+        phone_number: validationService.validatePhoneNumber(value) ? null : t('phoneInvalid'),
       }));
     } else if (field === 'password' && isSignup) {
       setErrors((prev) => ({
@@ -60,8 +62,8 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
     if (!validationService.validateEmail(formData.email)) {
       newErrors.email = t('emailInvalid');
     }
-    if (formData.phone && !validationService.validatePhoneNumber(formData.phone)) {
-      newErrors.phone = t('phoneInvalid');
+    if (formData.phone_number && !validationService.validatePhoneNumber(formData.phone_number)) { // Changed from 'phone' to 'phone_number'
+      newErrors.phone_number = t('phoneInvalid'); // Changed from 'phone' to 'phone_number'
     }
 
     if (isLogin && !formData.password) {
@@ -118,7 +120,7 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
         const basePayload = {
           name: formData.name,
           email: formData.email,
-          phone_number: formData.phone,
+          phone_number: formData.phone_number, // Changed from formData.phone to formData.phone_number
           password: formData.password,
           photoUrl: formData.pfp,
           banner: formData.banner,
@@ -175,6 +177,15 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
       });
     }
   };
+
+useEffect(() => {
+    // Fetch wishlists
+    wishlistService.getWishlists().then((data) => {
+      setWishlists(data);
+    }).catch((error) => {
+      console.error('Failed to fetch wishlists:', error);
+    });
+  }, []);
 
   return {
     formData,
