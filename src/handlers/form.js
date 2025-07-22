@@ -3,14 +3,12 @@ import i18next from 'i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { validationService } from '@/api/validation';
 import { authService } from '@/api/authentication';
-import { wishlistService } from '@/api/wishlist';
 
 export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
   const [isRTL, setIsRTL] = useState(i18next.dir() === 'rtl');
-  const [wishlists, setWishlists] = useState([]);
 
   const { isSignup = false, isLogin = false } = config;
 
@@ -177,15 +175,6 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
       });
     }
   };
-
-useEffect(() => {
-    // Fetch wishlists
-    wishlistService.getWishlists().then((data) => {
-      setWishlists(data);
-    }).catch((error) => {
-      console.error('Failed to fetch wishlists:', error);
-    });
-  }, []);
 
   return {
     formData,
