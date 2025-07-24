@@ -4,6 +4,11 @@ import { useToast } from '@/components/ui/use-toast';
 import { validationService } from '@/api/validation';
 import { authService } from '@/api/authentication';
 
+const generateObjectId = () => {
+  const hex = [...Array(24)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+  return hex;
+};
+
 export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState(initialFormData);
@@ -33,7 +38,7 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
         ...prev,
         email: validationService.validateEmail(value) ? null : t('emailInvalid'),
       }));
-    } else if (field === 'phone_number') { // Changed from 'phone' to 'phone_number'
+    } else if (field === 'phone_number') {
       setErrors((prev) => ({
         ...prev,
         phone_number: validationService.validatePhoneNumber(value) ? null : t('phoneInvalid'),
@@ -56,19 +61,17 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
   const validateForm = () => {
     const newErrors = {};
 
-    // Shared
     if (!validationService.validateEmail(formData.email)) {
       newErrors.email = t('emailInvalid');
     }
-    if (formData.phone_number && !validationService.validatePhoneNumber(formData.phone_number)) { // Changed from 'phone' to 'phone_number'
-      newErrors.phone_number = t('phoneInvalid'); // Changed from 'phone' to 'phone_number'
+    if (formData.phone_number && !validationService.validatePhoneNumber(formData.phone_number)) {
+      newErrors.phone_number = t('phoneInvalid');
     }
 
     if (isLogin && !formData.password) {
       newErrors.password = t('passwordRequired');
     }
 
-    // Signup specific
     if (isSignup) {
       if (!formData.name) newErrors.name = t('nameRequired');
       if (!formData.agreedToTerms) newErrors.agreedToTerms = t('termsRequired');
@@ -101,6 +104,8 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -118,12 +123,17 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
         const basePayload = {
           name: formData.name,
           email: formData.email,
-          phone_number: formData.phone_number, // Changed from formData.phone to formData.phone_number
+          phone_number: formData.phone_number,
           password: formData.password,
           photoUrl: formData.pfp,
           banner: formData.banner,
           type: formData.user_type,
         };
+
+        // Ensure wishlist_id is present and valid
+        const wishlist_id = isValidObjectId(formData.wishlist_id)
+          ? formData.wishlist_id
+          : generateObjectId();
 
         const studentPayload = {
           governate: formData.governate,
@@ -132,7 +142,7 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
           grade: formData.grade,
           sector: formData.sector,
           language: formData.studying_language,
-          wishlist_id: formData.wishlist_id || 'default-wishlist',
+          wishlist_id,
         };
 
         const teacherPayload = {
@@ -168,6 +178,7 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
         navigate('/');
       }
     } catch (error) {
+      console.error('Signup/Login error:', error);
       toast({
         title: t('error'),
         description: error?.message || (isSignup ? t('signupError') : t('loginError')),

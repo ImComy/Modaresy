@@ -1,50 +1,88 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { authService } from '@/api/authentication'; // Import your real API
+import { useToast } from '@/components/ui/use-toast';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
+  const { toast } = useToast();
+
   const [authState, setAuthState] = useState({
     isLoggedIn: false,
-    userRole: null, // 'student' or 'teacher'
-    userId: null, // Mock user ID
-    // Add more user details if needed
+    userRole: null, // 'Student' or 'Teacher' or 'Admin'
+    userId: null,
+    userData: null, // full profile data
+    loading: true,  // for global loading state
   });
 
-  // Simple function to simulate login
-  const login = (role = 'student', userId = 1) => {
-    console.log(`AuthContext: Logging in as ${role} with ID ${userId}`);
-    setAuthState({ isLoggedIn: true, userRole: role, userId });
-    // In a real app, you'd fetch user data here after successful auth
-  };
+  // Real login function using authService
+  const login = async (email, password) => {
+    try {
+      await authService.login(email, password); // backend sets cookie
 
-  // Simple function to simulate logout
-  const logout = () => {
-    console.log("AuthContext: Logging out");
-    setAuthState({ isLoggedIn: false, userRole: null, userId: null });
-    // Clear tokens, etc.
-  };
+      const userData = await authService.getProfile(); // fetch user data
+      setAuthState({
+        isLoggedIn: true,
+        userRole: userData?.type,
+        userId: userData?._id,
+        userData,
+        loading: false,
+      });
 
-    // Simulate persistent login check (e.g., reading from localStorage)
-    // This is a basic example; a real app would use secure tokens
-    useEffect(() => {
-      const storedRole = localStorage.getItem('mockUserRole');
-      const storedUserId = localStorage.getItem('mockUserId');
-      if (storedRole && storedUserId) {
-        login(storedRole, parseInt(storedUserId));
-      }
-    }, []);
+      toast({ title: 'Login Successful', description: `Welcome ${userData.name}` });
 
-  // Persist mock login state for demonstration
-  useEffect(() => {
-    if (authState.isLoggedIn) {
-      localStorage.setItem('mockUserRole', authState.userRole);
-      localStorage.setItem('mockUserId', authState.userId);
-    } else {
-      localStorage.removeItem('mockUserRole');
-      localStorage.removeItem('mockUserId');
+    } catch (err) {
+      toast({
+        title: 'Login Failed',
+        description: err.message || 'Invalid credentials',
+        variant: 'destructive',
+      });
+      throw err; // rethrow for form to handle
     }
-  }, [authState]);
+  };
 
+  const logout = async () => {
+    try {
+      await authService.logout(); // clear cookie on backend
+
+      setAuthState({
+        isLoggedIn: false,
+        userRole: null,
+        userId: null,
+        userData: null,
+        loading: false,
+      });
+
+      toast({ title: 'Logged out', description: 'You have been logged out' });
+
+    } catch (err) {
+      toast({
+        title: 'Logout Failed',
+        description: err.message || 'Please try again',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Auto-login on page reload (via cookie + API)
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const userData = await authService.getProfile();
+        setAuthState({
+          isLoggedIn: true,
+          userRole: userData?.type,
+          userId: userData?._id,
+          userData,
+          loading: false,
+        });
+      } catch {
+        setAuthState(prev => ({ ...prev, loading: false }));
+      }
+    };
+
+    checkSession();
+  }, []);
 
   return (
     <AuthContext.Provider value={{ authState, login, logout }}>
@@ -55,8 +93,6 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
