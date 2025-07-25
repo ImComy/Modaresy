@@ -30,7 +30,7 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(0);
 
-  const isOwner = authState.isLoggedIn && authState.userId === parseInt(id);
+  const isOwner = authState.isLoggedIn && authState.userId === String(id);
 
   const {
     isEditing: internalEditing,

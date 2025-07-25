@@ -1,6 +1,8 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { authService } from '@/api/authentication'; // Import your real API
 import { useToast } from '@/components/ui/use-toast';
+import { studentService } from '@/api/student';
+import { tutorService } from '@/api/tutor';
+import { apiFetch } from '@/api/apiService';
 
 const AuthContext = createContext(null);
 
@@ -9,75 +11,112 @@ export const AuthProvider = ({ children }) => {
 
   const [authState, setAuthState] = useState({
     isLoggedIn: false,
-    userRole: null, // 'Student' or 'Teacher' or 'Admin'
-    userId: null,
-    userData: null, // full profile data
-    loading: true,  // for global loading state
+    userRole: null,
+    userId: null, 
+    userData: null,
+    isLoading: true,
   });
 
-  // Real login function using authService
-  const login = async (email, password) => {
-    try {
-      await authService.login(email, password); // backend sets cookie
+const login = async (email, password) => {
+  console.log('Login attempt with email:', email);
+  try {
+    const data = await apiFetch('/users/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
 
-      const userData = await authService.getProfile(); // fetch user data
-      setAuthState({
-        isLoggedIn: true,
-        userRole: userData?.type,
-        userId: userData?._id,
-        userData,
-        loading: false,
-      });
-
-      toast({ title: 'Login Successful', description: `Welcome ${userData.name}` });
-
-    } catch (err) {
-      toast({
-        title: 'Login Failed',
-        description: err.message || 'Invalid credentials',
-        variant: 'destructive',
-      });
-      throw err; // rethrow for form to handle
+    const { token } = data;
+    if (!token) {
+      console.error('Token missing in login response');
+      throw new Error('Token missing from login response');
     }
+
+    console.log('Storing token in localStorage:', token);
+    localStorage.setItem('token', token);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    console.log('Fetching user profile...');
+    let userData = null;
+    try {
+      userData = await studentService.getProfile();
+      console.log('Student profile fetched:', userData);
+    } catch (err) {
+      if (err.message?.includes("user isn't a student")) {
+        console.log("Not a student, trying tutor profile...");
+        userData = await tutorService.getProfile();
+        console.log('Tutor profile fetched:', userData);
+      } else {
+        throw err;
+      }
+    }
+
+    const role = userData?.type || userData?.user_type;
+    const newState = {
+      isLoggedIn: true,
+      userRole: role,
+      userId: userData?._id,
+      userData,
+      isLoading: false,
+    };
+    setAuthState(newState);
+    toast({
+      title: 'Login Successful',
+      description: `Welcome ${userData.name}`,
+    });
+
+  } catch (err) {
+    console.error('Login failed:', err.message || 'Invalid credentials');
+    toast({
+      title: 'Login Failed',
+      description: err.message || 'Invalid credentials',
+      variant: 'destructive',
+    });
+    throw err;
+  }
+};
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setAuthState({
+      isLoggedIn: false,
+      userRole: null,
+      userId: null,
+      userData: null,
+      isLoading: false,
+    });
+
+    toast({
+      title: 'Logged out',
+      description: 'You have been logged out',
+    });
   };
 
-  const logout = async () => {
-    try {
-      await authService.logout(); // clear cookie on backend
-
-      setAuthState({
-        isLoggedIn: false,
-        userRole: null,
-        userId: null,
-        userData: null,
-        loading: false,
-      });
-
-      toast({ title: 'Logged out', description: 'You have been logged out' });
-
-    } catch (err) {
-      toast({
-        title: 'Logout Failed',
-        description: err.message || 'Please try again',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Auto-login on page reload (via cookie + API)
   useEffect(() => {
     const checkSession = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+        return;
+      }
+
       try {
-        const userData = await authService.getProfile();
+        let userData = null;
+        try {
+          userData = await studentService.getProfile();
+        } catch (err) {
+          userData = await tutorService.getProfile();
+        }
+
+        const role = userData?.type || userData?.user_type;
         setAuthState({
           isLoggedIn: true,
-          userRole: userData?.type,
+          userRole: role,
           userId: userData?._id,
           userData,
-          loading: false,
+          isLoading: false,
         });
-      } catch {
-        setAuthState(prev => ({ ...prev, loading: false }));
+      } catch (err) {
+        setAuthState(prev => ({ ...prev, isLoading: false }));
       }
     };
 
@@ -93,6 +132,8 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 };

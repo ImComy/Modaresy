@@ -91,7 +91,12 @@ export function logout(req, res) {
 }
 
 export async function verifyToken(req, res, next) {
-  const token = req.cookies.token;
+  let token = req.cookies.token;
+
+  if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
   if (!token) return res.status(401).json({ error: 'No token provided' });
 
   try {
@@ -99,9 +104,9 @@ export async function verifyToken(req, res, next) {
     const user = await User.findById(decoded.id);
 
     if (!user) return res.status(404).json({ error: 'User not found' });
-    if (!user.verified) return res.status(400).json({ error: 'User is not verified' });
+    // if (!user.verified) return res.status(400).json({ error: 'User is not verified' });
 
-    if (user.__t !== decoded.type) {
+    if (user.type !== decoded.type) {
       return res.status(403).json({ error: 'User type mismatch' });
     }
 
@@ -111,6 +116,7 @@ export async function verifyToken(req, res, next) {
     return res.status(403).json({ error: 'Invalid or expired token' });
   }
 }
+
 
 export const verifyAdmin = async (req, res, next) => {
   try {
@@ -138,12 +144,16 @@ export const verifyAdmin = async (req, res, next) => {
 
 export const rateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 120,
   message: 'Too many requests sent from this IP, please try again later',
 });
 
 export async function getProfileData(user) {
-  const filtered_user = user.toObject();
+  let filtered_user = user;
+
+  if (typeof user.toObject === 'function') {
+    filtered_user = user.toObject();
+  }
 
   delete filtered_user.password;
   delete filtered_user.verificationCode;
@@ -153,3 +163,4 @@ export async function getProfileData(user) {
 
   return filtered_user;
 }
+

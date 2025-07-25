@@ -23,7 +23,6 @@ import {
 const router = express.Router();
 
 router.use(verifyToken)
-router.use(isStudent)
 
 router.post("/contactTutor", getTeacherbyId, contactTutor)
 router.post("/requestEnrollment", getTeacherbyId, requestEnrollment)

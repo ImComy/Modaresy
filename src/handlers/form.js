@@ -3,6 +3,7 @@ import i18next from 'i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { validationService } from '@/api/validation';
 import { authService } from '@/api/authentication';
+import { useAuth } from '@/context/AuthContext';
 
 const generateObjectId = () => {
   const hex = [...Array(24)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
@@ -14,6 +15,7 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
   const [isRTL, setIsRTL] = useState(i18next.dir() === 'rtl');
+  const { login } = useAuth();
 
   const { isSignup = false, isLogin = false } = config;
 
@@ -168,8 +170,7 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
       }
 
       if (isLogin) {
-        await authService.login(formData.email, formData.password);
-
+        await login(formData.email, formData.password);
         toast({
           title: t('loginSuccessTitle'),
           description: t('loginSuccessDesc'),

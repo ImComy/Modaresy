@@ -1,35 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-
-const defaultHeaders = {
-  "Content-Type": "application/json",
-};
-
-async function apiFetch(endpoint, options = {}) {
-  try {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers: {
-        ...defaultHeaders,
-        ...options.headers,
-      },
-      credentials: "include", // send cookies
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || data.message || "Request failed");
-    }
-    return data;
-  } catch (error) {
-    console.error(`API error on ${endpoint}:`, error);
-    throw error;
-  }
-}
-
-// Attach bearer token to headers if available
-function withAuth(headers = {}) {
-  const token = localStorage.getItem("token");
-  return token ? { ...headers, Authorization: `Bearer ${token}` } : headers;
-}
+import { apiFetch } from './apiService';
 
 export const authService = {
   // Signup (create account)
@@ -49,6 +18,8 @@ export const authService = {
 
     if (response.token) {
       localStorage.setItem("token", response.token);
+    } else {
+      throw new Error("No token returned from server");
     }
 
     return response;
@@ -58,7 +29,6 @@ export const authService = {
   async logout() {
     const response = await apiFetch(`/users/logout`, {
       method: "DELETE",
-      headers: withAuth(),
     });
     localStorage.removeItem("token");
     return response;
@@ -68,7 +38,6 @@ export const authService = {
   async sendVerificationCode(email, type) {
     return apiFetch(`/users/sendVerificationCode`, {
       method: "POST",
-      headers: withAuth(),
       body: JSON.stringify({ email, type }),
     });
   },
@@ -77,7 +46,6 @@ export const authService = {
   async verifyUserAccount(phone_number, code) {
     return apiFetch(`/users/verifyUserAccount`, {
       method: "POST",
-      headers: withAuth(),
       body: JSON.stringify({ phone_number, code }),
     });
   },

@@ -1,4 +1,4 @@
-import React from 'react';
+import {useEffect} from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useFormLogic } from '@/handlers/form';
+import { useAuth } from '@/context/AuthContext';
 
 const initialFormData = {
   email: '',
@@ -16,6 +17,16 @@ const initialFormData = {
 const LoginPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+const { authState } = useAuth();
+
+useEffect(() => {
+  if (authState.isLoggedIn && !authState.loading) {
+    console.log('Navigating to / because login completed');
+    navigate('/');
+  }
+}, [authState.isLoggedIn, authState.loading, navigate]);
+
   const { formData, errors, handleChange, handleSubmit } = useFormLogic(initialFormData, navigate, t, { isLogin: true });
 
   return (

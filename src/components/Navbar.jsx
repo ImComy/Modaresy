@@ -21,7 +21,6 @@ import {
   Menu,
   X,
   Heart,
-  Bell,
   User,
   LogOut,
   LayoutDashboard,
@@ -43,7 +42,7 @@ const Navbar = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { authState, login, logout } = useAuth();
-  const { isLoggedIn, userRole } = authState;
+  const { isLoggedIn, userRole, userId } = authState;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { wishlist } = useWishlist();
   const location = useLocation();
@@ -61,7 +60,7 @@ const Navbar = () => {
   };
 
   const testLogin = (role = 'student') => {
-    const testUserId = role === 'teacher' ? 1 : 2;
+    const testUserId = role === 'teacher' ? '1' : '2';
     login(role, testUserId);
     setIsMobileMenuOpen(false);
     const profilePath = role === 'teacher' ? `/tutor/${testUserId}` : '/profile';
@@ -74,7 +73,7 @@ const Navbar = () => {
     { label: t('PickYourTeacher'), path: '/filters', icon: <Search size={16} /> },
   ];
 
-  const profilePath = userRole === 'teacher' ? `/tutor/${authState.userId}` : '/profile';
+  const profilePath = userRole === 'teacher' ? `/tutor/${userId}` : '/profile';
 
   const mobileMenuVariants = {
     closed: { opacity: 0, height: 0, transition: { duration: 0.2 } },
