@@ -59,7 +59,7 @@ const SignupPage = () => {
     if (formData.grade && !secondaryGrades.includes(formData.grade)) {
       setFormData((prev) => ({ ...prev, sector: 'general' }));
     }
-  }, [formData.grade]);
+  }, [formData.grade, setFormData]);
 
   return (
     <motion.div
@@ -124,7 +124,7 @@ const SignupPage = () => {
                     type={field === 'email' ? 'email' : 'text'}
                     value={formData[field]}
                     onChange={(e) => handleChange(e, field)}
-                    placeholder={t(`placeholder.${field}`)} // e.g., placeholder.name, placeholder.email
+                    placeholder={t(`placeholder.${field}`)}
                     required
                     error={errors[field]}
                   />

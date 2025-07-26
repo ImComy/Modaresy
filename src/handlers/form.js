@@ -79,8 +79,6 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
       if (!formData.agreedToTerms) newErrors.agreedToTerms = t('termsRequired');
       if (!formData.governate) newErrors.governate = t('locationRequired');
       if (!formData.district) newErrors.district = t('districtRequired');
-      if (!formData.education_system) newErrors.education_system = t('educationSystemRequired');
-      if (!formData.studying_language) newErrors.studying_language = t('languageRequired');
       if (!formData.wishlist_id) newErrors.wishlist_id = t('wishlistRequired');
 
       if (!formData.password || formData.password.length < 6) {
@@ -91,15 +89,17 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
       }
 
       if (formData.user_type === 'Student') {
+        if (!formData.education_system) newErrors.education_system = t('educationSystemRequired');
+        if (!formData.studying_language) newErrors.studying_language = t('languageRequired');
         if (!formData.grade) newErrors.grade = t('gradeInvalid');
         if (!formData.sector) newErrors.sector = t('sectorRequired');
       }
 
-      if (formData.user_type === 'Teacher') {
-        if (!formData.subjects?.length) newErrors.subjects = t('subjectsRequired');
-        if (!formData.targetGrades?.length) newErrors.targetGrades = t('targetGradesRequired');
-        if (!formData.targetSectors?.length) newErrors.targetSectors = t('targetSectorsRequired');
-      }
+      // if (formData.user_type === 'Teacher') {
+      //   if (!formData.subjects?.length) newErrors.subjects = t('subjectsRequired');
+      //   if (!formData.targetGrades?.length) newErrors.targetGrades = t('targetGradesRequired');
+      //   if (!formData.targetSectors?.length) newErrors.targetSectors = t('targetSectorsRequired');
+      // }
     }
 
     setErrors(newErrors);
@@ -108,85 +108,83 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
 
   const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    if (!validateForm()) {
+  if (!validateForm()) {
+    toast({
+      title: t('error'),
+      description: isLogin ? t('fixFormErrors') : t('validationError'),
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  try {
+    if (isSignup) {
+      const basePayload = {
+        name: formData.name,
+        email: formData.email,
+        phone_number: formData.phone_number,
+        password: formData.password,
+        photoUrl: formData.pfp,
+        banner: formData.banner,
+        type: formData.user_type,
+      };
+
+      const wishlist_id = isValidObjectId(formData.wishlist_id)
+        ? formData.wishlist_id
+        : generateObjectId();
+
+      const studentPayload = {
+        governate: formData.governate,
+        district: formData.district,
+        education_system: formData.education_system,
+        grade: formData.grade,
+        sector: formData.sector,
+        language: formData.studying_language,
+        wishlist_id,
+      };
+
+      const teacherPayload = {
+        governate: formData.governate, // Include governate
+        district: formData.district,   // Include district
+        wishlist_id,                   // Include wishlist_id
+      };
+
+      const payload =
+        formData.user_type === 'Student'
+          ? { ...basePayload, ...studentPayload }
+          : { ...basePayload, ...teacherPayload };
+
+      await authService.signup(payload);
+
       toast({
-        title: t('error'),
-        description: isLogin ? t('fixFormErrors') : t('validationError'),
-        variant: 'destructive',
+        title: t('signupSuccess'),
+        description: t('signupSuccessDesc'),
       });
-      return;
+
+      navigate('/login');
     }
 
-    try {
-      if (isSignup) {
-        const basePayload = {
-          name: formData.name,
-          email: formData.email,
-          phone_number: formData.phone_number,
-          password: formData.password,
-          photoUrl: formData.pfp,
-          banner: formData.banner,
-          type: formData.user_type,
-        };
-
-        // Ensure wishlist_id is present and valid
-        const wishlist_id = isValidObjectId(formData.wishlist_id)
-          ? formData.wishlist_id
-          : generateObjectId();
-
-        const studentPayload = {
-          governate: formData.governate,
-          district: formData.district,
-          education_system: formData.education_system,
-          grade: formData.grade,
-          sector: formData.sector,
-          language: formData.studying_language,
-          wishlist_id,
-        };
-
-        const teacherPayload = {
-          location: formData.governate,
-          subjects: formData.subjects || [],
-          targetGrades: formData.targetGrades || [],
-          targetSectors: formData.targetSectors || [],
-        };
-
-        const payload =
-          formData.user_type === 'Student'
-            ? { ...basePayload, ...studentPayload }
-            : { ...basePayload, ...teacherPayload };
-
-        await authService.signup(payload);
-
-        toast({
-          title: t('signupSuccess'),
-          description: t('signupSuccessDesc'),
-        });
-
-        navigate('/login');
-      }
-
-      if (isLogin) {
-        await login(formData.email, formData.password);
-        toast({
-          title: t('loginSuccessTitle'),
-          description: t('loginSuccessDesc'),
-        });
-
-        navigate('/');
-      }
-    } catch (error) {
-      console.error('Signup/Login error:', error);
+    if (isLogin) {
+      await login(formData.email, formData.password);
       toast({
-        title: t('error'),
-        description: error?.message || (isSignup ? t('signupError') : t('loginError')),
-        variant: 'destructive',
+        title: t('loginSuccessTitle'),
+        description: t('loginSuccessDesc'),
       });
+
+      navigate('/');
     }
-  };
+  } catch (error) {
+    console.error('Signup/Login error:', error);
+    toast({
+      title: t('error'),
+      description: error?.message || (isSignup ? t('signupError') : t('loginError')),
+      variant: 'destructive',
+    });
+  }
+};
 
   return {
     formData,
