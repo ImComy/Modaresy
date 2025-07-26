@@ -59,4 +59,11 @@ export const subjects = [
     // Add more subjects
 ];
 
+export const educationSystems = [
+  { value: 'National', labelKey: 'educationNational' },
+  { value: 'international', labelKey: 'educationInternational' },
+  { value: 'igcse', labelKey: 'educationIGCSE' },
+  // Add more systems as needed
+];
+
 export const API_BASE_URL = import.meta.env.SERVER_URL;

@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useFormLogic } from '@/handlers/form';
 import { useAuth } from '@/context/AuthContext';
+import { SinglePasswordInput } from '@/components/ui/password'; // Import the reusable single input
 
 const initialFormData = {
   email: '',
@@ -17,15 +18,14 @@ const initialFormData = {
 const LoginPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { authState } = useAuth();
 
-const { authState } = useAuth();
-
-useEffect(() => {
-  if (authState.isLoggedIn && !authState.loading) {
-    console.log('Navigating to / because login completed');
-    navigate('/');
-  }
-}, [authState.isLoggedIn, authState.loading, navigate]);
+  useEffect(() => {
+    if (authState.isLoggedIn && !authState.loading) {
+      console.log('Navigating to / because login completed');
+      navigate('/');
+    }
+  }, [authState.isLoggedIn, authState.loading, navigate]);
 
   const { formData, errors, handleChange, handleSubmit } = useFormLogic(initialFormData, navigate, t, { isLogin: true });
 
@@ -43,6 +43,7 @@ useEffect(() => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email Input */}
             <div className="space-y-2">
               <Label htmlFor="email">{t('email')}</Label>
               <Input
@@ -56,6 +57,8 @@ useEffect(() => {
               />
               {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
             </div>
+
+            {/* Password Input */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">{t('password')}</Label>
@@ -63,17 +66,16 @@ useEffect(() => {
                   {t('forgotPassword')}
                 </Link>
               </div>
-              <Input
-                id="password"
-                type="password"
+              <SinglePasswordInput
                 value={formData.password}
                 onChange={(e) => handleChange(e, 'password')}
-                className={`border ${errors.password ? 'border-destructive' : 'border-border/50'} rounded-lg h-10 text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02]`}
-                required
+                error={errors.password}
               />
-              {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
             </div>
-            <Button type="submit" className="w-full">{t('loginBtn')}</Button>
+
+            <Button type="submit" className="w-full">
+              {t('loginBtn')}
+            </Button>
           </form>
         </CardContent>
         <CardFooter className="flex justify-center text-sm">

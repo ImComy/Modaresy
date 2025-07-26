@@ -49,6 +49,17 @@ export const authService = {
       body: JSON.stringify({ phone_number, code }),
     });
   },
+
+  // Update password
+  async updatePassword(currentPassword, newPassword) {
+    return apiFetch(`/users/updatePassword`, {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+  },
 };
 
 export default authService;
