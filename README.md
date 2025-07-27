@@ -121,7 +121,7 @@ Modaresy is built with passion and dedication by a small, creative team:
 ## 📬 Contact & Support
 
 Have feedback, questions, or want to get involved?  
-📧 Email us: **modaresyorg@gmail.com**
+📧 Email us: **support@modaresy.me**
 
 ---
 

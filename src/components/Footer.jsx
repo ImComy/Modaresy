@@ -42,7 +42,7 @@ const Footer = () => {
           <div>
               <h4 className="text-md font-semibold mb-3">{t('contactInfo')}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>{t('emailAddress')}: modaresyorg@gmail.com</li> 
+                <li>{t('emailAddress')}: support@modaresy.me</li> 
                 <li>{t('phoneNumber')}: 01289099780</li> 
               </ul>
           </div>

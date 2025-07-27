@@ -44,4 +44,8 @@ export const studentService = {
       body: JSON.stringify({ updated_information: updatedInformation }),
     });
   },
+
+  async getPlatformStats() {
+    return apiFetch(`/users/stats`);
+  },
 };

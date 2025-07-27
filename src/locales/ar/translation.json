@@ -1342,7 +1342,7 @@
   "stats": {
     "students": "طالب",
     "tutors": "مدرس",
-    "subjects": "مادة"
+   "districts": "منطقة"
   },
   "changeBanner": "تغيير صورة الغلاف",
   "changeAvatar": "تغيير الصورة الشخصية",

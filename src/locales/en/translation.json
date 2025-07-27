@@ -1286,7 +1286,7 @@
   "stats": {
     "students": "Student",
     "tutors": "Tutor",
-    "subjects": "Subject"
+    "districts": "Districts"
   },
   "changeBanner": "Change Banner",
   "changeAvatar": "Change Avatar",

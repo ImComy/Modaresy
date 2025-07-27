@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import path from 'path';
 import dotenv from 'dotenv';
+import { initializeUserStatsCache } from './events/user_stats.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -34,6 +35,7 @@ app.use('/users', users)
 app.use('/tutors', tutors)
 app.use('/students', students)
 app.use('/admins', admins)
+initializeUserStatsCache();
 
 app.listen(port, () => {
   console.log(`Modaresy is listening on port ${port}`)
