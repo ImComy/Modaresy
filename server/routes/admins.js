@@ -9,7 +9,10 @@ import {
     removeStudent,
     removeTutor,
     updateStudent,
-    updateTutor
+    updateTutor,
+    rejectReview,
+    approveReview,
+    loadPendingReviews
 } from "../controllers/admin.js"
 import {
     createNewTutor,
@@ -24,6 +27,9 @@ router.post("/login", login)
 router.post("/addTutor", verifyAdmin, hash_password, createNewTutor)
 router.delete("/removeStudent", verifyAdmin, getStudentById, removeStudent)
 router.delete("/removeTutor", verifyAdmin, getTeacherbyId, removeTutor)
+router.get("/loadPendingReviews", verifyAdmin, loadPendingReviews)
+router.post("/approveReview", verifyAdmin, approveReview)
+router.delete("/rejectReview", verifyAdmin, rejectReview)
 //router.put("/updateStudent", verifyAdmin, updateStudent)
 //router.put("/updateTutor", verifyAdmin, updateTutor)
 //router.get("/loadAnalysis/:adminToken", verifyAdmin, loadAnalysis)

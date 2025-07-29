@@ -61,7 +61,8 @@ export async function reviewTutor(req, res){
     try{
         const my_review = new Review({
             ...req.body,
-            User_ID: req.user._id
+            User_ID: req.user._id,
+            approved: false
         })
         await my_review.save()
         return res.status(200).json(my_review);

@@ -1,3 +1,4 @@
+import { Review } from "../models/subjectRelated.js";
 import { compareHash, get_token } from "../services/authentication.service.js";
 
 export async function login(req, res) {
@@ -72,4 +73,52 @@ export async function updateTutor(req, res) {
   } catch (err) {
     return res.status(500).json({ error: "Internal server error: " + err.message });
   }
+}
+
+export async function approveReview(req, res){
+  try{
+    const {reviewId} = req.body
+    const accepted_review = await Review.findByIdAndUpdate(reviewId, { approved: true });
+    if (!accepted_review) {
+      return res.status(404).json({ error: "Review not found" });
+    }
+  }catch(err){
+    return res.status(500).json({ error: "Internal server error: " + err.message });
+  }
+}
+
+export async function rejectReview(req, res){
+  try{
+    const {reviewId} = req.body
+    const rejected_review = await Review.findByIdAndUpdate(reviewId, { approved: false });
+    if (!rejected_review) {
+      return res.status(404).json({ error: "Review not found" });
+    }
+  }catch(err){
+    return res.status(500).json({ error: "Internal server error: " + err.message });
+  }
+}
+
+export async function loadPendingReviews(req, res) {
+    try {
+        const { pages, limit } = req.query;
+        if (!pages || !limit) {
+            return res.status(400).json({ error: "Pages and limit parameters are required" });
+        }
+
+        pages = parseInt(pages) || 1;
+        limit = parseInt(limit) || 10;
+        const NumberOfResults = pages * limit;
+
+        const pendingReviews = await Review.find({ approved: false })
+        .limit(NumberOfResults)
+        .exec();
+        
+        if (!pendingReviews || pendingReviews.length === 0) {
+            return res.status(404).json({ message: "No pending reviews found" });
+        }
+        return res.status(200).json(pendingReviews);
+    } catch (err) {
+        return res.status(500).json({ error: "Internal server error: " + err.message });
+    }
 }

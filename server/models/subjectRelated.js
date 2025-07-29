@@ -34,6 +34,11 @@ const ReviewSchema = new Schema({
   Comment: {
     type: String
   },
+  approved: {
+    type: Boolean,
+    default: false,
+    required: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

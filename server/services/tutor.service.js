@@ -37,7 +37,7 @@ export async function getSubjectProfileReviews(req, res){
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
 
-    const reviews = await Review.find({ subject_profile: subjectProfileID })
+    const reviews = await Review.find({ subject_profile: subjectProfileID, approved: true })
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 })
