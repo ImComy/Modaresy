@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Layout from '@/components/Layout';
 import HomePage from '@/pages/HomePage';
@@ -14,10 +14,9 @@ import StudentProfilePage from '@/pages/StudentProfilePage';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { WishlistProvider } from '@/context/WishlistContext';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import UserOverlay from './components/ui/overlay';
-import { useAuth } from './context/AuthContext';
 import i18n from 'i18next';
 import TermsPage from './pages/terms';
 import PrivacyPage from './pages/privacy';
@@ -26,10 +25,42 @@ import NotFoundPage from './pages/notfound';
 import ForgotPasswordPage from './pages/forgot-password';
 import AdminPage from './pages/AdminPage';
 
+// ProtectedRoute component to restrict access based on auth status and user role
+const ProtectedRoute = ({ element, requireAuth = false, allowedRoles = null, unsignedOnly = false }) => {
+  const { authState } = useAuth();
+  const { isLoggedIn, userRole, isLoading } = authState;
+
+  // Wait until auth state is loaded
+  if (isLoading) {
+    return null; // Or a loading spinner
+  }
+
+  // Check for unsigned-only routes (e.g., login, signup, forgot-password)
+  if (unsignedOnly && isLoggedIn) {
+    console.log(`Unauthorized: ${unsignedOnly} route accessed while logged in`);
+    return <NotFoundPage />;
+  }
+
+  // Check for authenticated routes
+  if (requireAuth && !isLoggedIn) {
+    console.log(`Unauthorized: Auth required for route, but user is not logged in`);
+    return <NotFoundPage />;
+  }
+
+  // Check for role-specific routes
+  if (allowedRoles && (!userRole || !allowedRoles.includes(userRole))) {
+    console.log(`Unauthorized: User role ${userRole} not allowed for route requiring ${allowedRoles}`);
+    return <NotFoundPage />;
+  }
+
+  return element;
+};
+
 function App() {
   const { i18n } = useTranslation();
   const [isLangReady, setIsLangReady] = useState(false);
 
+  // Initialize language from localStorage
   useEffect(() => {
     const savedLang = localStorage.getItem('modaresy-lang');
     if (savedLang && i18n.language !== savedLang) {
@@ -39,11 +70,13 @@ function App() {
     }
   }, [i18n]);
 
+  // Update document direction and language
   useEffect(() => {
     document.documentElement.dir = i18n.dir();
     document.documentElement.lang = i18n.language;
   }, [i18n.language]);
 
+  // Wait for language initialization
   if (!isLangReady) return null;
 
   return (
@@ -62,12 +95,14 @@ function App() {
     </ThemeProvider>
   );
 }
+
 function RoutesWrapper() {
   const { authState } = useAuth();
   const location = useLocation();
   const [showOverlay, setShowOverlay] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
+  // Check for grade and sector in localStorage
   useEffect(() => {
     const grade = localStorage.getItem('selectedGrade');
     const sector = localStorage.getItem('selectedSector');
@@ -79,24 +114,25 @@ function RoutesWrapper() {
     }
   }, []);
 
+  // Determine when to show overlay for unauthenticated users
   useEffect(() => {
-    if (!isReady) return;
+    if (!isReady || authState.isLoading) return;
 
     const shouldShowOverlay = !authState.isLoggedIn &&
-      !['/login', '/signup'].includes(location.pathname) &&
+      !['/login', '/signup', '/forgot-password'].includes(location.pathname) &&
       (!localStorage.getItem('onSubmit') || localStorage.getItem('onSubmit') !== 'true') &&
-      !['/wishlist', '/profile', '/dashboard/teacher'].includes(location.pathname);
+      !['/wishlist', '/profile', '/dashboard/teacher', '/admin'].includes(location.pathname);
 
     setShowOverlay(shouldShowOverlay);
-  }, [authState.isLoggedIn, location.pathname, isReady]);
+  }, [authState.isLoading, authState.isLoggedIn, location.pathname, isReady]);
 
-  // This now accepts the selectedGrade and selectedSector from UserOverlay onSubmit
+  // Handle overlay submission
   function handleSubmit(selectedGrade, selectedSector) {
     if (selectedGrade && selectedSector) {
       localStorage.setItem('onSubmit', 'true');
       localStorage.setItem('selectedGrade', selectedGrade);
       localStorage.setItem('selectedSector', selectedSector);
-      window.location.reload(); 
+      window.location.reload();
       setShowOverlay(false);
     }
   }
@@ -114,21 +150,57 @@ function RoutesWrapper() {
         />
       )}
       <Routes key={location.pathname}>
+        {/* Public routes accessible to all users */}
         <Route path="/" element={<HomePage />} />
         <Route path="/tutor/:id" element={<TutorProfilePage />} />
         <Route path="/about" element={<AboutUsPage />} />
         <Route path="/contact" element={<ContactUsPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/wishlist" element={<WishlistPage />} />
-        <Route path="/profile" element={<StudentProfilePage />} />
-        <Route path="/dashboard/teacher" element={<TeacherDashboardPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+<<<<<<< HEAD
         <Route path='/Filters' element={<Filters />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage /> } />
         <Route path="/admin" element={<AdminPage /> } />
         {/* Add more routes as needed */}
+=======
+        <Route path="/Filters" element={<Filters />} />
+
+        {/* Routes restricted to unsigned users */}
+        <Route
+          path="/login"
+          element={<ProtectedRoute element={<LoginPage />} unsignedOnly />}
+        />
+        <Route
+          path="/signup"
+          element={<ProtectedRoute element={<SignupPage />} unsignedOnly />}
+        />
+        <Route
+          path="/forgot-password"
+          element={<ProtectedRoute element={<ForgotPasswordPage />} unsignedOnly />}
+        />
+
+        {/* Routes restricted to signed-in users */}
+        <Route
+          path="/wishlist"
+          element={<ProtectedRoute element={<WishlistPage />} requireAuth />}
+        />
+        <Route
+          path="/profile"
+          element={<ProtectedRoute element={<StudentProfilePage />} requireAuth />}
+        />
+
+        {/* Routes restricted to specific roles */}
+        <Route
+          path="/dashboard/teacher"
+          element={<ProtectedRoute element={<TeacherDashboardPage />} requireAuth allowedRoles={['teacher']} />}
+        />
+        <Route
+          path="/admin"
+          element={<ProtectedRoute element={<AdminPage />} requireAuth allowedRoles={['admin']} />}
+        />
+
+        {/* Catch-all route for invalid paths */}
+>>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>

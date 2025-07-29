@@ -1342,7 +1342,11 @@
   "stats": {
     "students": "طالب",
     "tutors": "مدرس",
+<<<<<<< HEAD
     "subjects": "مادة"
+=======
+   "districts": "منطقة"
+>>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
   },
   "changeBanner": "تغيير صورة الغلاف",
   "changeAvatar": "تغيير الصورة الشخصية",
@@ -1427,5 +1431,25 @@
     "videoSectionTopicExplanation": "شرح الموضوع",
     "videoSectionProblemSolving": "حل المشكلات",
     "videoSectionOther": "أخرى"
+<<<<<<< HEAD
   }
+=======
+  },
+  "placeholder": {
+    "name": "أدخل اسمك الكامل",
+    "email": "أدخل بريدك الإلكتروني",
+    "phone_number": "أدخل رقم هاتفك",
+    "selectLocation": "اختر موقعًا",
+    "district": "أدخل منطقتك",
+    "selectEducationSystem": "اختر نظام التعليم",
+    "selectLanguage": "اختر اللغة",
+    "selectGrade": "اختر الصف",
+    "selectSector": "اختر التخصص",
+    "searchLocation": "ابحث عن موقع"
+  },
+  "district": "المنطقة",
+  "educationSystem": "نظام التعليم",
+  "studyingLanguage": "لغة الدراسة",
+  "phone_number": "رقم الهاتف"
+>>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
 }

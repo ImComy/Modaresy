@@ -1286,7 +1286,11 @@
   "stats": {
     "students": "Student",
     "tutors": "Tutor",
+<<<<<<< HEAD
     "subjects": "Subject"
+=======
+    "districts": "Districts"
+>>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
   },
   "changeBanner": "Change Banner",
   "changeAvatar": "Change Avatar",
@@ -1371,6 +1375,26 @@
     "videoSectionTopicExplanation": "Topic Explanation",
     "videoSectionProblemSolving": "Problem Solving",
     "videoSectionOther": "Other"
+<<<<<<< HEAD
   }
+=======
+  },
+  "placeholder": {
+    "name": "Enter your full name",
+    "email": "Enter your email address",
+    "phone_number": "Enter your phone number",
+    "selectLocation": "Select a location",
+    "district": "Enter your district",
+    "selectEducationSystem": "Select education system",
+    "selectLanguage": "Select language",
+    "selectGrade": "Select grade",
+    "selectSector": "Select sector",
+    "searchLocation": "Search for a location"
+  },
+  "district": "District",
+  "educationSystem": "Education System",
+  "studyingLanguage": "Studying Language",
+  "phone_number": "Phone Number"
+>>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
 }
 

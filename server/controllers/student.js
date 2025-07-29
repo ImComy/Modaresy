@@ -55,8 +55,19 @@ export const removeFromWishlist = async (req, res) => {
 };
 
 export async function getProfile(req, res) {
-  return res.status(200).json({ userdata: getProfileData(req.user) });
+  console.log('entered getProfile, req.user:', req.user);
+
+  try {
+    const profileData = await getProfileData(req.user);
+    console.log('profile data prepared:', profileData);
+    return res.status(200).json({ userdata: profileData });
+  } catch (err) {
+    console.error('getProfile error:', err.message);
+    return res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
 }
+
+
 
 export async function updateProfile(req, res) {
   try {

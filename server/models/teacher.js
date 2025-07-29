@@ -10,8 +10,8 @@ import {
 
 const TeacherSchema = new Schema({
   social_media: { type: [String] },
-  address: { type: String, required: true },
-  about_me: { type: String, required: true },
+  address: { type: String, required: false },
+  about_me: { type: String, required: false },
 
   education_system: {
     type: [String],

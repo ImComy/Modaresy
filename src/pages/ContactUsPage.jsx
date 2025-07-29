@@ -80,21 +80,14 @@ const ContactUsPage = () => {
                 <Mail size={20} className="text-primary mt-1 flex-shrink-0" />
                 <div>
                   <h4 className="font-semibold">{t('emailInfo')}</h4>
-                  <a href="mailto:info@tutorconnect.eg" className="text-muted-foreground hover:text-primary transition-colors">info@tutorconnect.eg</a>
+                  <a href="mailto:info@tutorconnect.eg" className="text-muted-foreground hover:text-primary transition-colors">support@modaresy.me</a>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <Phone size={20} className="text-primary mt-1 flex-shrink-0" />
                 <div>
                   <h4 className="font-semibold">{t('phoneInfo')}</h4>
-                  <span className="text-muted-foreground">(+20) 123-456-7890</span>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <MapPin size={20} className="text-primary mt-1 flex-shrink-0" />
-                <div>
-                  <h4 className="font-semibold">{t('addressInfo')}</h4>
-                  <span className="text-muted-foreground">123 Learning St, Cairo, Egypt</span>
+                  <span className="text-muted-foreground">01289099780</span>
                 </div>
               </div>
             </CardContent>

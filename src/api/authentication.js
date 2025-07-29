@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 const defaultHeaders = {
@@ -30,6 +31,9 @@ function withAuth(headers = {}) {
   const token = localStorage.getItem("token");
   return token ? { ...headers, Authorization: `Bearer ${token}` } : headers;
 }
+=======
+import { apiFetch } from './apiService';
+>>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
 
 export const authService = {
   // Signup (create account)
@@ -49,6 +53,11 @@ export const authService = {
 
     if (response.token) {
       localStorage.setItem("token", response.token);
+<<<<<<< HEAD
+=======
+    } else {
+      throw new Error("No token returned from server");
+>>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
     }
 
     return response;
@@ -58,7 +67,10 @@ export const authService = {
   async logout() {
     const response = await apiFetch(`/users/logout`, {
       method: "DELETE",
+<<<<<<< HEAD
       headers: withAuth(),
+=======
+>>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
     });
     localStorage.removeItem("token");
     return response;
@@ -68,7 +80,10 @@ export const authService = {
   async sendVerificationCode(email, type) {
     return apiFetch(`/users/sendVerificationCode`, {
       method: "POST",
+<<<<<<< HEAD
       headers: withAuth(),
+=======
+>>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
       body: JSON.stringify({ email, type }),
     });
   },
@@ -77,6 +92,7 @@ export const authService = {
   async verifyUserAccount(phone_number, code) {
     return apiFetch(`/users/verifyUserAccount`, {
       method: "POST",
+<<<<<<< HEAD
       headers: withAuth(),
       body: JSON.stringify({ phone_number, code }),
     });
@@ -84,3 +100,22 @@ export const authService = {
 };
 
 export default authService;
+=======
+      body: JSON.stringify({ phone_number, code }),
+    });
+  },
+
+  // Update password
+  async updatePassword(currentPassword, newPassword) {
+    return apiFetch(`/users/updatePassword`, {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+  },
+};
+
+export default authService;
+>>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09

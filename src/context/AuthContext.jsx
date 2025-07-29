@@ -1,53 +1,166 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { useToast } from '@/components/ui/use-toast';
+import { studentService } from '@/api/student';
+import { tutorService } from '@/api/tutor';
+import { apiFetch } from '@/api/apiService';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
+  const { toast } = useToast();
+
   const [authState, setAuthState] = useState({
     isLoggedIn: false,
-    userRole: null, // 'student' or 'teacher'
-    userId: null, // Mock user ID
-    // Add more user details if needed
+    userRole: null,
+    userId: null,
+    userData: null,
+    isLoading: true,
   });
 
-  // Simple function to simulate login
-  const login = (role = 'student', userId = 1) => {
-    console.log(`AuthContext: Logging in as ${role} with ID ${userId}`);
-    setAuthState({ isLoggedIn: true, userRole: role, userId });
-    // In a real app, you'd fetch user data here after successful auth
-  };
+  const login = async (email, password) => {
+    console.log('Login attempt with email:', email);
+    try {
+      const data = await apiFetch('/users/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
 
-  // Simple function to simulate logout
-  const logout = () => {
-    console.log("AuthContext: Logging out");
-    setAuthState({ isLoggedIn: false, userRole: null, userId: null });
-    // Clear tokens, etc.
-  };
-
-    // Simulate persistent login check (e.g., reading from localStorage)
-    // This is a basic example; a real app would use secure tokens
-    useEffect(() => {
-      const storedRole = localStorage.getItem('mockUserRole');
-      const storedUserId = localStorage.getItem('mockUserId');
-      if (storedRole && storedUserId) {
-        login(storedRole, parseInt(storedUserId));
+      const { token } = data;
+      if (!token) {
+        console.error('Token missing in login response');
+        throw new Error('Token missing from login response');
       }
-    }, []);
 
-  // Persist mock login state for demonstration
-  useEffect(() => {
-    if (authState.isLoggedIn) {
-      localStorage.setItem('mockUserRole', authState.userRole);
-      localStorage.setItem('mockUserId', authState.userId);
-    } else {
-      localStorage.removeItem('mockUserRole');
-      localStorage.removeItem('mockUserId');
+      console.log('Storing token in localStorage:', token);
+      localStorage.setItem('token', token);
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      console.log('Fetching user profile...');
+      let userData = null;
+      try {
+        userData = await studentService.getProfile();
+        console.log('Student profile fetched:', userData);
+      } catch (err) {
+        if (err.message?.includes("user isn't a student")) {
+          console.log("Not a student, trying tutor profile...");
+          userData = await tutorService.getProfile();
+          console.log('Tutor profile fetched:', userData);
+        } else {
+          throw err;
+        }
+      }
+
+      const role = userData?.type || userData?.user_type || 'student';
+      const newState = {
+        isLoggedIn: true,
+        userRole: role,
+        userId: userData?._id,
+        userData,
+        isLoading: false,
+      };
+      setAuthState(newState);
+      console.log('Auth state updated:', newState);
+      toast({
+        title: 'Login Successful',
+        description: `Welcome ${userData.name}`,
+      });
+    } catch (err) {
+      console.error('Login failed:', err.message || 'Invalid credentials');
+      toast({
+        title: 'Login Failed',
+        description: err.message || 'Invalid credentials',
+        variant: 'destructive',
+      });
+      throw err;
     }
-  }, [authState]);
+  };
 
+  const logout = () => {
+    localStorage.removeItem('token');
+    setAuthState({
+      isLoggedIn: false,
+      userRole: null,
+      userId: null,
+      userData: null,
+      isLoading: false,
+    });
+
+    toast({
+      title: 'Logged out',
+      description: 'You have been logged out',
+    });
+  };
+
+  const updatePassword = async (currentPassword, newPassword) => {
+    try {
+      const response = await apiFetch('/users/updatePassword', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword }),
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      toast({
+        title: 'Success',
+        description: response.message || 'Password updated successfully',
+      });
+      return response;
+    } catch (err) {
+      console.error('Password update failed:', err.message);
+      toast({
+        title: 'Password Update Failed',
+        description: err.message || 'Failed to update password',
+        variant: 'destructive',
+      });
+      throw err;
+    }
+  };
+
+  const updateUserData = (newUserData) => {
+    setAuthState(prev => ({
+      ...prev,
+      userData: { ...prev.userData, ...newUserData },
+    }));
+    console.log('User data updated in authState:', newUserData);
+  };
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+        return;
+      }
+
+      try {
+        let userData = null;
+        try {
+          userData = await studentService.getProfile();
+        } catch (err) {
+          userData = await tutorService.getProfile();
+        }
+
+        const role = userData?.type || userData?.user_type || 'student';
+        setAuthState({
+          isLoggedIn: true,
+          userRole: role,
+          userId: userData?._id,
+          userData,
+          isLoading: false,
+        });
+        console.log('Session check completed, auth state:', { isLoggedIn: true, userRole: role, userId: userData?._id, userData });
+      } catch (err) {
+        console.error('Session check failed:', err);
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+      }
+    };
+
+    checkSession();
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ authState, login, logout }}>
+    <AuthContext.Provider value={{ authState, login, logout, updatePassword, updateUserData }}>
       {children}
     </AuthContext.Provider>
   );

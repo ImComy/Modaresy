@@ -21,7 +21,6 @@ import {
   Menu,
   X,
   Heart,
-  Bell,
   User,
   LogOut,
   LayoutDashboard,
@@ -38,55 +37,60 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
 import NotificationDropdown from '@/components/ui/notification';
 
+// Navbar component provides the main navigation bar with authentication-aware features
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { authState, login, logout } = useAuth();
-  const { isLoggedIn, userRole } = authState;
+  const { authState, logout } = useAuth();
+  const { isLoggedIn, userRole, userId, userData } = authState;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { wishlist } = useWishlist();
   const location = useLocation();
   const isRTL = i18n.dir() === 'rtl';
 
+  // Debug auth state to diagnose user role issues
+  useEffect(() => {
+    console.log('Auth State:', { isLoggedIn, userRole, userId, userData });
+  }, [isLoggedIn, userRole, userId, userData]);
+
+  // Language change handler with local storage persistence
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
     localStorage.setItem('modaresy-lang', lng);
   };
 
+  // Logout handler that clears session and redirects to home
   const handleLogout = () => {
     logout();
     navigate('/');
     setIsMobileMenuOpen(false);
   };
 
-  const testLogin = (role = 'student') => {
-    const testUserId = role === 'teacher' ? 1 : 2;
-    login(role, testUserId);
-    setIsMobileMenuOpen(false);
-    const profilePath = role === 'teacher' ? `/tutor/${testUserId}` : '/profile';
-    navigate(profilePath);
-  };
-
+  // Navigation items for the main menu
   const navItems = [
     { label: t('home'), path: '/', icon: <Home size={16} /> },
     { label: t('aboutUs'), path: '/about', icon: <Info size={16} /> },
     { label: t('PickYourTeacher'), path: '/filters', icon: <Search size={16} /> },
   ];
 
-  const profilePath = userRole === 'teacher' ? `/tutor/${authState.userId}` : '/profile';
+  // Determine profile path based on user role
+  const profilePath = userRole === 'Teacher' ? `/tutor/${userId}` : '/profile';
 
+  // Animation variants for mobile menu
   const mobileMenuVariants = {
     closed: { opacity: 0, height: 0, transition: { duration: 0.2 } },
     open: { opacity: 1, height: 'auto', transition: { duration: 0.25 } },
   };
 
+  // Animation variants for dropdown items
   const dropdownItemVariants = {
     initial: { opacity: 0, y: -10 },
     animate: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -10 },
   };
 
+  // State and effect for handling mobile viewport detection
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 767px)');
@@ -96,9 +100,9 @@ const Navbar = () => {
     return () => mediaQuery.removeEventListener('change', handleResize);
   }, []);
 
+  // Handle clicking outside mobile menu to close it
   const menuRef = useRef(null);
   const toggleRef = useRef(null);
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -116,17 +120,30 @@ const Navbar = () => {
   }, [isMobileMenuOpen]);
 
   return (
+    // Main navigation container with sticky positioning and animation
     <motion.nav
       initial={{ y: -70, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
       className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
     >
+      {/* Desktop navigation layout */}
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
+<<<<<<< HEAD
         <Link to="/" className="flex items-center space-x-2 rtl:space-x-reverse w-[100px]" onClick={() => setIsMobileMenuOpen(false)}>
           <img src='/icon.svg' alt='Modaresy' className='primary'/>
+=======
+        {/* Logo and home link */}
+        <Link
+          to="/"
+          className="flex items-center space-x-2 rtl:space-x-reverse w-[100px]"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <img src="/icon.svg" alt="Modaresy" className="primary" />
+>>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
         </Link>
 
+        {/* Main navigation links for desktop */}
         <div className="hidden md:flex items-center space-x-6 rtl:space-x-reverse">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
@@ -135,8 +152,8 @@ const Navbar = () => {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-1 text-sm font-medium transition-colors hover:text-foreground",
-                  isActive ? "text-foreground border-b-2 border-foreground pb-0.5" : "text-muted-foreground"
+                  'flex items-center gap-1 text-sm font-medium transition-colors hover:text-foreground',
+                  isActive ? 'text-foreground border-b-2 border-foreground pb-0.5' : 'text-muted-foreground'
                 )}
               >
                 {item.icon} {item.label}
@@ -145,7 +162,9 @@ const Navbar = () => {
           })}
         </div>
 
+        {/* Right-side controls: wishlist, notifications, language, theme, and user menu */}
         <div className="flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
+          {/* Wishlist button (visible when logged in) */}
           {isLoggedIn && (
             <Link to="/wishlist" className="relative hidden sm:inline-flex">
               <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-red-500">
@@ -159,8 +178,10 @@ const Navbar = () => {
             </Link>
           )}
 
+          {/* Notification dropdown (visible when logged in) */}
           {isLoggedIn && <NotificationDropdown className="visible" />}
 
+          {/* Language selection dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
@@ -203,6 +224,7 @@ const Navbar = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Theme selection dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
@@ -251,6 +273,7 @@ const Navbar = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Authentication controls: login/signup or user profile menu */}
           {!isLoggedIn ? (
             <div className="hidden md:flex items-center space-x-2 rtl:space-x-reverse">
               <Button variant="ghost" onClick={() => navigate('/login')}>
@@ -259,23 +282,21 @@ const Navbar = () => {
               <Button onClick={() => navigate('/signup')}>
                 {t('signup')}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => testLogin('student')}>
-                Test Login (Student)
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => testLogin('teacher')}>
-                Test Login (Teacher)
-              </Button>
             </div>
           ) : !isMobile && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                <Button
+                  variant="ghost"
+                  className="relative h-9 w-9 rounded-full"
+                  onClick={() => console.log('Avatar clicked, userRole:', userRole)}
+                >
                   <Avatar className="h-9 w-9">
                     <AvatarImage
-                      src={userRole === 'teacher' ? '/teacher-avatar.jpg' : '/student-avatar.jpg'}
+                      src={userData?.avatar || (userRole === 'Teacher' ? '/teacher-avatar.jpg' : '/student-avatar.jpg')}
                       alt="User Avatar"
                     />
-                    <AvatarFallback>{userRole === 'teacher' ? 'T' : 'S'}</AvatarFallback>
+                    <AvatarFallback>{userData?.name?.charAt(0) || (userRole === 'Teacher' ? 'T' : 'S')}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
@@ -286,10 +307,10 @@ const Navbar = () => {
                   transition={{ duration: 0.2 }}
                 >
                   <DropdownMenuLabel className={cn(isRTL && 'text-right')}>
-                    {t('myAccount')}
+                    {userData?.name || t('myAccount')}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {userRole === 'student' && (
+                  {userRole === 'Student' ? (
                     <motion.div
                       variants={dropdownItemVariants}
                       initial="initial"
@@ -308,8 +329,7 @@ const Navbar = () => {
                         <span>{t('settingsNav')}</span>
                       </DropdownMenuItem>
                     </motion.div>
-                  )}
-                  {userRole === 'teacher' && (
+                  ) : userRole === 'Teacher' ? (
                     <>
                       <motion.div
                         variants={dropdownItemVariants}
@@ -348,6 +368,25 @@ const Navbar = () => {
                         </DropdownMenuItem>
                       </motion.div>
                     </>
+                  ) : (
+                    <motion.div
+                      variants={dropdownItemVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      transition={{ duration: 0.2 }}
+                    >
+                      <DropdownMenuItem
+                        onClick={() => navigate('/profile')}
+                        className={cn(
+                          'flex items-center gap-2 hover:bg-accent/50 !cursor-pointer',
+                          isRTL && '!flex-row-reverse !text-left'
+                        )}
+                      >
+                        <User className="h-4 w-4" />
+                        <span>{t('profile')}</span>
+                      </DropdownMenuItem>
+                    </motion.div>
                   )}
                   <DropdownMenuSeparator />
                   <motion.div
@@ -355,7 +394,7 @@ const Navbar = () => {
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    transition={{ duration: 0.2, delay: userRole === 'teacher' ? 0.2 : 0.05 }}
+                    transition={{ duration: 0.2, delay: userRole === 'Teacher' ? 0.2 : 0.05 }}
                   >
                     <DropdownMenuItem
                       onClick={handleLogout}
@@ -373,6 +412,7 @@ const Navbar = () => {
             </DropdownMenu>
           )}
 
+          {/* Mobile menu toggle button */}
           <Button
             ref={toggleRef}
             variant="ghost"
@@ -386,6 +426,7 @@ const Navbar = () => {
         </div>
       </div>
 
+      {/* Mobile menu with authentication-aware options */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
@@ -398,6 +439,7 @@ const Navbar = () => {
             className="md:hidden border-t absolute top-full left-0 w-full bg-background shadow-md overflow-hidden"
           >
             <div className="flex flex-col space-y-1 p-4">
+              {/* Main navigation links for mobile */}
               {navItems.map((item) => (
                 <Link
                   key={item.path}
@@ -411,6 +453,7 @@ const Navbar = () => {
               {isLoggedIn && (
                 <>
                   <Separator className="my-2" />
+                  {/* Wishlist link for mobile */}
                   <Link
                     to="/wishlist"
                     className="text-base font-medium text-foreground hover:bg-accent hover:text-accent-foreground p-3 rounded-md flex items-center gap-2 ml-1"
@@ -423,7 +466,7 @@ const Navbar = () => {
                       </span>
                     )}
                   </Link>
-                  {userRole === 'student' && (
+                  {userRole === 'Student' ? (
                     <Button
                       variant="ghost"
                       className="justify-start w-full text-left"
@@ -434,14 +477,13 @@ const Navbar = () => {
                     >
                       <Settings className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('settingsNav')}
                     </Button>
-                  )}
-                  {userRole === 'teacher' && (
+                  ) : userRole === 'Teacher' ? (
                     <>
                       <Button
                         variant="ghost"
                         className="justify-start w-full text-left"
                         onClick={() => {
-                          navigate('/tutor/1');
+                          navigate(profilePath);
                           setIsMobileMenuOpen(false);
                         }}
                       >
@@ -458,7 +500,19 @@ const Navbar = () => {
                         <LayoutDashboard className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('dashboard')}
                       </Button>
                     </>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      className="justify-start w-full text-left"
+                      onClick={() => {
+                        navigate('/profile');
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <User className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" /> {t('profile')}
+                    </Button>
                   )}
+                  {/* Logout button for mobile */}
                   <Button
                     variant="ghost"
                     className="justify-start w-full text-left"
@@ -468,9 +522,10 @@ const Navbar = () => {
                   </Button>
                 </>
               )}
-              <Separator className="my-2" />
               {!isLoggedIn && (
                 <>
+                  <Separator className="my-2" />
+                  {/* Login/Signup buttons for mobile when not logged in */}
                   <Button
                     variant="outline"
                     className="w-full justify-center"
@@ -489,22 +544,6 @@ const Navbar = () => {
                     }}
                   >
                     {t('signup')}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-center"
-                    onClick={() => testLogin('student')}
-                  >
-                    Test Login (Student)
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-center"
-                    onClick={() => testLogin('teacher')}
-                  >
-                    Test Login (Teacher)
                   </Button>
                 </>
               )}
