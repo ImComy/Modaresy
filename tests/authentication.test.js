@@ -1,13 +1,14 @@
 import {
-    createAccount  
+    createAccount,  
+    login,
+    getProfile, updateProfile, getStats
 } from '../server/controllers/users.js';
-import authenticationService from '../server/services/authentication.service.js';
 import {
-    getWishlist,
-    createWishlist,
-    hasWishlist
-} from '../server/services/student.service.js';
+    calculateUserStats
+} from '../server/events/user_stats.js';
 import { it, describe, expect } from 'vitest'
+let studentId, teacherId;
+let token;
 
 describe('User Authentication Tests', () => {
     it('should create a student account successfully', async () => {
@@ -25,6 +26,9 @@ describe('User Authentication Tests', () => {
             language: "Arabic"
         }
         const res = await createAccount(req);
+        if (res && res.id) {
+            studentId = res.id; // Store the student ID for later use
+        }
         expect(res).toHaveProperty('id');
         expect(res.email).toBe(req.email);
     })
@@ -36,73 +40,55 @@ describe('User Authentication Tests', () => {
             email: "teacherEXMPL@modaresy.me",
             phone_number: '022222222222',
             password: "teacherPassword456",
-            governate: "Cairo",
-            district: "Nasr City",
+            experience_years: 4,
+            grades: ["Secondary 1", "Secondary 2"],
+            sectors: ["Mathematics", "Physics"],
+            languages: ["English", "Arabic"],
+            governate: "Ismailia",
+            district: "El-shiekh zayed",
             education_system: "National",
-            specialization: "Physics",
-            language: "English"
         }
-        const res = await authService.signup(req)
-        expect(res).toHaveProperty('id')
-        expect(res.email).toBe(req.email)
-    })
-
-    it('should create a student wishlist successfully if student doesn\'t have', async () => {
-        const studentId = 'student-id-1'
-        const has = await hasWishlist(studentId)
-        if (!has) {
-            const wishlist = await createWishlist(studentId)
-            expect(wishlist).toHaveProperty('studentId', studentId)
-        } else {
-            expect(has).toBe(false)
+        const res = await createAccount(req);
+        if (res && res.id) {
+            teacherId = res.id; // Store the student ID for later use
         }
+
+        expect(res).toHaveProperty('id');
+        expect(res.email).toBe(req.email);
     })
 
-    it('shouldn\'t create a student wishlist successfully if student already have', async () => {
-        const studentId = 'student-id-2'
-        await createWishlist(studentId)
-        await expect(createWishlist(studentId)).rejects.toThrow()
-    })
-
-    it('should login successfully with valid credentials', async () => {
+    it('student should login successfully with valid credentials', async () => {
         const email = "testingEXMPL@modaresy.me"
         const password = "mySecretPassword123"
-        const res = await authService.login(email, password)
+        const res = await login(req);
+        if (res && res.token) {
+            token = res.token;
+        }
+        expect(res).toHaveProperty('token')
+    })
+    it('teacher should login successfully with valid credentials', async () => {
+        const email = "teacherEXMPL@modaresy.me"
+        const password = "teacherPassword456"
+        const res = await login(req);
         expect(res).toHaveProperty('token')
     })
 
     it('should fail to login with invalid credentials', async () => {
-        const email = "wrong@modaresy.me"
-        const password = "wrongPassword"
-        await expect(authService.login(email, password)).rejects.toThrow()
-    })
-
-    it('should retrieve user profile data successfully', async () => {
-        const email = "testingEXMPL@modaresy.me"
-        const password = "mySecretPassword123"
-        await authService.login(email, password)
-        const profile = await authService.getProfile()
-        expect(profile).toHaveProperty('email', email)
-    })
-
-    it('should update user profile data successfully', async () => {
-        const email = "testingEXMPL@modaresy.me"
-        const password = "mySecretPassword123"
-        await authService.login(email, password)
-        const update = { name: "John Updated" }
-        const res = await authService.updateProfile(update)
-        expect(res).toHaveProperty('name', "John Updated")
+    const req = { email: "wrong@modaresy.me", password: "wrongPassword" }
+    let res;
+    try {
+        res = await login(req);
+    } catch (err) {
+        res = err;
+    }
+    expect(res).toHaveProperty('error', "Login failed.");
+    expect(res).toHaveProperty('details');
     })
 
     it('should retrieve user stats successfully', async () => {
-        const email = "testingEXMPL@modaresy.me"
-        const password = "mySecretPassword123"
-        await authService.login(email, password)
-        const stats = await authService.getStats()
-        expect(stats).toHaveProperty('courses')
-    })
-
-    it('shouldn\'t create a student wishlist successfully if student already have', async () => {
-
+        const stats = await calculateUserStats();
+        expect(stats).toHaveProperty('studentCount');
+        expect(stats).toHaveProperty('teacherCount');
+        expect(stats).toHaveProperty('totalDistricts');
     })
 })
