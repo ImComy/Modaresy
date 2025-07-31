@@ -9,8 +9,7 @@ export const TimesSchema = new Schema({
 export const WishlistSchema = new Schema({
   teacher_ids: {
     type: [mongoose.Types.ObjectId],
-    ref: 'Teacher',
-    required: true
+    ref: 'Teacher'
   }
 });
 

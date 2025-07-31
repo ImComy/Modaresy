@@ -17,7 +17,7 @@ export async function createAccount(req, res) {
     }
 
     await user.save();
-    return res.status(201).json({ message: "Account created successfully!" });
+    return res.status(201).json({ message: "Account created successfully!", id: user._id, email: user.email });
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }

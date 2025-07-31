@@ -29,6 +29,38 @@ export async function getStudentById(req, res, next){
     }
 }
 
+export async function hasWishlist(req, res, next) {
+    try {
+        const wishlist = await Wishlist.findById(req.user.wishlist_id);
+
+        if (!wishlist) {
+            req.user.hasWishlist = false;
+        }else{
+            req.user.hasWishlist = true;
+        }
+
+        next();
+    }
+    catch (err) {
+        return res.status(500).json({ error: "Error checking wishlist", details: err.message });
+    }  
+}
+
+export async function createWishlist(req, res) {
+    try {
+        if (req.hasWishlist){
+            return res.status(400).json({ error: "Student already has a Wishlist" });
+        }
+        const wishlist = new Wishlist();
+        await wishlist.save();
+        req.user.wishlist_id = wishlist._id;
+        await req.user.save();
+        return res.status(201).json({ message: "Wishlist created successfully!" });
+    } catch (err) {
+        return res.status(400).json({ error: "Failed to create wishlist.", details: err.message });
+    }
+}
+
 export async function getWishlist(req, res, next){
     try{
         const wishlist = await Wishlist.findById(req.user.wishlist_id);

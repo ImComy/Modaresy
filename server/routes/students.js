@@ -3,7 +3,9 @@ import {
     verifyToken
 } from "../services/authentication.service.js";
 import {
-    getWishlist
+    getWishlist,
+    hasWishlist,
+    createWishlist
 } from "../services/student.service.js"
 import {
     getTeacherbyId
@@ -29,6 +31,7 @@ router.post("/contactTutor", getTeacherbyId, contactTutor)
 router.post("/requestEnrollment", getTeacherbyId, requestEnrollment)
 router.post("/addWishlist", getWishlist, addToWishlist)
 router.delete("/removeWishlist", getWishlist, removeFromWishlist)
+router.post("/createWishlist", hasWishlist, createWishlist);
 //router.post("/reportTutor", reportTutor)
 
 router.get("/getProfile", getProfile)
