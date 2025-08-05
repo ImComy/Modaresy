@@ -129,10 +129,6 @@ const Navbar = () => {
     >
       {/* Desktop navigation layout */}
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-<<<<<<< HEAD
-        <Link to="/" className="flex items-center space-x-2 rtl:space-x-reverse w-[100px]" onClick={() => setIsMobileMenuOpen(false)}>
-          <img src='/icon.svg' alt='Modaresy' className='primary'/>
-=======
         {/* Logo and home link */}
         <Link
           to="/"
@@ -140,7 +136,6 @@ const Navbar = () => {
           onClick={() => setIsMobileMenuOpen(false)}
         >
           <img src="/icon.svg" alt="Modaresy" className="primary" />
->>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
         </Link>
 
         {/* Main navigation links for desktop */}

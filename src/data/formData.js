@@ -59,8 +59,6 @@ export const subjects = [
     // Add more subjects
 ];
 
-<<<<<<< HEAD
-=======
 export const educationSystems = [
   { value: 'National', labelKey: 'educationNational' },
   { value: 'international', labelKey: 'educationInternational' },
@@ -68,5 +66,4 @@ export const educationSystems = [
   // Add more systems as needed
 ];
 
->>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
 export const API_BASE_URL = import.meta.env.SERVER_URL;

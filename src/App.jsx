@@ -157,12 +157,6 @@ function RoutesWrapper() {
         <Route path="/contact" element={<ContactUsPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
-<<<<<<< HEAD
-        <Route path='/Filters' element={<Filters />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage /> } />
-        <Route path="/admin" element={<AdminPage /> } />
-        {/* Add more routes as needed */}
-=======
         <Route path="/Filters" element={<Filters />} />
 
         {/* Routes restricted to unsigned users */}
@@ -200,7 +194,6 @@ function RoutesWrapper() {
         />
 
         {/* Catch-all route for invalid paths */}
->>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>

@@ -7,11 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useFormLogic } from '@/handlers/form';
-<<<<<<< HEAD
-=======
 import { useAuth } from '@/context/AuthContext';
 import { SinglePasswordInput } from '@/components/ui/password'; // Import the reusable single input
->>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
 
 const initialFormData = {
   email: '',
@@ -21,8 +18,6 @@ const initialFormData = {
 const LoginPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-<<<<<<< HEAD
-=======
   const { authState } = useAuth();
 
   useEffect(() => {
@@ -32,7 +27,6 @@ const LoginPage = () => {
     }
   }, [authState.isLoggedIn, authState.loading, navigate]);
 
->>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
   const { formData, errors, handleChange, handleSubmit } = useFormLogic(initialFormData, navigate, t, { isLogin: true });
 
   return (
@@ -49,10 +43,7 @@ const LoginPage = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-<<<<<<< HEAD
-=======
             {/* Email Input */}
->>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
             <div className="space-y-2">
               <Label htmlFor="email">{t('email')}</Label>
               <Input
@@ -75,23 +66,11 @@ const LoginPage = () => {
                   {t('forgotPassword')}
                 </Link>
               </div>
-<<<<<<< HEAD
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => handleChange(e, 'password')}
-                className={`border ${errors.password ? 'border-destructive' : 'border-border/50'} rounded-lg h-10 text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02]`}
-                required
-              />
-              {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
-=======
               <SinglePasswordInput
                 value={formData.password}
                 onChange={(e) => handleChange(e, 'password')}
                 error={errors.password}
               />
->>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
             </div>
 
             <Button type="submit" className="w-full">

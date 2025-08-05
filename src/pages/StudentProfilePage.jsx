@@ -224,11 +224,7 @@ const StudentProfilePage = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-<<<<<<< HEAD
-      <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-6">
-=======
       <div className="lg:col-span-2 space-y-6">
->>>>>>> f48463cd3ab1f4179ef06b1c676d9ab31a295f09
         <h1 className="text-3xl font-bold mb-4">{t('settingss')}</h1>
 
         <Card>

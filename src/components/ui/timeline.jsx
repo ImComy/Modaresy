@@ -52,7 +52,7 @@ export const ScrollableTimeline = ({ userType }) => {
     <div className="relative bg-background">
       <div className="relative mx-auto px-6">
         {/* Central connecting vertical line */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[3px] bg-primary/20 z-0" />
+        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[3px] bg-primary/40 z-0" />
 
         <ul className="space-y-32 relative z-10">
           {benefits.map((item, index) => {
@@ -82,7 +82,7 @@ export const ScrollableTimeline = ({ userType }) => {
 
                 {/* Connecting line segment above dot */}
                 {index > 0 && (
-                  <div className="absolute left-1/2 -translate-x-1/2 top-[-64px] h-16 w-[3px] bg-primary/30 z-0" />
+                  <div className="absolute left-1/2 -translate-x-1/2 top-[-64px] h-16 w-[3px] z-0" />
                 )}
 
                 {/* Card */}
