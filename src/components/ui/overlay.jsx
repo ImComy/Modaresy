@@ -4,7 +4,6 @@ import { FaGoogle, FaFacebookF } from "react-icons/fa";
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import i18next from 'i18next';
-import { grades, sectors } from '@/data/formData';
 import { useNavigate } from 'react-router-dom';
 import { SearchableSelectContent } from '@/components/ui/searchSelect'
 import {
@@ -12,27 +11,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { getConstants } from '@/api/constantsFetch';
 
 export default function UserOverlay({ onClose, onSubmit, onFiltersChange }) {
   const { t } = useTranslation();
   const isRTL = i18next.dir() === 'rtl';
   const navigate = useNavigate();
+  const [constants, setConstants] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const gradeOptions = [{ value: 'all', labelKey: 'allGrades' }, ...grades];
-  const sectorOptions = [{ value: 'all', labelKey: 'allSectors' }, ...sectors];
-
+  const [selectedEducationSystem, setSelectedEducationSystem] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedSector, setSelectedSector] = useState("");
 
-  const buttonClasses =
-    "w-full py-2 rounded-lg mb-3 font-semibold text-white transition-colors duration-300 hover:brightness-110";
+  const [availableGrades, setAvailableGrades] = useState([]);
+  const [availableSectors, setAvailableSectors] = useState([]);
+  const [availableLanguages, setAvailableLanguages] = useState([]);
+
+  const buttonClasses = "w-full py-2 rounded-lg mb-3 font-semibold text-white transition-colors duration-300 hover:brightness-110";
 
   useEffect(() => {
-    const gradeEl = document.getElementById("filter-grade");
-    const sectorEl = document.getElementById("filter-sector");
-
-    if (gradeEl) setSelectedGrade(gradeEl.value || "");
-    if (sectorEl) setSelectedSector(sectorEl.value || "");
+    const loadConstants = async () => {
+      try {
+        const data = await getConstants();
+        setConstants(data);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to load constants:', error);
+        setIsLoading(false);
+      }
+    };
+    loadConstants();
 
     function handleEsc(e) {
       if (e.key === "Escape") onClose();
@@ -41,22 +51,51 @@ export default function UserOverlay({ onClose, onSubmit, onFiltersChange }) {
     return () => document.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
-  function handleGradeChange(value) {
-    setSelectedGrade(value);
-  }
+  // Update available grades when education system changes
+  useEffect(() => {
+    if (selectedEducationSystem && constants?.EducationStructure) {
+      const systemGrades = constants.EducationStructure[selectedEducationSystem]?.grades || [];
+      setAvailableGrades(systemGrades);
+      setSelectedGrade('');
+      setSelectedSector('');
+      
+      // Update available languages
+      const systemLanguages = constants.EducationStructure[selectedEducationSystem]?.languages || [];
+      const languagesToShow = systemLanguages.length > 0 ? systemLanguages : ['Arabic'];
+      setAvailableLanguages(languagesToShow);
+      if (!languagesToShow.includes(selectedLanguage)) {
+        setSelectedLanguage('');
+      }
+    } else {
+      setAvailableGrades([]);
+      setAvailableLanguages([]);
+    }
+  }, [selectedEducationSystem, constants]);
 
-  function handleSectorChange(value) {
-    setSelectedSector(value);
-  }
-
+  // Update sectors when grade changes
+  useEffect(() => {
+    if (selectedGrade && selectedEducationSystem && constants?.EducationStructure) {
+      const gradeSectors = constants.EducationStructure[selectedEducationSystem]?.sectors[selectedGrade] || [];
+      setAvailableSectors(gradeSectors);
+      if (!gradeSectors.includes(selectedSector)) {
+        setSelectedSector('');
+      }
+    } else {
+      setAvailableSectors([]);
+    }
+  }, [selectedGrade, selectedEducationSystem, constants]);
 
   function handleSubmit() {
-    if (selectedGrade && selectedSector) {
-      localStorage.setItem('onSubmit', 'true');
-      localStorage.setItem('filter-grade', selectedGrade);
-      localStorage.setItem('filter-sector', selectedSector);
-
-      onSubmit(selectedGrade, selectedSector);
+    if (selectedEducationSystem && selectedLanguage && selectedGrade && selectedSector) {
+      const preferences = {
+        education_system: selectedEducationSystem,
+        language: selectedLanguage,
+        grade: selectedGrade,
+        sector: selectedSector
+      };
+      
+      localStorage.setItem('userPreferences', JSON.stringify(preferences));
+      onSubmit(preferences);
       onClose();
     }
   }
@@ -67,6 +106,21 @@ export default function UserOverlay({ onClose, onSubmit, onFiltersChange }) {
       document.body.style.overflow = '';
     };
   }, []);
+
+  if (isLoading) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <div className="text-white">{t('loading')}</div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence style={{ direction: 'ltr' }}>
@@ -118,43 +172,111 @@ export default function UserOverlay({ onClose, onSubmit, onFiltersChange }) {
 
           <h2 className="text-2xl font-bold mb-6 text-primary">{t("Welcome!")}</h2>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">{t("Select your Grade:")}</label>
-            <Select value={selectedGrade} onValueChange={handleGradeChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select grade" />
-              </SelectTrigger>
-              <SearchableSelectContent
-                value={selectedGrade} 
-                searchPlaceholder="Search grade..."
-                items={gradeOptions.map((option) => ({
-                  value: option.value,
-                  label: t(option.labelKey || option.label), 
-                }))}
-              />
-            </Select>
-          </div>
+          <div className="space-y-4">
+            {/* Education System */}
+            <div>
+              <label className="block text-sm font-medium mb-1">{t("Education System")}</label>
+              <Select 
+                value={selectedEducationSystem} 
+                onValueChange={setSelectedEducationSystem}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t("Select system")} />
+                </SelectTrigger>
+                {constants?.Education_Systems && (
+                  <SearchableSelectContent
+                    searchPlaceholder={t("Search system...")}
+                    items={constants.Education_Systems.map(system => ({
+                      value: system,
+                      label: system,
+                    }))}
+                  />
+                )}
+              </Select>
+            </div>
 
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-1">{t("Select your Sector:")}</label>
-            <Select value={selectedSector} onValueChange={handleSectorChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select sector" />
-              </SelectTrigger>
-              <SearchableSelectContent
-                searchPlaceholder="Search sector..."
-                items={sectorOptions.map((option) => ({
-                  value: option.value,
-                  label: t(option.labelKey || option.label),
-                }))}
-              />
-            </Select>
+            {/* Language */}
+            <div>
+              <label className="block text-sm font-medium mb-1">{t("Language")}</label>
+              <Select 
+                value={selectedLanguage} 
+                onValueChange={setSelectedLanguage}
+                disabled={!selectedEducationSystem}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    selectedEducationSystem ? t("Select language") : t("Select system first")
+                  } />
+                </SelectTrigger>
+                {selectedEducationSystem && (
+                  <SearchableSelectContent
+                    searchPlaceholder={t("Search language...")}
+                    items={availableLanguages.map(lang => ({
+                      value: lang,
+                      label: lang,
+                    }))}
+                  />
+                )}
+              </Select>
+            </div>
+
+            {/* Grade */}
+            <div>
+              <label className="block text-sm font-medium mb-1">{t("Grade")}</label>
+              <Select 
+                value={selectedGrade} 
+                onValueChange={setSelectedGrade}
+                disabled={!selectedEducationSystem}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    selectedEducationSystem ? t("Select grade") : t("Select system first")
+                  } />
+                </SelectTrigger>
+                {selectedEducationSystem && (
+                  <SearchableSelectContent
+                    searchPlaceholder={t("Search grade...")}
+                    items={availableGrades.map(grade => ({
+                      value: grade,
+                      label: grade,
+                    }))}
+                  />
+                )}
+              </Select>
+            </div>
+
+            {/* Sector */}
+            {availableSectors.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium mb-1">{t("Sector")}</label>
+                <Select 
+                  value={selectedSector} 
+                  onValueChange={setSelectedSector}
+                  disabled={!selectedGrade}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={
+                      selectedGrade ? t("Select sector") : t("Select grade first")
+                    } />
+                  </SelectTrigger>
+                  {selectedGrade && (
+                    <SearchableSelectContent
+                      searchPlaceholder={t("Search sector...")}
+                      items={availableSectors.map(sector => ({
+                        value: sector,
+                        label: sector,
+                      }))}
+                    />
+                  )}
+                </Select>
+              </div>
+            )}
           </div>
 
           <button
             onClick={handleSubmit}
-            disabled={!selectedGrade || !selectedSector}
-            className={`bg-primary text-primary-foreground font-semibold px-5 py-2 rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed w-full ${buttonClasses}`}
+            disabled={!selectedEducationSystem || !selectedLanguage || !selectedGrade || !selectedSector}
+            className={`bg-primary text-primary-foreground font-semibold px-5 py-2 rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed w-full mt-6 ${buttonClasses}`}
           >
             {t("Submit")}
           </button>

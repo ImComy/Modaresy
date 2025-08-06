@@ -118,10 +118,7 @@ function RoutesWrapper() {
   useEffect(() => {
     if (!isReady || authState.isLoading) return;
 
-    const shouldShowOverlay = !authState.isLoggedIn &&
-      !['/login', '/signup', '/forgot-password'].includes(location.pathname) &&
-      (!localStorage.getItem('onSubmit') || localStorage.getItem('onSubmit') !== 'true') &&
-      !['/wishlist', '/profile', '/dashboard/teacher', '/admin'].includes(location.pathname);
+  const shouldShowOverlay = !authState.isLoggedIn && location.pathname == '/filters';
 
     setShowOverlay(shouldShowOverlay);
   }, [authState.isLoading, authState.isLoggedIn, location.pathname, isReady]);
@@ -131,7 +128,7 @@ function RoutesWrapper() {
     if (selectedGrade && selectedSector) {
       localStorage.setItem('onSubmit', 'true');
       localStorage.setItem('selectedGrade', selectedGrade);
-      localStorage.setItem('selectedSector', selectedSector);
+      localStorage.setItem('selectedSector', selectedSector); 
       window.location.reload();
       setShowOverlay(false);
     }
@@ -186,7 +183,7 @@ function RoutesWrapper() {
         {/* Routes restricted to specific roles */}
         <Route
           path="/dashboard/teacher"
-          element={<ProtectedRoute element={<TeacherDashboardPage />} requireAuth allowedRoles={['teacher']} />}
+          element={<ProtectedRoute element={<TeacherDashboardPage />} requireAuth allowedRoles={['Teacher']} />}
         />
         <Route
           path="/admin"

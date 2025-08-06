@@ -1,21 +1,11 @@
-import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useTranslation, Trans } from 'react-i18next';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { SearchableSelectContent } from '@/components/ui/searchSelect';
-import PasswordInputs from '@/components/ui/password';
-import PfpUploadWithCrop from '@/components/pfpSignup';
-import BannerUploadWithCrop from '@/components/bannerSignup';
-import { grades, sectors, locations, languages } from '@/data/formData';
+import { getConstants } from '@/api/constantsFetch';
 import { useFormLogic } from '@/handlers/form';
-import { ScrollableTimeline } from '@/components/ui/timeline';
+// import { ScrollableTimeline } from '@/components/ui/timeline'; // Timeline removed
+import SignupForm from '@/components/SignupForm';
 
 const initialFormData = {
   name: '',
@@ -51,195 +41,150 @@ const SignupPage = () => {
     setFormData,
   } = useFormLogic(initialFormData, navigate, t, { isSignup: true });
 
+  const [constants, setConstants] = useState(null);
+  const [availableDistricts, setAvailableDistricts] = useState([]);
+  const [availableGrades, setAvailableGrades] = useState([]);
+  const [availableSectors, setAvailableSectors] = useState([]);
+  const [availableLanguages, setAvailableLanguages] = useState([]);
+
+  useEffect(() => {
+    getConstants().then(setConstants).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (formData.governate && constants?.Districts) {
+      const districts = constants.Districts[formData.governate] || [];
+      setAvailableDistricts(districts);
+
+      if (formData.district && !districts.includes(formData.district)) {
+        setFormData(prev => ({ ...prev, district: '' }));
+      }
+    } else {
+      setAvailableDistricts([]);
+      setFormData(prev => ({ ...prev, district: '' }));
+    }
+  }, [formData.governate, constants, setFormData]);
+
+  useEffect(() => {
+    if (formData.education_system && constants?.EducationStructure) {
+      const systemGrades = constants.EducationStructure[formData.education_system]?.grades || [];
+      setAvailableGrades(systemGrades);
+
+      if (formData.grade && !systemGrades.includes(formData.grade)) {
+        setFormData(prev => ({ ...prev, grade: '', sector: '' }));
+      }
+    } else {
+      setAvailableGrades([]);
+      setFormData(prev => ({ ...prev, grade: '', sector: '' }));
+    }
+  }, [formData.education_system, constants, setFormData]);
+
+  useEffect(() => {
+    if (formData.grade && formData.education_system && constants?.EducationStructure) {
+      const gradeSectors = constants.EducationStructure[formData.education_system]?.sectors[formData.grade] || [];
+      setAvailableSectors(gradeSectors);
+
+      if (formData.sector && !gradeSectors.includes(formData.sector)) {
+        setFormData(prev => ({ ...prev, sector: '' }));
+      }
+    } else {
+      setAvailableSectors([]);
+      setFormData(prev => ({ ...prev, sector: '' }));
+    }
+  }, [formData.grade, formData.education_system, constants, setFormData]);
+
+  useEffect(() => {
+    if (formData.education_system && constants?.EducationStructure) {
+      const systemLanguages = constants.EducationStructure[formData.education_system]?.languages || [];
+      const languagesToShow = systemLanguages.length > 0 ? systemLanguages : ['Arabic'];
+      setAvailableLanguages(languagesToShow);
+
+      if (formData.studying_language && !languagesToShow.includes(formData.studying_language)) {
+        setFormData(prev => ({ ...prev, studying_language: '' }));
+      }
+    } else {
+      setAvailableLanguages([]);
+    }
+  }, [formData.education_system, constants, setFormData]);
+
+  if (!constants) return (
+    <div className="flex justify-center items-center h-screen">
+      <div className="animate-pulse flex flex-col items-center">
+        <div className="h-12 w-12 bg-primary rounded-full mb-4"></div>
+        <p className="text-muted-foreground">{t('loading')}</p>
+      </div>
+    </div>
+  );
+
   const isStudent = formData.user_type === 'Student';
   const showImageOnLeft = isRTL ? !isStudent : isStudent;
 
-  useEffect(() => {
-    const secondaryGrades = ['secondary-1', 'secondary-2', 'secondary-3'];
-    if (formData.grade && !secondaryGrades.includes(formData.grade)) {
-      setFormData((prev) => ({ ...prev, sector: 'general' }));
-    }
-  }, [formData.grade, setFormData]);
-
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="flex justify-center items-center py-8 md:py-16 w-full"
+      className="flex justify-center items-center min-h-screen w-full bg-gradient-to-br from-background to-muted/20"
     >
-      <motion.div
-        key={formData.user_type + '-timeline'}
-        initial={{ x: showImageOnLeft ? -100 : 100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className={`hidden md:flex w-1/2 items-center justify-center p-6 ${showImageOnLeft ? 'order-1' : 'order-2'}`}
-      >
-        <div className="w-full">
-          <ScrollableTimeline key={formData.user_type} userType={formData.user_type?.toLowerCase()} />
+      <div className="container mx-auto px-4 py-12">
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-8">
+          {/* Timeline Section (left) - Removed */}
+          {/* {showImageOnLeft && (
+            <motion.div
+              key={formData.user_type + '-timeline'}
+              initial={{ x: -50, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="hidden lg:flex w-full lg:w-1/2 items-center justify-center"
+            >
+              <div className="w-full max-w-2xl">
+                <ScrollableTimeline 
+                  key={formData.user_type} 
+                  userType={formData.user_type?.toLowerCase()} 
+                />
+              </div>
+            </motion.div>
+          )} */}
+
+          {/* Form Section */}
+          <div className="w-full lg:w-1/2 max-w-2xl">
+            <div className="bg-background rounded-2xl shadow-xl border border-border/30 overflow-hidden">
+              <SignupForm
+                formData={formData}
+                errors={errors}
+                handleChange={handleChange}
+                handleSelectChange={handleSelectChange}
+                handleSubmit={handleSubmit}
+                setFormData={setFormData}
+                constants={constants}
+                availableDistricts={availableDistricts}
+                availableGrades={availableGrades}
+                availableSectors={availableSectors}
+                availableLanguages={availableLanguages}
+                isRTL={isRTL}
+                isStudent={isStudent}
+              />
+            </div>
+          </div>
+
+          {/* Timeline Section (right) - Removed */}
+          {/* {!showImageOnLeft && (
+            <motion.div
+              key={formData.user_type + '-timeline'}
+              initial={{ x: 50, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="hidden lg:flex w-full lg:w-1/2 items-center justify-center"
+            >
+              <div className="w-full max-w-2xl">
+                <ScrollableTimeline 
+                  key={formData.user_type} 
+                  userType={formData.user_type?.toLowerCase()} 
+                />
+              </div>
+            </motion.div>
+          )} */}
         </div>
-      </motion.div>
-
-      <div className="relative flex flex-col md:flex-row bg-background/90 rounded-3xl shadow-xl overflow-hidden border border-border/30">
-        <motion.div
-          key={formData.user_type + '-form'}
-          initial={{ x: showImageOnLeft ? 100 : -100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className={`w-full p-6 sm:p-8 ${showImageOnLeft ? 'order-2' : 'order-1'}`}
-        >
-          <CardHeader className="p-0 pb-4 text-center">
-            <CardTitle className="text-2xl md:text-3xl font-bold">{t('signupTitle')}</CardTitle>
-            <CardDescription>{t('signupSubtitle')}</CardDescription>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="user_type">{t('selectRole')} <span className="text-destructive">*</span></Label>
-                <RadioGroup
-                  name="user_type"
-                  value={formData.user_type}
-                  onValueChange={(value) => handleSelectChange('user_type', value)}
-                  className={`flex gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}
-                  required
-                >
-                  {['Student', 'Teacher'].map((value) => (
-                    <div key={value} className="flex items-center gap-2">
-                      <RadioGroupItem value={value} id={`role-${value}`} />
-                      <Label htmlFor={`role-${value}`} className="font-normal">
-                        {t(value.toLowerCase())}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-                {errors.user_type && <p className="text-xs text-destructive">{errors.user_type}</p>}
-              </div>
-
-              {['name', 'email', 'phone_number'].map((field) => (
-                <div key={field} className="space-y-2">
-                  <Label htmlFor={field}>{t(field)} <span className="text-destructive">*</span></Label>
-                  <Input
-                    id={field}
-                    type={field === 'email' ? 'email' : 'text'}
-                    value={formData[field]}
-                    onChange={(e) => handleChange(e, field)}
-                    placeholder={t(`placeholder.${field}`)}
-                    required
-                    error={errors[field]}
-                  />
-                  {errors[field] && <p className="text-xs text-destructive">{errors[field]}</p>}
-                </div>
-              ))}
-
-              <PasswordInputs form={formData} handleChange={handleChange} errors={errors} required />
-
-              <div className="space-y-2">
-                <Label htmlFor="governate">{t('location')} <span className="text-destructive">*</span></Label>
-                <Select value={formData.governate} onValueChange={(val) => handleSelectChange('governate', val)} required>
-                  <SelectTrigger id="governate">
-                    <SelectValue placeholder={t('placeholder.selectLocation')} />
-                  </SelectTrigger>
-                  <SearchableSelectContent
-                    items={locations.map((loc) => ({ value: loc.label, label: loc.label }))}
-                    searchPlaceholder={t('placeholder.searchLocation')}
-                  />
-                </Select>
-                {errors.governate && <p className="text-xs text-destructive">{errors.governate}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="district">{t('district')} <span className="text-destructive">*</span></Label>
-                <Input
-                  id="district"
-                  value={formData.district}
-                  onChange={(e) => handleChange(e, 'district')}
-                  placeholder={t('placeholder.district')}
-                  required
-                  error={errors.district}
-                />
-                {errors.district && <p className="text-xs text-destructive">{errors.district}</p>}
-              </div>
-
-              {isStudent && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="education_system">{t('educationSystem')} <span className="text-destructive">*</span></Label>
-                    <Select value={formData.education_system} onValueChange={(val) => handleSelectChange('education_system', val)} required>
-                      <SelectTrigger id="education_system">
-                        <SelectValue placeholder={t('placeholder.selectEducationSystem')} />
-                      </SelectTrigger>
-                      <SearchableSelectContent items={['National', 'Azhar'].map(val => ({ value: val, label: val }))} />
-                    </Select>
-                    {errors.education_system && <p className="text-xs text-destructive">{errors.education_system}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="studying_language">{t('studyingLanguage')} <span className="text-destructive">*</span></Label>
-                    <Select value={formData.studying_language} onValueChange={(val) => handleSelectChange('studying_language', val)} required>
-                      <SelectTrigger id="studying_language">
-                        <SelectValue placeholder={t('placeholder.selectLanguage')} />
-                      </SelectTrigger>
-                      <SearchableSelectContent items={languages.map(lang => ({ value: lang.value, label: t(lang.labelKey) }))} />
-                    </Select>
-                    {errors.studying_language && <p className="text-xs text-destructive">{errors.studying_language}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="grade">{t('grade')} <span className="text-destructive">*</span></Label>
-                    <Select value={formData.grade} onValueChange={(val) => handleSelectChange('grade', val)} required>
-                      <SelectTrigger id="grade">
-                        <SelectValue placeholder={t('placeholder.selectGrade')} />
-                      </SelectTrigger>
-                      <SearchableSelectContent items={grades.map(grade => ({ value: grade.value, label: t(grade.labelKey) }))} />
-                    </Select>
-                    {errors.grade && <p className="text-xs text-destructive">{errors.grade}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="sector">{t('sector')} <span className="text-destructive">*</span></Label>
-                    <Select value={formData.sector} onValueChange={(val) => handleSelectChange('sector', val)} required>
-                      <SelectTrigger id="sector">
-                        <SelectValue placeholder={t('placeholder.selectSector')} />
-                      </SelectTrigger>
-                      <SearchableSelectContent items={sectors.map(sec => ({ value: sec.value, label: t(sec.labelKey) }))} />
-                    </Select>
-                    {errors.sector && <p className="text-xs text-destructive">{errors.sector}</p>}
-                  </div>
-                </>
-              )}
-
-              {formData.user_type === 'Teacher' && (
-                <>
-                  <PfpUploadWithCrop formData={formData} setFormData={setFormData} required />
-                  <BannerUploadWithCrop formData={formData} setFormData={setFormData} required />
-                </>
-              )}
-
-              <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                <Checkbox
-                  id="agreedToTerms"
-                  checked={formData.agreedToTerms}
-                  onCheckedChange={(checked) => handleSelectChange('agreedToTerms', checked)}
-                  required
-                />
-                <Label htmlFor="agreedToTerms" className="text-xs font-normal">
-                  <Trans i18nKey="agreeToTerms">
-                    By signing up, you agree to our <Link to="/terms" className="underline">Terms</Link> and <Link to="/privacy" className="underline">Privacy Policy</Link>.
-                  </Trans>
-                </Label>
-              </div>
-              {errors.agreedToTerms && <p className="text-xs text-destructive">{errors.agreedToTerms}</p>}
-
-              <Button type="submit" className="w-full">{t('signup')}</Button>
-            </form>
-
-            <p className="mt-4 text-center text-sm text-muted-foreground">
-              {t('alreadyHaveAccount')}{' '}
-              <Link to="/login" className="font-medium text-primary hover:underline">{t('login')}</Link>
-            </p>
-          </CardContent>
-        </motion.div>
       </div>
     </motion.div>
   );

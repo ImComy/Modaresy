@@ -25,7 +25,16 @@ import {
 const router = express.Router();
 
 router.use(verifyToken)
-router.use(isStudent)
+
+router.get('/getProfile', verifyToken, getProfile);
+router.put("/updateProfile", updateProfile)
+
+router.use((req, res, next) => {
+  if (!req.user || req.user.type !== 'Student') {
+    return res.status(403).json({ error: 'Only students can use this feature' });
+  }
+  next();
+});
 
 router.post("/contactTutor", getTeacherbyId, contactTutor)
 router.post("/requestEnrollment", getTeacherbyId, requestEnrollment)
@@ -33,8 +42,5 @@ router.post("/addWishlist", getWishlist, addToWishlist)
 router.delete("/removeWishlist", getWishlist, removeFromWishlist)
 router.post("/createWishlist", hasWishlist, createWishlist);
 //router.post("/reportTutor", reportTutor)
-
-router.get("/getProfile", getProfile)
-router.put("/updateProfile", updateProfile)
 
 export default router;

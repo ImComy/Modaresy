@@ -30,7 +30,10 @@ export const studentService = {
   },
 
   async getProfile() {
+    console.log('Calling getProfile API...');
     const data = await apiFetch(`/students/getProfile`);
+    console.log('Response from getProfile API:', data);
+
     const { userdata } = data;
     if (!userdata) {
       throw new Error("User data missing from server response");

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
-import { grades, sectors, locations, educationSystems, languages } from '@/data/formData';
+import { locations } from '@/data/formData';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -13,12 +13,14 @@ import SaveButton from '@/components/ui/save';
 import { useAuth } from '@/context/AuthContext';
 import { studentService } from '@/api/student';
 import PasswordInputs from '@/components/ui/password';
+import { getConstants } from '@/api/constantsFetch';
 
 const StudentProfilePage = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { authState, updateUserData, updatePassword } = useAuth();
   const { userData: authUserData, isLoading: authLoading } = authState;
+  const [constants, setConstants] = useState(null);
   const [userData, setUserData] = useState({
     name: '',
     email: '',
@@ -38,17 +40,89 @@ const StudentProfilePage = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
+  const [availableDistricts, setAvailableDistricts] = useState([]);
+  const [availableGrades, setAvailableGrades] = useState([]);
+  const [availableSectors, setAvailableSectors] = useState([]);
+  const [availableLanguages, setAvailableLanguages] = useState([]);
 
+  // Load constants
   useEffect(() => {
-    console.log('Locations from formData:', locations);
-    console.log('Education Systems from formData:', educationSystems);
-    console.log('Languages from formData:', languages);
-    const locationItems = locations.map((loc) => ({
-      value: loc.value,
-      label: t(loc.labelKey) || loc.value,
-    }));
-    console.log('Mapped location items for Select:', locationItems);
-  }, [t]);
+    const loadConstants = async () => {
+      try {
+        const data = await getConstants();
+        setConstants(data);
+      } catch (error) {
+        console.error('Failed to load constants:', error);
+      }
+    };
+    loadConstants();
+  }, []);
+
+  // Update districts when governate changes
+  useEffect(() => {
+    if (userData.governate && constants?.Districts) {
+      const districts = constants.Districts[userData.governate] || [];
+      setAvailableDistricts(districts.map(d => ({ value: d, label: d })));
+      
+      // Reset district if not available in new governate
+      if (userData.district && !districts.includes(userData.district)) {
+        setUserData(prev => ({ ...prev, district: '' }));
+      }
+    } else {
+      setAvailableDistricts([]);
+      setUserData(prev => ({ ...prev, district: '' }));
+    }
+  }, [userData.governate, constants]);
+
+  // Update grades when education system changes
+  useEffect(() => {
+    if (userData.education_system && constants?.EducationStructure) {
+      const systemGrades = constants.EducationStructure[userData.education_system]?.grades || [];
+      setAvailableGrades(systemGrades.map(g => ({ value: g, label: g })));
+      
+      // Reset grade and sector if not compatible with new system
+      if (userData.grade && !systemGrades.includes(userData.grade)) {
+        setUserData(prev => ({ ...prev, grade: '', sector: '' }));
+      }
+    } else {
+      setAvailableGrades([]);
+      setUserData(prev => ({ ...prev, grade: '', sector: '' }));
+    }
+  }, [userData.education_system, constants]);
+
+  // Update sectors when grade changes
+  useEffect(() => {
+    if (userData.grade && userData.education_system && constants?.EducationStructure) {
+      const gradeSectors = constants.EducationStructure[userData.education_system]?.sectors[userData.grade] || [];
+      setAvailableSectors(gradeSectors.map(s => ({ value: s, label: s })));
+      
+      // Reset sector if not compatible with new grade
+      if (userData.sector && !gradeSectors.includes(userData.sector)) {
+        setUserData(prev => ({ ...prev, sector: '' }));
+      }
+    } else {
+      setAvailableSectors([]);
+      setUserData(prev => ({ ...prev, sector: '' }));
+    }
+  }, [userData.grade, userData.education_system, constants]);
+
+  // Update languages when education system changes
+  useEffect(() => {
+    if (userData.education_system && constants?.EducationStructure) {
+      // Get languages from the selected education system
+      const systemLanguages = constants.EducationStructure[userData.education_system]?.languages || [];
+      // Fallback to Arabic if no languages defined (for Azhar case)
+      const languagesToShow = systemLanguages.length > 0 ? systemLanguages : ['Arabic'];
+      setAvailableLanguages(languagesToShow.map(l => ({ value: l, label: l })));
+      
+      // Reset language if not compatible with new system
+      if (userData.language && !languagesToShow.includes(userData.language)) {
+        setUserData(prev => ({ ...prev, language: '' }));
+      }
+    } else {
+      setAvailableLanguages([]);
+    }
+  }, [userData.education_system, constants]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -65,8 +139,7 @@ const StudentProfilePage = () => {
         const phone = profileData.phone || profileData.phone_number || '';
         const rawGovernate = profileData.governate || '';
         const normalizedGovernate = rawGovernate ? rawGovernate.toLowerCase().trim().replace(/\s+/g, '-') : '';
-        const validGovernate = locations.find((loc) => loc.value === normalizedGovernate) ? normalizedGovernate : rawGovernate;
-        console.log('Raw governate:', rawGovernate, 'Normalized governate:', normalizedGovernate, 'Valid governate:', validGovernate);
+        const validGovernate = constants?.Governates?.find(g => g === rawGovernate) ? rawGovernate : '';
 
         setUserData({
           name: profileData.name || t('Student User'),
@@ -74,12 +147,11 @@ const StudentProfilePage = () => {
           phone,
           governate: validGovernate,
           district: profileData.district || '',
-          grade: profileData.grade || 'secondary-2',
-          sector: profileData.sector || 'scientific',
-          education_system: profileData.education_system || 'national',
-          language: profileData.language || 'Arabic',
+          grade: profileData.grade || '',
+          sector: profileData.sector || '',
+          education_system: profileData.education_system || '',
+          language: profileData.language || '',
         });
-        console.log('Set userData:', userData);
       } catch (error) {
         console.error('Failed to fetch user data:', error);
         toast({
@@ -92,10 +164,10 @@ const StudentProfilePage = () => {
       }
     };
 
-    if (!authLoading) {
+    if (!authLoading && constants) {
       fetchUserData();
     }
-  }, [authLoading, authUserData, t, toast]);
+  }, [authLoading, authUserData, t, toast, constants]);
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
@@ -116,7 +188,7 @@ const StudentProfilePage = () => {
     if (!userData.email.includes('@')) newErrors.email = t('errorInvalidEmail');
     if (!userData.phone.trim()) newErrors.phone = t('errorRequired');
     if (!userData.governate) newErrors.governate = t('errorRequired');
-    if (!userData.district.trim()) newErrors.district = t('errorRequired');
+    if (!userData.district) newErrors.district = t('errorRequired');
     if (!userData.grade) newErrors.grade = t('errorRequired');
     if (!userData.sector) newErrors.sector = t('errorRequired');
     if (!userData.education_system) newErrors.education_system = t('errorRequired');
@@ -148,7 +220,6 @@ const StudentProfilePage = () => {
     setIsLoading(true);
     try {
       const payload = { ...userData };
-      console.log('Saving profile with payload:', payload);
       await studentService.updateProfile(payload);
       updateUserData(payload);
       toast({
@@ -204,17 +275,8 @@ const StudentProfilePage = () => {
     }
   };
 
-  if (isLoading || authLoading) {
+  if (isLoading || authLoading || !constants) {
     return <div>{t('loading')}</div>;
-  }
-
-  if (!locations || locations.length === 0 || !languages || languages.length === 0) {
-    console.error('Data arrays empty or undefined:', { locations, languages });
-    return (
-      <div className="text-red-500">
-        {t('errorLoadingData')}: Data is unavailable. Please contact support.
-      </div>
-    );
   }
 
   return (
@@ -262,9 +324,9 @@ const StudentProfilePage = () => {
                 </SelectTrigger>
                 <SearchableSelectContent
                   searchPlaceholder={t('searchGovernate')}
-                  items={locations.map((loc) => ({
-                    value: loc.value,
-                    label: t(loc.labelKey) || loc.value,
+                  items={constants.Governates.map((gov) => ({
+                    value: gov,
+                    label: gov,
                   }))}
                 />
               </Select>
@@ -275,7 +337,23 @@ const StudentProfilePage = () => {
                 <Building className="w-4 h-4 text-muted-foreground" />
                 {t('district')}
               </Label>
-              <Input id="district" value={userData.district} onChange={handleInputChange} />
+              <Select 
+                value={userData.district} 
+                onValueChange={(v) => handleSelectChange('district', v)}
+                disabled={!userData.governate}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    userData.governate ? t('selectDistrict') : t('selectGovernateFirst')
+                  } />
+                </SelectTrigger>
+                {userData.governate && (
+                  <SearchableSelectContent
+                    searchPlaceholder={t('searchDistrict')}
+                    items={availableDistricts}
+                  />
+                )}
+              </Select>
               {errors.district && <p className="text-sm text-red-500 mt-1">{errors.district}</p>}
             </div>
           </CardContent>
@@ -307,69 +385,90 @@ const StudentProfilePage = () => {
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Label className="mb-2 block">{t('grade')}</Label>
-              <Select value={userData.grade} onValueChange={(v) => handleSelectChange('grade', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('selectGrade')} />
-                </SelectTrigger>
-                <SearchableSelectContent
-                  searchPlaceholder={t('searchGrade')}
-                  items={grades.map((g) => ({
-                    value: g.value,
-                    label: t(g.labelKey),
-                  }))}
-                />
-              </Select>
-              {errors.grade && <p className="text-sm text-red-500 mt-1">{errors.grade}</p>}
-            </div>
-            <div>
-              <Label className="mb-2 block">{t('sector')}</Label>
-              <Select value={userData.sector} onValueChange={(v) => handleSelectChange('sector', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('selectSector')} />
-                </SelectTrigger>
-                <SearchableSelectContent
-                  searchPlaceholder={t('searchSector')}
-                  items={sectors.map((s) => ({
-                    value: s.value,
-                    label: t(s.labelKey),
-                  }))}
-                />
-              </Select>
-              {errors.sector && <p className="text-sm text-red-500 mt-1">{errors.sector}</p>}
-            </div>
-            <div>
               <Label className="mb-2 block">{t('educationSystem')}</Label>
-              <Select value={userData.education_system} onValueChange={(v) => handleSelectChange('education_system', v)}>
+              <Select 
+                value={userData.education_system} 
+                onValueChange={(v) => handleSelectChange('education_system', v)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder={t('selectEducationSystem')} />
                 </SelectTrigger>
                 <SearchableSelectContent
                   searchPlaceholder={t('searchEducationSystem')}
-                  items={educationSystems.map((es) => ({
-                    value: es.value,
-                    label: t(es.labelKey),
+                  items={constants.Education_Systems.map((system) => ({
+                    value: system,
+                    label: system,
                   }))}
                 />
               </Select>
               {errors.education_system && <p className="text-sm text-red-500 mt-1">{errors.education_system}</p>}
             </div>
+
+            <div>
+              <Label className="mb-2 block">{t('grade')}</Label>
+              <Select 
+                value={userData.grade} 
+                onValueChange={(v) => handleSelectChange('grade', v)}
+                disabled={!userData.education_system}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    userData.education_system ? t('selectGrade') : t('selectSystemFirst')
+                  } />
+                </SelectTrigger>
+                {userData.education_system && (
+                  <SearchableSelectContent
+                    searchPlaceholder={t('searchGrade')}
+                    items={availableGrades}
+                  />
+                )}
+              </Select>
+              {errors.grade && <p className="text-sm text-red-500 mt-1">{errors.grade}</p>}
+            </div>
+
+            <div>
+              <Label className="mb-2 block">{t('sector')}</Label>
+              <Select 
+                value={userData.sector} 
+                onValueChange={(v) => handleSelectChange('sector', v)}
+                disabled={!userData.grade}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    userData.grade ? t('selectSector') : t('selectGradeFirst')
+                  } />
+                </SelectTrigger>
+                {userData.grade && (
+                  <SearchableSelectContent
+                    searchPlaceholder={t('searchSector')}
+                    items={availableSectors}
+                  />
+                )}
+              </Select>
+              {errors.sector && <p className="text-sm text-red-500 mt-1">{errors.sector}</p>}
+            </div>
+
             <div>
               <Label className="mb-2 block flex items-center gap-2">
                 <Globe className="w-4 h-4 text-muted-foreground" />
                 {t('language')}
               </Label>
-              <Select value={userData.language} onValueChange={(v) => handleSelectChange('language', v)}>
+              <Select 
+                value={userData.language} 
+                onValueChange={(v) => handleSelectChange('language', v)}
+                disabled={!userData.education_system}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder={t('selectLanguage')} />
+                  <SelectValue placeholder={
+                    userData.education_system ? t('selectLanguage') : t('selectSystemFirst')
+                  } />
                 </SelectTrigger>
-                <SearchableSelectContent
-                  searchPlaceholder={t('searchLanguage')}
-                  items={languages.map((l) => ({
-                    value: l.value,
-                    label: t(l.labelKey),
-                  }))}
-                />
+                {userData.education_system && (
+                  <SearchableSelectContent
+                    searchPlaceholder={t('searchLanguage')}
+                    items={availableLanguages}
+                  />
+                )}
               </Select>
               {errors.language && <p className="text-sm text-red-500 mt-1">{errors.language}</p>}
             </div>
@@ -403,7 +502,7 @@ const StudentProfilePage = () => {
             <div>
               <Label className="mb-2 text-muted-foreground">{t('governate')}</Label>
               <p className="font-medium text-foreground">
-                {userData.governate ? t(locations.find((loc) => loc.value === userData.governate)?.labelKey || userData.governate) : t('notSet')}
+                {userData.governate || t('notSet')}
               </p>
             </div>
             <div>
@@ -411,27 +510,27 @@ const StudentProfilePage = () => {
               <p className="font-medium text-foreground">{userData.district || t('notSet')}</p>
             </div>
             <div>
+              <Label className="mb-2 text-muted-foreground">{t('educationSystem')}</Label>
+              <p className="font-medium text-foreground">
+                {userData.education_system || t('notSet')}
+              </p>
+            </div>
+            <div>
               <Label className="mb-2 text-muted-foreground">{t('grade')}</Label>
               <p className="font-medium text-foreground">
-                {userData.grade ? t(grades.find((g) => g.value === userData.grade)?.labelKey) : t('notSet')}
+                {userData.grade || t('notSet')}
               </p>
             </div>
             <div>
               <Label className="mb-2 text-muted-foreground">{t('sector')}</Label>
               <p className="font-medium text-foreground">
-                {userData.sector ? t(sectors.find((s) => s.value === userData.sector)?.labelKey) : t('notSet')}
-              </p>
-            </div>
-            <div>
-              <Label className="mb-2 text-muted-foreground">{t('educationSystem')}</Label>
-              <p className="font-medium text-foreground">
-                {userData.education_system ? t(educationSystems.find((es) => es.value === userData.education_system)?.labelKey || userData.education_system) : t('notSet')}
+                {userData.sector || t('notSet')}
               </p>
             </div>
             <div>
               <Label className="mb-2 text-muted-foreground">{t('language')}</Label>
               <p className="font-medium text-foreground">
-                {userData.language ? t(languages.find((l) => l.value === userData.language)?.labelKey || userData.language) : t('notSet')}
+                {userData.language || t('notSet')}
               </p>
             </div>
           </CardContent>

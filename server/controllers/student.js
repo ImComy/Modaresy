@@ -8,7 +8,7 @@ import {
 } from '../services/authentication.service.js';
 
 export function isStudent(user) {
-  return user?.user_type === 'student';
+  return user?.type === 'Student';
 }
 
 export const addToWishlist = async (req, res) => {

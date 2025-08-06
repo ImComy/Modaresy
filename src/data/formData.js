@@ -22,7 +22,7 @@ export const languages = [
 export const locations = [
   { value: 'Alexandria', label: 'Alexandria' },
   { value: 'Assiut', label: 'Assiut' },
-  { value: 'Aswan', label: 'Aswan' },
+  { value: 'Aswan', label: 'Aswan' }, 
   { value: 'Beheira', label: 'Beheira' },
   { value: 'Bani Suef', label: 'Bani Suef' },
   { value: 'Cairo', label: 'Cairo' },

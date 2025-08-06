@@ -1,4 +1,4 @@
-export const userTypes = Object.freeze(["Teacher", "Student"]);
+export const userTypes = Object.freeze(["Student", "Teacher"]);
 
 export const weekDays = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 
