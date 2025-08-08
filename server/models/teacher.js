@@ -13,12 +13,6 @@ const TeacherSchema = new Schema({
   address: { type: String, required: false },
   about_me: { type: String, required: false },
 
-  education_system: {
-    type: [String],
-    required: [true, "Please select an education system"],
-    enum: Education_Systems
-  },
-
   subject_profiles: [{
     type: [mongoose.Types.ObjectId],
     ref: 'SubjectProfile',
@@ -27,45 +21,7 @@ const TeacherSchema = new Schema({
   experience_years: {
     type: Number,
     default: 0,
-    required: true,
-  },
-
-  grades: {
-    type: [String],
-    validate: {
-      validator: function (grades){
-        return validateEducationStructure_many("grades", grades, this.education_system)
-      },
-      message: "One or more selected grades are invalid for the selected education system"
-    },
-    required: true,
-  },
-
-  languages: {
-    type: [String],
-    validate: {
-      validator: function (languages) {
-        return validateEducationStructure_many("languages", languages, this.education_system)
-      },
-      message: "One or more selected languages are invalid",
-    },
-    required: true,
-  },
-
-  sectors: {
-    type: [String],
-    validate: {
-      validator: function (value) {
-        return Array.isArray(value) &&
-          value.every(sector =>
-            (this.grades || []).every(grade =>
-              validateSector(sector, grade, this.education_system)
-            )
-          );
-      },
-      message: "One or more sectors are invalid for the selected grades and education system",
-    },
-    required: true,
+    required: false,
   },
 
   rating: {

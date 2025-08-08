@@ -45,7 +45,7 @@ export const EducationStructure = Object.freeze({
       "Secondary 2": ["Scientific", "Literature"],
       "Secondary 3": ["Mathematics", "Scientific", "Literature"]
     }),
-    langauges: ["Arabic"]
+    languages: ["Arabic"]
   }
 });
 export const Languages = ["Arabic", "English", "French", "German", "General"]
