@@ -15,20 +15,30 @@ export const studentService = {
     });
   },
 
+  async getWishlist() {
+    try {
+      const response = await apiFetch('/students/wishlist');
+      return response?.tutorIds || []; // Ensure we always return an array
+    } catch (error) {
+      console.error('Failed to get wishlist:', error);
+      return []; // Return empty array on error
+    }
+  },
+
   async addToWishlist(tutorId) {
-    return apiFetch(`/students/addWishlist`, {
-      method: "POST",
-      body: JSON.stringify({ tutorId }),
+    return apiFetch('/students/addToWishlist', {
+      method: 'POST',
+      body: JSON.stringify({ tutorId: String(tutorId) }),
     });
   },
 
   async removeFromWishlist(tutorId) {
-    return apiFetch(`/students/removeWishlist`, {
-      method: "DELETE",
-      body: JSON.stringify({ tutorId }),
+    return apiFetch('/students/removeFromWishlist', {
+      method: 'DELETE',
+      body: JSON.stringify({ tutorId: String(tutorId) }),
     });
   },
-
+  
   async getProfile() {
     console.log('Calling getProfile API...');
     const data = await apiFetch(`/students/getProfile`);
@@ -51,4 +61,6 @@ export const studentService = {
   async getPlatformStats() {
     return apiFetch(`/users/stats`);
   },
+  
 };
+

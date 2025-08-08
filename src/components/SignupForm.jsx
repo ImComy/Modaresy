@@ -237,7 +237,7 @@ const SignupForm = ({
                     {t('studyingLanguage')} <span className="text-destructive">*</span>
                   </Label>
                   <Select 
-                    value={formData.studying_language} 
+                    value={formData.languages} 
                     onValueChange={(val) => handleSelectChange('studying_language', val)} 
                     disabled={!formData.education_system}
                     required

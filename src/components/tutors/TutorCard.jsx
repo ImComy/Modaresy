@@ -7,18 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MapPin, DollarSign, BookOpen, Heart, CalendarDays, GraduationCap, Users, Clock } from 'lucide-react';
 import renderStars from '@/components/ui/renderStars';
-import { useWishlist } from '@/context/WishlistContext';
-import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
+import { useWishlistLogic } from '@/hooks/useWishlistActions';
 
 const TutorCard = ({ tutor, filters }) => {
   const { t } = useTranslation();
-  const { wishlist, addToWishlist, removeFromWishlist } = useWishlist();
-  const { toast } = useToast();
   const { authState } = useAuth();
-  const isInWishlist = wishlist.some((item) => item.id === tutor.id);
+  const { isInWishlist, handleWishlistToggle } = useWishlistLogic(tutor);
 
   function getGradeLabel(grade, t) {
     switch (grade) {
@@ -40,39 +37,20 @@ const TutorCard = ({ tutor, filters }) => {
       default: return grade;
     }
   }
-  
-  const handleWishlistToggle = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (isInWishlist) {
-      removeFromWishlist(tutor.id);
-      toast({
-        title: t('wishlistRemoved'),
-        description: `${tutor.name} ${t('hasBeenRemoved', { context: 'female' })}.`,
-      });
-    } else {
-      addToWishlist(tutor);
-      toast({
-        title: t('wishlistAdded'),
-        description: `${tutor.name} ${t('hasBeenAdded', { context: 'female' })}.`,
-      });
-    }
-  };
 
   // Get the subject object matching the selected subject and grade
-  const selectedSubject = Array.isArray(tutor.subjects)
+  const selectedSubject = Array.isArray(tutor?.subjects)
     ? tutor.subjects.find(
         s =>
-          s.subject === filters.subject &&
-          s.grade === filters.grade
+          s.subject === filters?.subject &&
+          s.grade === filters?.grade
       )
     : undefined;
 
   const displayName =
-    tutor.name && tutor.name.length > 16
+    tutor?.name && tutor.name.length > 16
       ? tutor.name.slice(0, 15) + '...'
-      : tutor.name;
+      : tutor?.name;
 
   return (
     <motion.div
@@ -84,26 +62,26 @@ const TutorCard = ({ tutor, filters }) => {
       whileHover={{ y: -2, transition: { duration: 0.15 } }}
       className="h-full"
     >
-      <Link to={`/tutor/${tutor.id}`} className="block h-full">
+      <Link to={`/tutor/${tutor?.id}`} className="block h-full">
         <Card className="p-3 h-full rounded-xl bg-muted/50 border border-muted text-sm flex flex-col gap-3 hover:shadow transition-shadow">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="h-20 w-20 border-2 border-primary flex-shrink-0 rounded-md">
-                <AvatarImage src={tutor.img} alt={tutor.name} radius="rounded-sm" />
+                <AvatarImage src={tutor?.img} alt={tutor?.name} radius="rounded-sm" />
                 <AvatarFallback radius="rounded-sm">
-                  {tutor.name?.split(' ').map((n) => n[0]).join('')}
+                  {tutor?.name?.split(' ')?.map((n) => n[0])?.join('')}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
                 <h3
                   className="font-semibold text-base text-foreground truncate"
-                  title={tutor.name}
+                  title={tutor?.name}
                 >
                   {displayName}
                 </h3>
                 <div className="text-muted-foreground flex items-center gap-1 text-primary">
                   <BookOpen size={14} />
-                  <span className="truncate">{selectedSubject?.subject || filters.subject}</span>
+                  <span className="truncate">{selectedSubject?.subject || filters?.subject}</span>
                 </div>
                 <div className="flex items-center gap-1 text-muted-foreground">
                   {typeof selectedSubject?.rating === 'number' && isFinite(selectedSubject.rating)
@@ -121,7 +99,11 @@ const TutorCard = ({ tutor, filters }) => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={handleWishlistToggle}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleWishlistToggle(e);
+                }}
                 className={cn(
                   'hover:text-destructive text-muted-foreground transition-colors h-8 w-8 rounded-full',
                   isInWishlist && 'text-destructive'
@@ -134,7 +116,7 @@ const TutorCard = ({ tutor, filters }) => {
 
           <div className="flex items-center gap-1 text-muted-foreground text-xs">
             <MapPin size={12} />
-            <span>{tutor.location}</span>
+            <span>{tutor?.location}</span>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -169,7 +151,7 @@ const TutorCard = ({ tutor, filters }) => {
             </span>
             <Button
               as={Link}
-              to={`/tutor/${tutor.id}`}
+              to={`/tutor/${tutor?.id}`}
               size="sm"
               variant="outline"
               className="border-primary text-primary hover:bg-primary hover:text-white transition-colors duration-200 px-3 py-1 rounded-md font-semibold"

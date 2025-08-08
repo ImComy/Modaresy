@@ -45,7 +45,7 @@ const Navbar = () => {
   const { authState, logout } = useAuth();
   const { isLoggedIn, userRole, userId, userData } = authState;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { wishlist } = useWishlist();
+  const { wishlistIds = [] } = useWishlist();
   const location = useLocation();
   const isRTL = i18n.dir() === 'rtl';
 
@@ -164,9 +164,9 @@ const Navbar = () => {
             <Link to="/wishlist" className="relative hidden sm:inline-flex">
               <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-red-500">
                 <Heart size={20} />
-                {wishlist.length > 0 && (
+                {wishlistIds.length > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">
-                    {wishlist.length}
+                    {wishlistIds.length}
                   </span>
                 )}
               </Button>
@@ -455,9 +455,9 @@ const Navbar = () => {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <Heart size={16} /> {t('wishlist')}
-                    {wishlist.length > 0 && (
+                    {wishlistIds.length > 0 && (
                       <span className="ml-auto text-xs bg-accent text-accent-foreground rounded-full px-1.5 py-0.5">
-                        {wishlist.length}
+                        {wishlistIds.length}
                       </span>
                     )}
                   </Link>

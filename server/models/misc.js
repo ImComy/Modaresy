@@ -7,10 +7,10 @@ export const TimesSchema = new Schema({
 });
 
 export const WishlistSchema = new Schema({
-  teacher_ids: {
-    type: [mongoose.Types.ObjectId],
+  teacher_ids: [{
+    type: String,  
     ref: 'Teacher'
-  }
+  }]
 });
 
 export const AchievementSchema = new Schema({

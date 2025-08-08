@@ -19,7 +19,7 @@ import {
     getProfile, 
     updateProfile,
     requestEnrollment,
-    isStudent
+    getWishlistIds 
 } from "../controllers/student.js";
 
 const router = express.Router();
@@ -38,9 +38,10 @@ router.use((req, res, next) => {
 
 router.post("/contactTutor", getTeacherbyId, contactTutor)
 router.post("/requestEnrollment", getTeacherbyId, requestEnrollment)
-router.post("/addWishlist", getWishlist, addToWishlist)
-router.delete("/removeWishlist", getWishlist, removeFromWishlist)
+router.post("/addToWishlist", getWishlist, addToWishlist)
+router.delete("/removeFromWishlist", getWishlist, removeFromWishlist)
 router.post("/createWishlist", hasWishlist, createWishlist);
+router.get("/wishlist", getWishlist, getWishlistIds);
 //router.post("/reportTutor", reportTutor)
 
 export default router;

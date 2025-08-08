@@ -7,8 +7,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, BookOpen, MessageSquare, Heart, Award, Building, GraduationCap, Star } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import renderStars from '@/components/ui/renderStars';
-import { useWishlist } from '@/context/WishlistContext';
-import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 import {
   FaFacebookF,
@@ -23,6 +21,7 @@ import {
   FaGlobe,
 } from 'react-icons/fa';
 import ReportButton from '@/components/report';
+import { useWishlistLogic } from '@/hooks/useWishlistActions';
 
 const socialIcons = {
   facebook: FaFacebookF,
@@ -39,26 +38,12 @@ const socialIcons = {
 
 const TutorProfileHeaderDisplay = ({ tutor, isOwner, onEdit }) => {
   const { t, i18n } = useTranslation();
-  const { toast } = useToast();
-  const { wishlist, addToWishlist, removeFromWishlist } = useWishlist();
-
-  const isInWishlist = wishlist.some(item => item.id === tutor.id);
+  const { isInWishlist, handleWishlistToggle } = useWishlistLogic(tutor);
   const isRTL = i18n.dir() === 'rtl';
 
-  const handleWishlistToggle = () => {
-    if (!tutor || !tutor.id) return;
-    if (isInWishlist) {
-      removeFromWishlist(tutor.id);
-      toast({ title: t('wishlistRemoved'), description: `${tutor.name} ${t('hasBeenRemoved', { context: 'female' })}` });
-    } else {
-      addToWishlist(tutor);
-      toast({ title: t('wishlistAdded'), description: `${tutor.name} ${t('hasBeenAdded', { context: 'female' })}` });
-    }
-  };
-
-  const allRatings = tutor.subjects?.map(s => s.rating).filter(r => typeof r === 'number' && isFinite(r));
+  const allRatings = tutor?.subjects?.map(s => s.rating).filter(r => typeof r === 'number' && isFinite(r)) || [];
   const averageRating = allRatings.length ? (allRatings.reduce((a, b) => a + b, 0) / allRatings.length) : null;
-  const maxYearsExp = Math.max(...(tutor.subjects?.map(s => s.yearsExp || 0) || [0]));
+  const maxYearsExp = Math.max(...(tutor?.subjects?.map(s => s.yearsExp || 0) || [0]));
 
   return (
     <Card className="shadow-xl bg-gradient-to-br from-primary/5 to-primary/10 border-0">
@@ -109,7 +94,7 @@ const TutorProfileHeaderDisplay = ({ tutor, isOwner, onEdit }) => {
             className="flex flex-col items-center text-center"
           >
             <div className="flex flex-col items-center gap-4 text-center -mt-20 md:mt-0 z-10">
-              <div className="w-40 h-40 border-2 border-primary rounded-md shadow-lg">
+              <div className="w-[200px] h-40 border-2 border-primary rounded-md shadow-lg">
                 <Avatar className="w-full h-full rounded-sm">
                   <AvatarImage
                     src={tutor.img instanceof File ? URL.createObjectURL(tutor.img) : tutor.img}
