@@ -1,18 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { BookOpen, Award, Building, GraduationCap, MapPin, Plus, Trash, X } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { MapPin, BookOpen, MessageSquare, Heart, Award, Building, GraduationCap, Star, Plus, Trash, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import renderStars from '@/components/ui/renderStars';
-import { locations } from '@/data/formData';
 import BannerCropOverlay from '../../ui/cropper';
+import { SearchableSelectContent } from '@/components/ui/searchSelect';
+import { getConstants } from '@/api/constantsFetch';
 import {
   FaFacebookF,
   FaInstagram,
@@ -25,65 +25,134 @@ import {
   FaEnvelope,
   FaGlobe,
 } from 'react-icons/fa';
+import { Label } from '../../ui/label';
+import AddSubjectCard from './SubjectSection';
 
-const socialIcons = {
-  facebook: FaFacebookF,
-  instagram: FaInstagram,
-  twitter: FaTwitter,
-  linkedin: FaLinkedinIn,
-  youtube: FaYoutube,
-  tiktok: FaTiktok,
-  telegram: FaTelegramPlane,
-  whatsapp: FaWhatsapp,
-  email: FaEnvelope,
-  website: FaGlobe,
-};
+  const socialIcons = {
+    facebook: FaFacebookF,
+    instagram: FaInstagram,
+    twitter: FaTwitter,
+    linkedin: FaLinkedinIn,
+    youtube: FaYoutube,
+    tiktok: FaTiktok,
+    telegram: FaTelegramPlane,
+    whatsapp: FaWhatsapp,
+    email: FaEnvelope,
+    website: FaGlobe,
+  };
 
-const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
+const TutorProfileHeaderEdit = ({ tutor, onChange, onSave, onCancel }) => {
   const { t } = useTranslation();
-  const [newDetailLoc, setNewDetailLoc] = useState('');
-  const [socials, setSocials] = useState(tutor.socials || {});
-  const [subjects, setSubjects] = useState(tutor.subjects || []);
-  const [newSocial, setNewSocial] = useState({ platform: '', url: '' });
-  const [socialEditOpen, setSocialEditOpen] = useState(false);
+  const [constants, setConstants] = useState(null);
+  const [formData, setFormData] = useState(initializeFormData(tutor));
   const [cropOverlay, setCropOverlay] = useState({ open: false, image: null, shape: 'banner' });
+  const [socialEditOpen, setSocialEditOpen] = useState(false);
+  const [newSocial, setNewSocial] = useState({ platform: '', url: '' });
+
+  // Initialize form data with safe defaults
+  function initializeFormData(tutorData) {
+    return {
+      name: tutorData?.name || '',
+      img: tutorData?.img || '',
+      bannerimg: tutorData?.bannerimg || '',
+      about_me: tutorData?.about_me || '',
+      governate: tutorData?.governate || '',
+      district: tutorData?.district || '',
+      address: tutorData?.address || '',
+      experience_years: tutorData?.experience_years || 0,
+      social_media: tutorData?.social_media || {},
+      subject_profiles: tutorData?.subject_profiles || [],
+      rating: tutorData?.rating || 0
+    };
+  }
+
+  useEffect(() => {
+    if (tutor) {
+      setFormData(initializeFormData(tutor));
+    }
+  }, [tutor]);
+
+  useEffect(() => {
+    const loadConstants = async () => {
+      try {
+        const data = await getConstants();
+        setConstants(data);
+      } catch (error) {
+        console.error('Failed to load constants:', error);
+      }
+    };
+    loadConstants();
+  }, []);
 
   const handleFieldChange = (field, value) => {
-    onChange(field, value);
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      onChange?.(field, value);
+      return newData;
+    });
   };
 
-  const allRatings = tutor.subjects?.map(s => s.rating).filter(r => typeof r === 'number' && isFinite(r));
-  const averageRating = allRatings?.length ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length : null;
-
-  const getDetailedLocationArray = () =>
-    Array.isArray(tutor.detailedLocation) ? tutor.detailedLocation : [];
-
-  const updateDetailedLocation = (newList) => {
-    handleFieldChange('detailedLocation', newList);
+  const handleSubjectChange = (index, field, value, isPricing = false) => {
+    setFormData(prev => {
+      const updatedSubjects = [...prev.subject_profiles];
+      const subjectToUpdate = { ...updatedSubjects[index] };
+      
+      if (isPricing) {
+        subjectToUpdate.private_pricing = {
+          ...subjectToUpdate.private_pricing,
+          [field]: value
+        };
+      } else {
+        subjectToUpdate.subject_id = {
+          ...subjectToUpdate.subject_id,
+          [field]: value
+        };
+      }
+      
+      updatedSubjects[index] = subjectToUpdate;
+      onChange?.('subject_profiles', updatedSubjects);
+      return { ...prev, subject_profiles: updatedSubjects };
+    });
   };
 
-  const addDetailedLocation = () => {
-    const trimmed = newDetailLoc.trim();
-    const currentLocations = getDetailedLocationArray();
-
-    if (trimmed && !currentLocations.includes(trimmed)) {
-      const updated = [...currentLocations, trimmed];
-      updateDetailedLocation(updated);
-      setNewDetailLoc('');
-    }
+  const handleSocialChange = (platform, url) => {
+    setFormData(prev => {
+      const updatedSocials = { ...prev.social_media, [platform]: url };
+      onChange?.('social_media', updatedSocials);
+      return { ...prev, social_media: updatedSocials };
+    });
   };
 
-  const removeDetailedLocation = (index) => {
-    const currentLocations = getDetailedLocationArray();
-    const updated = [...currentLocations];
-    updated.splice(index, 1);
-    updateDetailedLocation(updated);
+  const addSubject = () => {
+    const newSubject = {
+      subject_id: {
+        name: '',
+        grade: '',
+        sector: '',
+        language: '',
+        education_system: ''
+      },
+      private_pricing: {
+        price: '',
+        currency: '',
+        period: 'session'
+      }
+    };
+    
+    setFormData(prev => {
+      const updatedSubjects = [...prev.subject_profiles, newSubject];
+      onChange?.('subject_profiles', updatedSubjects);
+      return { ...prev, subject_profiles: updatedSubjects };
+    });
   };
 
-  const handleSocialChange = (platform, value) => {
-    const updated = { ...socials, [platform]: value };
-    setSocials(updated);
-    handleFieldChange('socials', updated);
+  const removeSubject = (index) => {
+    setFormData(prev => {
+      const updatedSubjects = [...prev.subject_profiles];
+      updatedSubjects.splice(index, 1);
+      onChange?.('subject_profiles', updatedSubjects);
+      return { ...prev, subject_profiles: updatedSubjects };
+    });
   };
 
   const addSocial = () => {
@@ -94,31 +163,12 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
   };
 
   const removeSocial = (platform) => {
-    const updated = { ...socials };
-    delete updated[platform];
-    setSocials(updated);
-    handleFieldChange('socials', updated);
-  };
-
-  const handleSubjectChange = (index, field, value) => {
-    const updated = [...subjects];
-    updated[index] = { ...updated[index], [field]: field === 'yearsExp' ? parseInt(value) || 0 : value };
-    setSubjects(updated);
-    handleFieldChange('subjects', updated);
-  };
-
-  const addSubject = () => {
-    const newSubject = { subject: '', grade: '', type: '', yearsExp: 0 };
-    const updated = [...subjects, newSubject];
-    setSubjects(updated);
-    handleFieldChange('subjects', updated);
-  };
-
-  const removeSubject = (index) => {
-    const updated = [...subjects];
-    updated.splice(index, 1);
-    setSubjects(updated);
-    handleFieldChange('subjects', updated);
+    setFormData(prev => {
+      const updatedSocials = { ...prev.social_media };
+      delete updatedSocials[platform];
+      onChange?.('social_media', updatedSocials);
+      return { ...prev, social_media: updatedSocials };
+    });
   };
 
   const handleFileSelect = (e, shape) => {
@@ -130,7 +180,8 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
   };
 
   const handleCrop = (croppedFile) => {
-    handleFieldChange(cropOverlay.shape === 'profile' ? 'img' : 'bannerimg', croppedFile);
+    const field = cropOverlay.shape === 'profile' ? 'img' : 'bannerimg';
+    handleFieldChange(field, croppedFile);
     setCropOverlay({ open: false, image: null, shape: 'banner' });
   };
 
@@ -148,9 +199,11 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
           shape={cropOverlay.shape}
         />
       )}
+
       <Card className="shadow-xl bg-gradient-to-br from-primary/5 to-primary/10 border-0">
+        {/* Banner Image */}
         <div className="relative h-48 md:h-64 rounded-t-lg overflow-hidden">
-          <label className="absolute top-2 right-2 z-20 bg-primary/90 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-primary transition-colors shadow-md hover:shadow-lg">
+          <label className="absolute top-4 right-4 z-20 bg-primary/90 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-primary transition-colors shadow-md hover:shadow-lg">
             {t('changeBanner')}
             <Input
               type="file"
@@ -161,363 +214,410 @@ const TutorProfileHeaderEdit = ({ tutor, onChange }) => {
           </label>
           <img
             src={
-              tutor.bannerimg instanceof File
-                ? URL.createObjectURL(tutor.bannerimg)
-                : tutor.bannerimg || 'https://placehold.co/600x200?text=Tutor'
+              formData.bannerimg instanceof File
+                ? URL.createObjectURL(formData.bannerimg)
+                : formData.bannerimg || 'https://placehold.co/600x200?text=Tutor+Banner'
             }
-            alt={tutor.name}
+            alt={formData.name}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.currentTarget.src = 'https://placehold.co/600x200?text=Tutor';
+              e.currentTarget.src = 'https://placehold.co/600x200?text=Tutor+Banner';
+              e.currentTarget.onerror = null;
             }}
           />
         </div>
 
         <CardContent className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="flex flex-col items-center text-center"
-          >
-            <div className="relative w-40 h-40 border-2 border-primary rounded-md shadow-lg -mt-20 md:mt-0 z-10">
-              <label className="absolute bottom-2 right-2 z-20 bg-primary/90 text-white px-3 py-1 rounded-lg cursor-pointer hover:bg-primary transition-colors shadow-md hover:shadow-lg text-xs">
-                {t('changeAvatar')}
-                <Input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleFileSelect(e, 'profile')}
-                />
-              </label>
-              <Avatar className="w-full h-full rounded-sm">
-                <AvatarImage
-                  src={tutor.img instanceof File ? URL.createObjectURL(tutor.img) : tutor.img}
-                  alt={tutor.name}
-                />
-                <AvatarFallback className="text-3xl rounded-sm">
-                  {tutor.name?.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+          {/* Left Column - Profile Picture and Basic Info */}
+          <ProfileSection 
+            formData={formData}
+            handleFieldChange={handleFieldChange}
+            handleFileSelect={handleFileSelect}
+            setSocialEditOpen={setSocialEditOpen}
+            socialMedia={formData.social_media}
+            constants={constants}
+            t={t}
+          />
 
-            <Input
-              className="mt-3 text-center font-bold text-lg w-full max-w-xs border-primary/30 focus:border-primary transition-colors"
-              value={tutor.name}
-              onChange={(e) => handleFieldChange('name', e.target.value)}
-              placeholder={t('yourName')}
-            />
-
-            <div className="text-sm text-muted-foreground mt-1 flex justify-center items-center gap-1">
-              {averageRating ? (
-                <>
-                  {renderStars(averageRating)} <span>({averageRating.toFixed(1)})</span>
-                </>
-              ) : (
-                t('noRating')
-              )}
-            </div>
-
-            <Button
-              variant="outline"
-              className="mt-4 w-full max-w-xs flex items-center justify-center gap-2 whitespace-nowrap border-primary/30 hover:bg-primary/10 transition-colors"
-              onClick={() => setSocialEditOpen(true)}
-            >
-              {t('editSocials')}
-            </Button>
-          </motion.div>
-
-          {/* Social Media Overlay */}
-          {socialEditOpen && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full shadow-xl">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold">{t('editSocials')}</h2>
-                  <Button variant="ghost" onClick={() => setSocialEditOpen(false)}>
-                    <X size={20} />
-                  </Button>
-                </div>
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {Object.entries(socials).map(([platform, url]) => (
-                    <div key={platform} className="flex items-center gap-2">
-                      <Input
-                        value={url}
-                        onChange={(e) => handleSocialChange(platform, e.target.value)}
-                        placeholder={`${platform.charAt(0).toUpperCase() + platform.slice(1)} URL`}
-                        className="border-primary/30 focus:border-primary transition-colors"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeSocial(platform)}
-                      >
-                        <Trash size={16} className="text-destructive" />
-                      </Button>
-                    </div>
-                  ))}
-                  <div className="flex gap-2">
-                    <Select
-                      value={newSocial.platform}
-                      onValueChange={(value) => setNewSocial((prev) => ({ ...prev, platform: value }))}
-                    >
-                      <SelectTrigger className="border-primary/30 focus:border-primary transition-colors">
-                        <SelectValue placeholder={t('selectPlatform')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.keys(socialIcons).map((platform) => (
-                          <SelectItem key={platform} value={platform}>
-                            {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      value={newSocial.url}
-                      onChange={(e) => setNewSocial((prev) => ({ ...prev, url: e.target.value }))}
-                      placeholder={t('enterUrl')}
-                      className="border-primary/30 focus:border-primary transition-colors"
-                    />
-                    <Button onClick={addSocial} size="sm">
-                      <Plus size={16} />
-                    </Button>
-                  </div>
-                </div>
-                <Button
-                  className="w-full mt-4 bg-primary hover:bg-primary/90 transition-colors"
-                  onClick={() => setSocialEditOpen(false)}
-                >
-                  {t('done')}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <motion.div
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="md:col-span-2 space-y-4 flex flex-col items-center text-center md:items-start md:text-left"
-          >
-            <div className="flex flex-col md:flex-row w-full gap-6">
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-col gap-5 text-base text-muted-foreground">
-                  <div className="flex items-start gap-3">
-                    <Award size={18} className="mt-3 text-primary shrink-0" />
-                    <div className="flex-1">
-                      <Input
-                        type="number"
-                        value={Math.max(...(subjects?.map(s => s.yearsExp || 0) || [0]))}
-                        onChange={(e) => {
-                          const maxYears = parseInt(e.target.value) || 0;
-                          setSubjects(subjects.map(s => ({ ...s, yearsExp: maxYears })));
-                          handleFieldChange('subjects', subjects.map(s => ({ ...s, yearsExp: maxYears })));
-                        }}
-                        placeholder={t('yearsExp')}
-                        className="w-full max-w-xs border-primary/30 focus:border-primary transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <MapPin size={18} className="mt-3 text-primary shrink-0" />
-                    <div className="flex-1">
-                      <Select
-                        value={tutor.location ?? ''} 
-                        onValueChange={(val) => handleFieldChange('location', val)}
-                      >
-                        <SelectTrigger className="w-full max-w-xs border-primary/30 focus:border-primary transition-colors">
-                          <SelectValue placeholder={t('selectLocation')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {locations.map((loc) => (
-                            <SelectItem key={loc.value} value={loc.value}>
-                              {loc.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 flex-wrap">
-                    <Building size={18} className="mt-3 text-primary shrink-0" />
-                    <div className="flex-1">
-                      <div className="flex gap-2 mb-2">
-                        <Input
-                          value={newDetailLoc}
-                          onChange={(e) => setNewDetailLoc(e.target.value)}
-                          placeholder={t('addArea')}
-                          className="max-w-xs border-primary/30 focus:border-primary transition-colors"
-                        />
-                        <Button size="sm" onClick={addDetailedLocation}>
-                          <Plus size={16} />
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {(tutor.detailedLocation || []).map((loc, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center gap-1 px-2 py-1 bg-muted text-sm text-muted-foreground rounded border border-border"
-                          >
-                            {loc}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeDetailedLocation(index)}
-                            >
-                              <Trash size={12} className="text-destructive" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className={cn(
-                  "hidden md:block w-full bg-white dark:bg-gray-800 shadow-lg rounded-xl p-5 z-10 max-h-[350px] overflow-y-auto flex-1 min-w-0 md:max-w-xs -mt-[200px] mr-14 "
-                )}
-              >
-                <div className="flex items-center gap-2 mb-4">
-                  <BookOpen size={20} className="text-primary" />
-                  <span className="text-lg font-semibold">{t('teachesSubjects')}:</span>
-                </div>
-                <div className="space-y-3">
-                  {subjects.map((subject, index) => (
-                    <div key={index} className="space-y-2 border-b pb-2">
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={subject.subject}
-                          onChange={(e) => handleSubjectChange(index, 'subject', e.target.value)}
-                          placeholder={t('subject')}
-                          className="border-primary/30 focus:border-primary transition-colors"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeSubject(index)}
-                        >
-                          <Trash size={12} className="text-destructive" />
-                        </Button>
-                      </div>
-                      <Input
-                        value={subject.grade}
-                        onChange={(e) => handleSubjectChange(index, 'grade', e.target.value)}
-                        placeholder={t('grade')}
-                        className="border-primary/30 focus:border-primary transition-colors"
-                      />
-                      <Input
-                        value={subject.type}
-                        onChange={(e) => handleSubjectChange(index, 'type', e.target.value)}
-                        placeholder={t('type')}
-                        className="border-primary/30 focus:border-primary transition-colors"
-                      />
-                      <Input
-                        type="number"
-                        value={subject.yearsExp}
-                        onChange={(e) => handleSubjectChange(index, 'yearsExp', e.target.value)}
-                        placeholder={t('yearsExp')}
-                        className="border-primary/30 focus:border-primary transition-colors"
-                      />
-                    </div>
-                  ))}
-                  <Button
-                    size="sm"
-                    onClick={addSubject}
-                    className="bg-primary hover:bg-primary/90 transition-colors"
-                  >
-                    <Plus size={16} className="mr-2" />
-                    {t('addSubject')}
-                  </Button>
-                </div>
-              </motion.div>
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className={cn(
-                "block sm:w-80 sm:max-w-[90vw] sm:p-6",
-                "bg-white dark:bg-gray-800 shadow-lg rounded-xl p-5 z-30 max-h-80 overflow-y-auto",
-                "md:hidden w-full"
-              )}
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <BookOpen size={20} className="text-primary" />
-                <span className="text-lg font-semibold">{t('teachesSubjects')}:</span>
-              </div>
-              <div className="space-y-3">
-                {subjects.map((subject, index) => (
-                  <div key={index} className="space-y-2 border-b pb-2">
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={subject.subject}
-                        onChange={(e) => handleSubjectChange(index, 'subject', e.target.value)}
-                        placeholder={t('subject')}
-                        className="border-primary/30 focus:border-primary transition-colors"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeSubject(index)}
-                      >
-                        <Trash size={12} className="text-destructive" />
-                      </Button>
-                    </div>
-                    <Input
-                      value={subject.grade}
-                      onChange={(e) => handleSubjectChange(index, 'grade', e.target.value)}
-                      placeholder={t('grade')}
-                      className="border-primary/30 focus:border-primary transition-colors"
-                    />
-                    <Input
-                      value={subject.type}
-                      onChange={(e) => handleSubjectChange(index, 'type', e.target.value)}
-                      placeholder={t('type')}
-                      className="border-primary/30 focus:border-primary transition-colors"
-                    />
-                    <Input
-                      type="number"
-                      value={subject.yearsExp}
-                      onChange={(e) => handleSubjectChange(index, 'yearsExp', e.target.value)}
-                      placeholder={t('yearsExp')}
-                      className="border-primary/30 focus:border-primary transition-colors"
-                    />
-                  </div>
-                ))}
-                <Button
-                  size="sm"
-                  onClick={addSubject}
-                  className="bg-primary hover:bg-primary/90 transition-colors"
-                >
-                  <Plus size={16} className="mr-2" />
-                  {t('addSubject')}
-                </Button>
-              </div>
-            </motion.div>
-
-            <Separator className="my-4" />
-
-            <div className="w-full">
-              <h2 className="text-xl font-semibold mb-2 text-primary rtl:text-right">{t('aboutMe')}</h2>
-              <Textarea
-                value={tutor.GeneralBio || ''}
-                onChange={(e) => handleFieldChange('GeneralBio', e.target.value)}
-                className="w-full min-h-[120px] bg-muted/50 p-4 rounded-md border border-primary/30 focus:border-primary transition-colors"
-                placeholder={t('writeSomethingAboutYou')}
-              />
-            </div>
-          </motion.div>
+          {/* Right Column - Detailed Information */}
+          <DetailsSection
+            formData={formData}
+            handleFieldChange={handleFieldChange}
+            handleSubjectChange={handleSubjectChange}
+            addSubject={addSubject}
+            removeSubject={removeSubject}
+            onSave={onSave}
+            onCancel={onCancel}
+            constants={constants}
+            t={t}
+          />
         </CardContent>
       </Card>
+
+      {/* Social Media Edit Modal */}
+      <SocialMediaModal
+        open={socialEditOpen}
+        onClose={() => setSocialEditOpen(false)}
+        socialMedia={formData.social_media}
+        newSocial={newSocial}
+        setNewSocial={setNewSocial}
+        handleSocialChange={handleSocialChange}
+        removeSocial={removeSocial}
+        addSocial={addSocial}
+        t={t}
+      />
     </>
   );
+};
+
+// Extracted sub-components
+const ProfileSection = ({ formData, handleFieldChange, handleFileSelect, setSocialEditOpen, socialMedia, constants, t }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4 }}
+    className="flex flex-col items-center text-center"
+  >
+    <div className="flex flex-col items-center gap-4 text-center -mt-20 md:mt-0 z-10">
+      <AvatarUpload 
+        formData={formData}
+        handleFileSelect={handleFileSelect}
+        t={t}
+      />
+      
+      <div className="space-y-1 w-full">
+        <Input
+          value={formData.name}
+          onChange={(e) => handleFieldChange('name', e.target.value)}
+          placeholder={t('yourName')}
+          className="text-2xl font-bold text-center border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
+        />
+        
+        <LocationSelect 
+          governate={formData.governate}
+          district={formData.district}
+          onGovernateChange={(value) => {
+            handleFieldChange('governate', value);
+            handleFieldChange('district', '');
+          }}
+          onDistrictChange={(value) => handleFieldChange('district', value)}
+          constants={constants}
+          t={t}
+        />
+      </div>
+
+      <SocialButtons 
+        setSocialEditOpen={setSocialEditOpen}
+        socialMedia={socialMedia}
+        t={t}
+      />
+    </div>
+  </motion.div>
+);
+
+const AvatarUpload = ({ formData, handleFileSelect, t }) => (
+  <div className="relative w-[170px] h-40 border-2 border-primary rounded-md shadow-lg">
+    <label className="absolute -bottom-3 -right-3 z-20 bg-primary/90 text-white px-3 py-1 rounded-lg cursor-pointer hover:bg-primary transition-colors shadow-md hover:shadow-lg text-xs">
+      {t('changeAvatar')}
+      <Input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleFileSelect(e, 'profile')}
+      />
+    </label>
+    <Avatar className="w-full h-full rounded-sm">
+      <AvatarImage
+        src={formData.img}
+        alt={formData.name}
+        onError={(e) => {
+          e.currentTarget.onerror = null;
+        }}
+      />
+      <AvatarFallback className="text-3xl rounded-sm">
+        {formData.name?.split(' ').map(n => n[0]).join('')}
+      </AvatarFallback>
+    </Avatar>
+  </div>
+);
+
+const LocationSelect = ({
+  governate,
+  district,
+  onGovernateChange,
+  onDistrictChange,
+  constants,
+  t,
+}) => {
+  // Memoize mapped options to prevent unnecessary recalculations
+  const governateOptions = useMemo(() => (
+    constants?.Governates?.map((gov) => ({
+      value: gov,
+      label: gov,
+    })) || []
+  ), [constants?.Governates]);
+
+  const districtOptions = useMemo(() => (
+    governate && constants?.Districts?.[governate]
+      ? constants.Districts[governate].map((dist) => ({
+          value: dist,
+          label: dist,
+        }))
+      : []
+  ), [governate, constants?.Districts]);
+
+  return (
+    <div className="flex flex-col gap-2 w-full max-w-xs">
+      {/* Governate Select */}
+      <div className="space-y-1">
+        <Label htmlFor="governate-select" className="text-xs font-medium text-gray-600">
+          {t('governate')}
+        </Label>
+        <Select
+          value={governate || ''}
+          onValueChange={onGovernateChange}
+        >
+          <SelectTrigger 
+            id="governate-select"
+            className="h-10 border border-primary rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <SelectValue placeholder={t('selectGovernate')} />
+          </SelectTrigger>
+          <SearchableSelectContent
+            searchPlaceholder={t('searchGovernate')}
+            items={governateOptions}
+            noResultsText={t('noGovernatesFound')}
+          />
+        </Select>
+      </div>
+
+      {/* District Select - Only shown when governate is selected */}
+      {governate && (
+        <div className="space-y-1">
+          <Label htmlFor="district-select" className="text-xs font-medium text-gray-600">
+            {t('district')}
+          </Label>
+          <Select
+            value={district || ''}
+            onValueChange={onDistrictChange}
+            disabled={!governate}
+          >
+            <SelectTrigger 
+              id="district-select"
+              className="h-10 border border-primary-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <SelectValue 
+                placeholder={governate ? t('selectDistrict') : t('selectGovernateFirst')} 
+              />
+            </SelectTrigger>
+            <SearchableSelectContent
+              searchPlaceholder={t('searchDistrict')}
+              items={districtOptions}
+              noResultsText={t('noDistrictsFound')}
+            />
+          </Select>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SocialButtons = ({ setSocialEditOpen, socialMedia, t }) => (
+  <div className="max-w-full space-y-2 w-full">
+    <Button className="w-full h-10 flex items-center justify-center gap-2 whitespace-nowrap bg-primary hover:bg-primary/90 transition-colors">
+      <MessageSquare size={18} />
+      {t('contactTutor')}
+    </Button>
+
+    <Button
+      variant="outline"
+      className="w-full h-10 flex items-center justify-center gap-2 whitespace-nowrap text-primary border-primary"
+      onClick={() => setSocialEditOpen(true)}
+    >
+      {t('editSocials')}
+    </Button>
+
+    <div className="flex flex-wrap justify-center gap-3 pt-2">
+      {Object.entries(socialMedia || {}).map(([key, url]) => {
+        if (!url) return null;
+        const Icon = socialIcons[key];
+        return Icon ? (
+          <a
+            key={key}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Icon size={20} />
+          </a>
+        ) : null;
+      })}
+    </div>
+  </div>
+);
+
+const DetailsSection = ({ formData, handleFieldChange, handleSubjectChange, addSubject, removeSubject, onSave, onCancel, constants, t }) => (
+  <motion.div
+    initial={{ opacity: 0, x: 10 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ duration: 0.4, delay: 0.1 }}
+    className="md:col-span-2 space-y-4 flex flex-col items-center text-center md:items-start md:text-left"
+  >
+    <div className="flex flex-col md:flex-row w-full gap-6 justify-between">
+      <ExperienceLocationSection 
+        formData={formData}
+        handleFieldChange={handleFieldChange}
+        t={t}
+      />
+      
+      <AddSubjectCard
+        formData={formData}
+        handleSubjectChange={handleSubjectChange}
+        addSubject={addSubject}
+        removeSubject={removeSubject}
+        constants={constants}
+        t={t}
+      />
+    </div>
+
+    <AboutMeSection 
+      aboutMe={formData.about_me}
+      onChange={(value) => handleFieldChange('about_me', value)}
+      t={t}
+    />
+  </motion.div>
+);
+
+const ExperienceLocationSection = ({ formData, handleFieldChange, t }) => (
+  <div className="space-y-4 w-full md:w-1/2 ">
+    {/* Experience Section */}
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <Award className="h-5 w-5 text-primary" />
+        <h3 className="font-medium">{t('experience')}</h3>
+      </div>
+      <div className="flex items-center gap-3">
+        <Input
+          type="number"
+          min="0"
+          max="50"
+          readOnly
+          value={
+            formData.subject_profiles?.reduce((max, subject) => 
+              Math.max(max, subject.subject_id?.years_experience || 0), 
+            0) || 0
+          }
+          className="w-20"
+        />
+        <span className="text-sm text-muted-foreground">{t('years')}</span>
+      </div>
+    </div>
+    {/* Address Section */}
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <MapPin className="h-5 w-5 text-primary" />
+        <h3 className="font-medium">{t('address')}</h3>
+      </div>
+      <Textarea
+        value={formData.address || ''}
+        onChange={(e) => handleFieldChange('address', e.target.value)}
+        placeholder={t('enterYourAddress')}
+        className="min-h-[80px]"
+      />
+    </div>
+  </div>
+);
+
+const AboutMeSection = ({ aboutMe, onChange, t }) => (
+  <div className="w-full flex flex-col">
+    <Separator className="my-4" />
+    <h2 className="text-xl font-semibold mb-2 text-primary rtl:text-right">{t('aboutMe')}</h2>
+    <Textarea
+      value={aboutMe || ''}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={t('writeSomethingAboutYou')}
+      className="min-h-[120px] bg-muted/50 p-4 rounded-md border border-primary/30 focus:border-primary"
+    />
+  </div>
+);
+
+const SocialMediaModal = ({ open, onClose, socialMedia, newSocial, setNewSocial, handleSocialChange, removeSocial, addSocial, t }) => (
+  open && (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full shadow-xl">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold">{t('editSocials')}</h2>
+          <Button variant="ghost" onClick={onClose} type="button">
+            <X size={20} />
+          </Button>
+        </div>
+        <div className="space-y-4 max-h-96 overflow-y-auto">
+          {Object.entries(socialMedia || {}).map(([platform, url]) => (
+            <div key={platform} className="flex items-center gap-2">
+              <div className="w-8 flex items-center justify-center">
+                {socialIcons[platform] && React.createElement(socialIcons[platform], { size: 16 })}
+              </div>
+              <Input
+                value={url}
+                onChange={(e) => handleSocialChange(platform, e.target.value)}
+                placeholder={`${platform.charAt(0).toUpperCase() + platform.slice(1)} URL`}
+                className="border-primary/30 focus:border-primary transition-colors"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => removeSocial(platform)}
+              >
+                <Trash size={16} className="text-destructive" />
+              </Button>
+            </div>
+          ))}
+          <div className="flex gap-2">
+            <Select
+              value={newSocial.platform}
+              onValueChange={(value) => setNewSocial((prev) => ({ ...prev, platform: value }))}
+            >
+              <SelectTrigger className="border-primary/30 focus:border-primary transition-colors">
+                <SelectValue placeholder={t('selectPlatform')} />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.keys(socialIcons).map((platform) => (
+                  <SelectItem key={platform} value={platform}>
+                    {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              value={newSocial.url}
+              onChange={(e) => setNewSocial((prev) => ({ ...prev, url: e.target.value }))}
+              placeholder={t('enterUrl')}
+              className="border-primary/30 focus:border-primary transition-colors"
+            />
+            <Button type="button" onClick={addSocial} size="sm">
+              <Plus size={16} />
+            </Button>
+          </div>
+        </div>
+        <Button
+          type="button"
+          className="w-full mt-4 bg-primary hover:bg-primary/90 transition-colors"
+          onClick={onClose}
+        >
+          {t('done')}
+        </Button>
+      </div>
+    </div>
+  )
+);
+
+TutorProfileHeaderEdit.defaultProps = {
+  tutor: {},
+  onChange: () => {},
+  onSave: () => {},
+  onCancel: () => {}
 };
 
 export default TutorProfileHeaderEdit;

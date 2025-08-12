@@ -33,14 +33,32 @@ const router = express.Router();
 
 router.get("/loadTutors/:pages/:limit/:Grade/:Sector/:Language/:Governate/:District/:MinimumRating/:MinMonthlyRange/:MaxMonthlyRange", getTutors);
 
-router.get("/loadTutor/:tutorID", getTeacherbyId, getTutor);
+router.get("/loadTutor/:tutorId", 
+  async (req, res, next) => {
+    console.log('\n[GET /loadTutor] Request received:', {
+      params: req.params,
+      query: req.query,
+      headers: req.headers
+    });
+    next();
+  },
+  getTeacherbyId, 
+  async (req, res, next) => {
+    console.log('[GET /loadTutor] After getTeacherbyId:', {
+      teacherExists: !!req.teacher,
+      teacherId: req.teacher?._id
+    });
+    next();
+  },
+  getTutor
+);
 
 // query pages,limit
 router.get("/loadTutorReviews/:subjectProfileID", getSubjectProfileReviews);
 
 router.get("/loadSubjectProfile/:subjectProfileID", get_subject_profile);
 
-router.get("/loadSubjectProfiles/:tutorID", getTeacherbyId, get_subject_profiles);
+router.get("/loadSubjectProfiles/:tutorId", getTeacherbyId, get_subject_profiles);
 
 //router.get("/loadDashboard", verifyToken, isTeacher);
 
@@ -48,7 +66,7 @@ router.post("/reviewTutor", verifyToken, isStudent, getTeacherbyId, validateSubj
 
 router.get("/getProfile", isTeacher, getProfile)
 
-router.put("/updateProfile", isTeacher, updateProfile)
+router.put("/updateProfile", verifyToken ,isTeacher, updateProfile)
 
 router.post("/acceptEnrollment", verifyToken, isTeacher, getStudentById, getEnrollmentRequest, acceptEnrollment);
 

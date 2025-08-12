@@ -40,9 +40,9 @@ export const tutorService = {
   },
 
   async updateProfile(updatedInformation) {
-    return apiFetch(`/tutors/updateProfile`, {
+    return apiFetch(`/tutors/updateProfile`, {  // Note: starts with /tutors
       method: "PUT",
       body: JSON.stringify({ updated_information: updatedInformation }),
     });
-  },
+  }
 };

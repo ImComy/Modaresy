@@ -35,7 +35,7 @@ import { cn } from '@/lib/utils';
 import { useWishlist } from '@/context/WishlistContext';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
-import NotificationDropdown from '@/components/ui/notification';
+// import NotificationDropdown from '@/components/ui/notification';
 
 // Navbar component provides the main navigation bar with authentication-aware features
 const Navbar = () => {
@@ -174,7 +174,7 @@ const Navbar = () => {
           )}
 
           {/* Notification dropdown (visible when logged in) */}
-          {isLoggedIn && <NotificationDropdown className="visible" />}
+          {/* {isLoggedIn && <NotificationDropdown className="visible" />} */}
 
           {/* Language selection dropdown */}
           <DropdownMenu>

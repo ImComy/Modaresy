@@ -149,7 +149,7 @@ function RoutesWrapper() {
       <Routes key={location.pathname}>
         {/* Public routes accessible to all users */}
         <Route path="/" element={<HomePage />} />
-        <Route path="/tutor/:id" element={<TutorProfilePage />} />
+        <Route path="/tutor/:tutorId" element={<TutorProfilePage />} />
         <Route path="/about" element={<AboutUsPage />} />
         <Route path="/contact" element={<ContactUsPage />} />
         <Route path="/terms" element={<TermsPage />} />

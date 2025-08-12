@@ -9,13 +9,18 @@ export async function apiFetch(endpoint, options = {}) {
       ...(options.headers || {}),
     };
 
+    // Add debug logging
+    console.log('Making request to:', `${API_BASE}${endpoint}`);
+    console.log('Request options:', { ...options, headers });
+
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers,
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API Error Response:', errorData);
       throw new Error(errorData.error || 'Request failed');
     }
 
