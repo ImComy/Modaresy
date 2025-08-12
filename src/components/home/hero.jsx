@@ -33,7 +33,7 @@ const HeroSection = () => {
       <div className="absolute top-0 bottom-0 w-full md:w-3/4 -z-10 ltr:right-0 rtl:left-0">
         <div className="
             absolute inset-0 -z-10 
-            bg-[url('/teaching.jpg')] 
+            bg-[url('/Picsart_25-08-12_19-14-21-234.jpg')] 
             bg-no-repeat bg-cover 
             ltr:bg-[right_center] rtl:bg-[left_center] 
             opacity-30 rounded-lg 
