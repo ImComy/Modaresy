@@ -19,9 +19,6 @@ const validateSubjectData = (data) => {
   
   if (typeof gradeData === 'object') {
     if (!sector) throw new Error("Sector required");
-    if (!gradeData[sector]?.includes(name)) {
-      throw new Error("Invalid subject for sector");
-    }
   } 
   else if (!gradeData.includes(name)) {
     throw new Error("Invalid subject");
@@ -31,13 +28,30 @@ const validateSubjectData = (data) => {
 // ====================
 // SERVICE METHODS
 // ====================
+const validateRequiredFields = (data, fields) => {
+  const missing = fields.filter(field => !data[field]);
+  if (missing.length > 0) {
+    throw new Error(`Missing required fields: ${missing.join(', ')}`);
+  }
+};
+
 export const SubjectService = {
-  // ----- Base Subjects -----
   createSubject: async (data) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     
     try {
+      // Validate required fields
+      const requiredFields = ['name', 'grade', 'education_system', 'language'];
+      const missingFields = requiredFields.filter(field => !data[field]);
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+      
+      // Validate subject structure
+      validateSubjectData(data);
+
       // 1. Create base subject
       const subject = new Subject({
         name: data.name,
@@ -49,30 +63,35 @@ export const SubjectService = {
       });
       await subject.save({ session });
 
-      // 2. Assign to specified teachers
+      // 2. Create profiles and assign to teachers
       if (data.teacherIds && data.teacherIds.length > 0) {
-        console.log('Linking subject to teachers:', data.teacherIds);
-        
-        const updateResult = await Teacher.updateMany(
-          { _id: { $in: data.teacherIds } },
-          { $addToSet: { subjects: subject._id } },
-          { session }
-        );
-        
-        console.log('Teacher update result:', updateResult);
-        
-        // Verify the update actually happened
-        const teachers = await Teacher.find({ _id: { $in: data.teacherIds } })
-          .select('subjects')
-          .session(session);
-          
-        console.log('Teachers after update:', teachers.map(t => ({
-          id: t._id,
-          subjectsCount: t.subjects.length,
-          hasNewSubject: t.subjects.includes(subject._id)
-        })));
-      } else {
-        console.log('No teachers to link to subject');
+        for (const teacherId of data.teacherIds) {
+          // Create profile with default values
+          const profile = new SubjectProfile({
+            subject_id: subject._id,
+            teacher_id: teacherId,
+            user_type: "tutor",
+            rating: 0,
+            yearsExp: 0,
+            payment_timing: "Postpaid",
+            session_duration: 60,
+            lectures_per_week: 2,
+            payment_methods: ['Cash']
+          });
+          await profile.save({ session });
+
+          // Add to teacher's profiles
+          await Teacher.findByIdAndUpdate(
+            teacherId,
+            { 
+              $addToSet: { 
+                subjects: subject._id,
+                subject_profiles: profile._id 
+              } 
+            },
+            { session }
+          );
+        }
       }
 
       await session.commitTransaction();

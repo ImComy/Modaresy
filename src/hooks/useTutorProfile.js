@@ -34,7 +34,7 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
     try {
       setIsLoading(true);
       
-      // Fetch tutor data and base subjects
+      // Fetch tutor data and subjects
       const [tutorData, subjectsResponse] = await Promise.all([
         apiFetch(`/tutors/loadTutor/${tutorId}`),
         apiFetch(`/subjects/load/${tutorId}`)
@@ -44,18 +44,38 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
         throw new Error(tutorData?.error || 'Tutor not found');
       }
 
-      // Extract base subjects from response
+      // Extract and transform subjects data
       const baseSubjects = subjectsResponse?.data?.baseSubjects || [];
-      setSubjects(baseSubjects);
+      const subjectProfiles = subjectsResponse?.data?.subjectProfiles || [];
+      
+      // Create a mapping of subject ID to profile
+      const profileMap = new Map();
+      subjectProfiles.forEach(profile => {
+        if (profile.subject_id) {
+          profileMap.set(
+            typeof profile.subject_id === 'string' 
+              ? profile.subject_id 
+              : profile.subject_id._id, 
+            profile
+          );
+        }
+      });
+
+      // Merge base subjects with their profiles
+      const mergedSubjects = baseSubjects.map(subject => {
+        const profile = profileMap.get(subject._id);
+        return profile ? { ...subject, ...profile } : subject;
+      });
 
       const combinedData = {
         ...tutorData,
-        subjects: baseSubjects,
+        subjects: mergedSubjects,  // Maintain old subjects structure
         about_me: tutorData.about_me || ''
       };
       
       setTutor(combinedData);
       setOriginalTutor(structuredClone(combinedData));
+      setSubjects(mergedSubjects);  // Set subjects to merged array
 
       // Handle subject selection from URL params
       handleSubjectSelectionFromURL(baseSubjects);

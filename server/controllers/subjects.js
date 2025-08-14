@@ -1,4 +1,6 @@
 import { SubjectService } from "../services/subject.service.js";
+import mongoose from "mongoose";
+import { Subject, SubjectProfile } from "../models/subject.js";
 
 export const SubjectController = {
   // ====================
@@ -9,16 +11,27 @@ export const SubjectController = {
       console.log('Creating subject with body:', req.body);
       console.log('User context:', req.user);
 
+      // Validate required fields
+      const requiredFields = ['name', 'grade', 'education_system', 'language'];
+      const missingFields = requiredFields.filter(field => !req.body[field]);
+      
+      if (missingFields.length > 0) {
+        return res.status(400).json({
+          error: `Missing required fields: ${missingFields.join(', ')}`
+        });
+      }
+
       const teacherIds = req.user?.type === 'Teacher' 
         ? [req.user._id] 
         : req.body.teacherIds || [];
-
+      
       console.log('Teacher IDs for subject:', teacherIds);
 
       const subject = await SubjectService.createSubject({
         ...req.body,
         teacherIds: teacherIds
       });
+      
       res.status(201).json(subject);
     } catch (err) {
       console.error('Subject creation error:', err);

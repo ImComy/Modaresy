@@ -36,7 +36,9 @@ const SubjectSelector = ({
     const gradeMap = new Map();
     
     subjects
-      .filter(s => (s.education_system || s.subject_id?.education_system) === currentSystem)
+      .filter(s => 
+        (s.education_system || s.subject_id?.education_system) === currentSystem
+      )
       .forEach(s => {
         const grade = s.grade || s.subject_id?.grade;
         if (!gradeMap.has(grade)) {
@@ -53,21 +55,17 @@ const SubjectSelector = ({
   }, [subjects, selectedSubjectIndex, educationSystems]);
 
   const handleSystemChange = (system) => {
-    const firstSubjectWithSystem = subjects.findIndex(s => 
-      (s.education_system || s.subject_id?.education_system) === system
-    );
+    const firstSubjectWithSystem = subjects.findIndex(s => s.education_system === system);
     if (firstSubjectWithSystem >= 0) {
       setSelectedSubjectIndex(firstSubjectWithSystem);
     }
   };
 
   const handleGradeChange = (grade) => {
-    const currentSystem = subjects[selectedSubjectIndex]?.education_system || 
-                         subjects[selectedSubjectIndex]?.subject_id?.education_system || 
-                         educationSystems[0];
+    const currentSystem = subjects[selectedSubjectIndex]?.education_system || educationSystems[0];
     const matchingSubjectIndex = subjects.findIndex(s => 
-      (s.education_system || s.subject_id?.education_system) === currentSystem && 
-      (s.grade || s.subject_id?.grade) === grade
+      s.education_system === currentSystem && 
+      s.grade === grade
     );
     if (matchingSubjectIndex >= 0) {
       setSelectedSubjectIndex(matchingSubjectIndex);
@@ -86,15 +84,14 @@ const SubjectSelector = ({
           {t('noSubjectsHeader', 'No Subjects Added')}
         </h2>
         <p className="text-muted-foreground max-w-md mx-auto text-sm">
-          {t('noSubjectsDescription', 'This tutor hasnt added any subjects yet.')}
+          {t('noSubjectsDescription', 'This tutor hasn\'t added any subjects yet.')}
         </p>
       </div>
     );
   }
 
-  const currentSystem = subjects[selectedSubjectIndex]?.education_system || 
-                       subjects[selectedSubjectIndex]?.subject_id?.education_system || 
-                       educationSystems[0];
+  const currentSystem = subjects[selectedSubjectIndex]?.education_system || educationSystems[0];
+  const currentGrade = subjects[selectedSubjectIndex]?.grade || '';
 
   return (
     <div className="space-y-4 mb-6">
@@ -115,7 +112,7 @@ const SubjectSelector = ({
         </Select>
 
         <Select 
-          value={gradeOptions.length > 0 ? gradeOptions[0].grade : ''}
+          value={currentGrade}
           onValueChange={handleGradeChange}
         >
           <SelectTrigger className="w-full sm:w-1/2">
@@ -141,15 +138,15 @@ const SubjectSelector = ({
       <div className="flex flex-wrap gap-3 mt-2">
         {subjects
           .filter(s => 
-            (s.education_system || s.subject_id?.education_system) === currentSystem && 
-            (s.grade || s.subject_id?.grade) === (gradeOptions[0]?.grade || '')
+            s.education_system === currentSystem && 
+            s.grade === currentGrade
           )
           .map((subject, idx) => {
             const globalIdx = subjects.findIndex(
-              s => (s.name || s.subject_id?.name) === (subject.name || subject.subject_id?.name)
+              s => s._id === subject._id
             );
             const isActive = selectedSubjectIndex === globalIdx;
-            const subjectName = subject.name || subject.subject_id?.name || t('unnamedSubject');
+            const subjectName = subject.name;
 
             return (
               <div key={idx} className="relative group">

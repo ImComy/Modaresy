@@ -12,7 +12,7 @@ import TutorReviews from '@/components/profile/TutorReviews';
 import useTutorProfile from '@/hooks/useTutorProfile';
 import { Button } from '@/components/ui/button';
 import useEditMode from '@/hooks/useEditMode';
-import { API_BASE, apiFetch } from '@/api/apiService';
+import { apiFetch } from '@/api/apiService';
 
 const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = null }) => {
   const { t } = useTranslation();
@@ -69,7 +69,20 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
     onCancelCallback: () => reset()
   });
 
-  // Derived data
+  // Merge baseSubjects and subjectProfiles into a single subjects array
+  const mergedSubjects = React.useMemo(() => {
+    if (!subjects || !tutor?.subjectProfiles) return [];
+    
+    return subjects.map(subject => {
+      const profile = tutor.subjectProfiles.find(
+        profile => profile.subject_id?._id === subject._id
+      );
+      
+      return profile ? { ...subject, ...profile } : subject;
+    });
+  }, [subjects, tutor?.subjectProfiles]);
+
+  // Derived data - uses subjects directly from hook
   const currentSubjects = isEditing ? editedData?.subjects : subjects;
   const selectedSubject = selectedSubjectIndex >= 0 && currentSubjects?.[selectedSubjectIndex] 
     ? currentSubjects[selectedSubjectIndex] 
@@ -80,19 +93,19 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
 
   // Handlers
   const handleSubjectFieldChange = async (index, field, value, isPricing = false) => {
-    if (!subjects[index]?._id) return;
+    if (!mergedSubjects[index]?._id) return;
 
     const updatedSubject = { 
-      ...subjects[index],
+      ...mergedSubjects[index],
       private_pricing: {
-        ...subjects[index].private_pricing,
+        ...mergedSubjects[index].private_pricing,
         ...(isPricing && { [field]: value })
       },
       ...(!isPricing && { [field]: value })
     };
 
     try {
-      await updateSubjectInBackend(subjects[index]._id, updatedSubject);
+      await updateSubjectInBackend(mergedSubjects[index]._id, updatedSubject);
     } catch (error) {
       console.error('Error updating subject:', error);
     }
@@ -123,13 +136,11 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
       const updatedSubjects = [...subjectsToUpdate];
       updatedSubjects[index] = { ...updatedSubjects[index], ...subjectData };
       updateField('subjects', updatedSubjects);
-      console.log('Optimistically updated subject:', updatedSubjects[index]);
 
       // Then send to backend
       await updateSubjectInBackend(subjectToUpdate._id, subjectData);
     } catch (error) {
       console.error('Error updating subject:', error);
-      // Optionally revert optimistic update here
     }
   };
 
@@ -205,16 +216,17 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
           />
         )}
 
-      <TutorProfileHeader
-        tutor={isEditing ? editedData : tutor}
-        onChange={handleFieldChange}
-        onAddSubject={addSubject}
-        onUpdateSubject={updateSubject}
-        onDeleteSubject={removeSubject}
-        onSave={saveChanges}
-        isEditing={isEditing}  
-        isOwner={isOwner} 
-      />
+        <TutorProfileHeader
+          tutor={isEditing ? editedData : tutor}
+          onChange={handleFieldChange}
+          onAddSubject={addSubject}
+          onUpdateSubject={updateSubject}
+          onDeleteSubject={removeSubject}
+          onSave={saveChanges}
+          isEditing={isEditing}  
+          isOwner={isOwner} 
+        />
+
         {(currentSubjects || [])?.length === 0 ? (
           <NoSubjectsView 
             t={t} 
@@ -222,7 +234,22 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
             isEditing={isEditing} 
             onAddSubject={addSubject}
           />
-        ) : null}
+        ) : (
+          <SubjectsView
+            tutor={tutor}
+            isEditing={isEditing}
+            isOwner={isOwner}
+            selectedSubjectIndex={selectedSubjectIndex}
+            setSelectedSubjectIndex={setSelectedSubjectIndex}
+            subjects={currentSubjects}
+            selectedSubject={selectedSubject}
+            editedSubject={editedSubject}
+            reviews={reviews}
+            handleNestedSubjectChange={handleNestedSubjectChange}
+            onRemoveSubject={removeSubject}
+            t={t}
+          />
+        )}
       </form>
     </motion.div>
   );
@@ -277,60 +304,56 @@ const SubjectsView = ({
       onRemoveSubject={onRemoveSubject}
     />
 
-        {selectedSubject && (
-          <div className="space-y-8 border-t pt-8 mt-8">
-            <h3 className="text-xl font-semibold">
-              {selectedSubject.name} – {selectedSubject.grade}
-            </h3>
-          </div> 
-        )}
-     </>
-);
+    {selectedSubject && (
+      <div className="space-y-8 border-t pt-8 mt-8">
+        <h3 className="text-xl font-semibold">
+          {selectedSubject.name} – {selectedSubject.grade}
+        </h3>
         
-//         <div className="block lg:grid grid-cols-1 lg:grid-cols-3 gap-8">
-//           {/* Mobile and primary desktop sections */}
-//           <div className="lg:col-span-2 space-y-8">
-//             <SubjectPricingInfo
-//               subject={isEditing ? editedSubject : selectedSubject}
-//               onFieldChange={handleNestedSubjectChange}
-//               isEditing={isEditing}
-//             />
+        <div className="block lg:grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Mobile and primary desktop sections */}
+          <div className="lg:col-span-2 space-y-8">
+            <SubjectPricingInfo
+              subject={isEditing ? editedSubject : selectedSubject}
+              onFieldChange={handleNestedSubjectChange}
+              isEditing={isEditing}
+            />
             
-//             <TutorVideoManager
-//               subject={isEditing ? editedSubject : selectedSubject}
-//               onFieldChange={handleNestedSubjectChange}
-//               isEditing={isEditing}
-//               isOwner={isOwner}
-//             />
+            <TutorVideoManager
+              subject={isEditing ? editedSubject : selectedSubject}
+              onFieldChange={handleNestedSubjectChange}
+              isEditing={isEditing}
+              isOwner={isOwner}
+            />
 
-//             {!isEditing && (
-//               <TutorReviews
-//                 tutorId={tutor._id}
-//                 reviews={reviews || []}
-//               />
-//             )}
-//           </div>
+            {!isEditing && (
+              <TutorReviews
+                tutorId={tutor._id}
+                reviews={reviews || []}
+              />
+            )}
+          </div>
 
-//           {/* Secondary desktop sections */}
-//           <div className="hidden lg:block space-y-8">
-//             <TutorCourseInfo
-//               subject={isEditing ? editedSubject : selectedSubject}
-//               onFieldChange={handleNestedSubjectChange}
-//               isEditing={isEditing}
-//             />
+          {/* Secondary desktop sections */}
+          <div className="hidden lg:block space-y-8">
+            <TutorCourseInfo
+              subject={isEditing ? editedSubject : selectedSubject}
+              onFieldChange={handleNestedSubjectChange}
+              isEditing={isEditing}
+            />
             
-//             {selectedSubject.groups?.length > 0 && (
-//               <TutorGroupsCard
-//                 subject={isEditing ? editedSubject : selectedSubject}
-//                 onFieldChange={handleNestedSubjectChange}
-//                 isEditing={isEditing}
-//               />
-//             )}
-//           </div>
-//         </div>
-//       </div>
-//     )}
-//   </>
-// );
+            {selectedSubject.groups?.length > 0 && (
+              <TutorGroupsCard
+                subject={isEditing ? editedSubject : selectedSubject}
+                onFieldChange={handleNestedSubjectChange}
+                isEditing={isEditing}
+              />
+            )}
+          </div>
+        </div>
+      </div> 
+    )}
+  </>
+);
 
 export default TutorProfilePage;
