@@ -12,10 +12,9 @@ import TutorReviews from '@/components/profile/TutorReviews';
 import useTutorProfile from '@/hooks/useTutorProfile';
 import { Button } from '@/components/ui/button';
 import useEditMode from '@/hooks/useEditMode';
-import { API_BASE, apiFetch } from '@/api/apiService'; // Reusing apiFetch from previous files
+import { API_BASE, apiFetch } from '@/api/apiService';
 
 const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = null }) => {
-  console.log('TutorProfilePage rendered with:', { propTutorId, externalEditing });
   const { t } = useTranslation();
   
   const {
@@ -24,7 +23,7 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
     selectedSubjectIndex,
     setSelectedSubjectIndex,
     isOwner,
-    subjectProfiles,
+    subjects,
     reviews,
     fetchTutorData,
     addSubject: addSubjectToBackend,
@@ -32,7 +31,6 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
     deleteSubject: deleteSubjectFromBackend
   } = useTutorProfile(propTutorId, externalEditing);
 
-  // Edit mode management - reuse the save logic from useTutorProfile
   const {
     isEditing,
     hasChanges,
@@ -47,92 +45,109 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
     initialData: tutor,
     onSaveCallback: async (updatedData) => {
       try {
-        console.log('Saving tutor profile data:', updatedData);
         const response = await apiFetch('/tutors/updateProfile', {
           method: 'PUT',
           body: JSON.stringify({
             updated_information: {
               ...updatedData,
-              subject_profiles: updatedData.subject_profiles?.map(profile => ({
-                _id: profile._id,
-                subject_id: profile.subject_id,
-                price: profile.price,
-                ...(profile.videos && { videos: profile.videos }),
-                ...(profile.groups && { groups: profile.groups })
+              subjects: updatedData.subjects?.map(subject => ({
+                ...subject,
+                _id: subject._id,
               }))
             }
           })
         });
 
-        if (response.error) {
-          throw new Error(response.error || 'Failed to update profile');
-        }
-
-        console.log('Profile update successful:', response);
-        await fetchTutorData(tutor._id); // Refresh data
-        return response.user || response;
+        if (response.error) throw new Error(response.error);
+        await fetchTutorData(tutor._id);
+        return response;
       } catch (error) {
         console.error('Error updating tutor profile:', error);
         throw error;
       }
     },
-    onCancelCallback: () => {
-      console.log('Resetting tutor profile data');
-      reset();
-    }
+    onCancelCallback: () => reset()
   });
 
   // Derived data
-  const subjects = subjectProfiles || [];
-  const selectedSubject = selectedSubjectIndex >= 0 && selectedSubjectIndex < subjects.length 
-    ? subjects[selectedSubjectIndex] 
+  const currentSubjects = isEditing ? editedData?.subjects : subjects;
+  const selectedSubject = selectedSubjectIndex >= 0 && currentSubjects?.[selectedSubjectIndex] 
+    ? currentSubjects[selectedSubjectIndex] 
     : null;
-  const editedSubject = selectedSubjectIndex >= 0 && editedData?.subject_profiles?.[selectedSubjectIndex]
-    ? editedData.subject_profiles[selectedSubjectIndex]
+  const editedSubject = selectedSubjectIndex >= 0 && editedData?.subjects?.[selectedSubjectIndex]
+    ? editedData.subjects[selectedSubjectIndex]
     : null;
 
   // Handlers
-
   const handleSubjectFieldChange = async (index, field, value, isPricing = false) => {
-    if (selectedSubjectIndex === -1) return;
+    if (!subjects[index]?._id) return;
 
-    const subjectId = subjectProfiles[index]._id;
-    const updatedSubject = { ...subjectProfiles[index] };
-
-    if (isPricing) {
-      updatedSubject.private_pricing = {
-        ...updatedSubject.private_pricing,
-        [field]: value
-      };
-    } else {
-      updatedSubject.subject_id = {
-        ...updatedSubject.subject_id,
-        [field]: value
-      };
-    }
+    const updatedSubject = { 
+      ...subjects[index],
+      private_pricing: {
+        ...subjects[index].private_pricing,
+        ...(isPricing && { [field]: value })
+      },
+      ...(!isPricing && { [field]: value })
+    };
 
     try {
-      await updateSubjectInBackend(subjectId, updatedSubject);
+      await updateSubjectInBackend(subjects[index]._id, updatedSubject);
     } catch (error) {
       console.error('Error updating subject:', error);
     }
   };
 
-  // Replace the existing addSubject with:
   const addSubject = async (newSubject) => {
     try {
-      await addSubjectToBackend(newSubject);
+      const result = await addSubjectToBackend(newSubject);
+      if (result) {
+        const updatedSubjects = [...(editedData?.subjects || []), result];
+        updateField('subjects', updatedSubjects);
+      }
     } catch (error) {
       console.error('Error adding subject:', error);
     }
   };
 
-  // Replace the existing removeSubject with:
-  const removeSubject = async (index) => {
-    if (index < 0 || index >= subjectProfiles.length) return;
-    
+  const updateSubject = async (index, subjectData) => {
+    const subjectsToUpdate = editedData?.subjects || [];
+    if (index < 0 || index >= subjectsToUpdate.length) return;
     try {
-      await deleteSubjectFromBackend(subjectProfiles[index]._id);
+      const subjectToUpdate = subjectsToUpdate[index];
+      if (!subjectToUpdate?._id) {
+        console.error('Subject ID is missing for update');
+        return;
+      }
+      // Optimistically update local state first
+      const updatedSubjects = [...subjectsToUpdate];
+      updatedSubjects[index] = { ...updatedSubjects[index], ...subjectData };
+      updateField('subjects', updatedSubjects);
+      console.log('Optimistically updated subject:', updatedSubjects[index]);
+
+      // Then send to backend
+      await updateSubjectInBackend(subjectToUpdate._id, subjectData);
+    } catch (error) {
+      console.error('Error updating subject:', error);
+      // Optionally revert optimistic update here
+    }
+  };
+
+  const removeSubject = async (index) => {
+    const subjectsToDelete = editedData?.subjects || [];
+    if (index < 0 || index >= subjectsToDelete.length) return;
+    try {
+      const subjectToDelete = subjectsToDelete[index];
+      if (!subjectToDelete?._id) {
+        console.error('Subject ID is missing for delete');
+        return;
+      }
+      // Optimistically update local state
+      const updatedSubjects = subjectsToDelete.filter((_, i) => i !== index);
+      updateField('subjects', updatedSubjects);
+
+      // Then send to backend
+      await deleteSubjectFromBackend(subjectToDelete._id);
     } catch (error) {
       console.error('Error removing subject:', error);
     }
@@ -140,13 +155,8 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!hasChanges) {
-      console.log('No changes to save');
-      return;
-    }
-    
+    if (!hasChanges) return;
     try {
-      console.log('Submitting tutor profile changes');
       await saveChanges();
     } catch (error) {
       console.error('Submission error:', error);
@@ -154,22 +164,16 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
   };
 
   const handleFieldChange = (field, value) => {
-    console.log(`Updating field ${field} with value:`, value);
     updateField(field, value);
   };
 
   const handleNestedSubjectChange = (path, value) => {
-    if (selectedSubjectIndex === -1) {
-      console.warn('No subject selected, cannot update nested field');
-      return;
-    }
-    console.log(`Updating nested subject path ${path} with value:`, value);
-    updateNestedField(`subject_profiles.${selectedSubjectIndex}.${path}`, value);
+    if (selectedSubjectIndex === -1) return;
+    updateNestedField(`subjects.${selectedSubjectIndex}.${path}`, value);
   };
 
   // Loading state
   if (isLoading) {
-    console.log('Rendering loading state');
     return (
       <div className="flex justify-center items-center min-h-[400px]">
         <span className="animate-spin h-8 w-8 rounded-full border-4 border-t-transparent border-primary"></span>
@@ -180,21 +184,7 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
 
   // Error state
   if (!tutor) {
-    console.log('Rendering tutor not found state');
     return <div className="text-center py-10">{t('tutorNotFound')}</div>;
-  }
-
-  // Debug logging in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Current TutorProfilePage state:', {
-      tutor,
-      isEditing,
-      hasChanges,
-      selectedSubjectIndex,
-      subjectsCount: subjects.length,
-      reviewsCount: reviews.length,
-      selectedSubject
-    });
   }
 
   return (
@@ -215,41 +205,31 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
           />
         )}
 
-        <TutorProfileHeader
-          tutor={tutor}
-          onFieldChange={handleFieldChange}
-          isEditing={isEditing}
-          isOwner={isOwner}
-        />
-
-        {subjects.length === 0 ? (
+      <TutorProfileHeader
+        tutor={isEditing ? editedData : tutor}
+        onChange={handleFieldChange}
+        onAddSubject={addSubject}
+        onUpdateSubject={updateSubject}
+        onDeleteSubject={removeSubject}
+        onSave={saveChanges}
+        isEditing={isEditing}  
+        isOwner={isOwner} 
+      />
+        {(currentSubjects || [])?.length === 0 ? (
           <NoSubjectsView 
             t={t} 
             isOwner={isOwner} 
             isEditing={isEditing} 
+            onAddSubject={addSubject}
           />
-        ) : (
-          <SubjectsView
-            tutor={tutor}
-            isEditing={isEditing}
-            isOwner={isOwner}
-            selectedSubjectIndex={selectedSubjectIndex}
-            setSelectedSubjectIndex={setSelectedSubjectIndex}
-            subjects={subjects}
-            selectedSubject={selectedSubject}
-            editedSubject={editedSubject}
-            reviews={reviews}
-            handleNestedSubjectChange={handleNestedSubjectChange}
-            t={t}
-          />
-        )}
+        ) : null}
       </form>
     </motion.div>
   );
 };
 
-// Extracted sub-components for better readability
-const NoSubjectsView = ({ t }) => (
+// Sub-components
+const NoSubjectsView = ({ t, isOwner, isEditing, onAddSubject }) => (
   <div className="rounded-xl bg-muted/40 dark:bg-muted/10 border border-border px-6 py-12 text-center space-y-4 shadow-sm mt-10">
     <div className="flex justify-center">
       <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center">
@@ -262,6 +242,14 @@ const NoSubjectsView = ({ t }) => (
     <p className="text-muted-foreground max-w-md mx-auto text-sm">
       {t('noSubjectsDescription')}
     </p>
+    {isOwner && isEditing && (
+      <Button 
+        onClick={() => onAddSubject({ name: 'New Subject' })}
+        className="mt-4"
+      >
+        {t('addSubject')}
+      </Button>
+    )}
   </div>
 );
 
@@ -276,6 +264,7 @@ const SubjectsView = ({
   editedSubject,
   reviews,
   handleNestedSubjectChange,
+  onRemoveSubject,
   t
 }) => (
   <>
@@ -285,144 +274,63 @@ const SubjectsView = ({
       setSelectedSubjectIndex={setSelectedSubjectIndex}
       subjects={subjects}
       isEditing={isEditing}
+      onRemoveSubject={onRemoveSubject}
     />
 
-    {selectedSubject && editedSubject ? (
-      <div className="space-y-8 border-t pt-8 mt-8">
-        <h3 className="text-xl font-semibold">
-          {selectedSubject.subject_id?.name} – {selectedSubject.subject_id?.grade}
-        </h3>
-        <div className="block lg:grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <MobileSubjectSections
-              isEditing={isEditing}
-              editedSubject={editedSubject}
-              selectedSubject={selectedSubject}
-              handleNestedSubjectChange={handleNestedSubjectChange}
-              isOwner={isOwner}
-              tutor={tutor}
-              reviews={reviews}
-            />
-            <DesktopPrimarySections
-              isEditing={isEditing}
-              editedSubject={editedSubject}
-              selectedSubject={selectedSubject}
-              handleNestedSubjectChange={handleNestedSubjectChange}
-              isOwner={isOwner}
-              tutor={tutor}
-              reviews={reviews}
-            />
-          </div>
-          <div className="hidden lg:block space-y-8">
-            <DesktopSecondarySections
-              isEditing={isEditing}
-              editedSubject={editedSubject}
-              selectedSubject={selectedSubject}
-              handleNestedSubjectChange={handleNestedSubjectChange}
-            />
-          </div>
-        </div>
-      </div>
-    ) : (
-      <p className="text-muted-foreground text-sm">
-        {t('noSubjectsFound', 'No subjects found for this selection.')}
-      </p>
-    )}
-  </>
+        {selectedSubject && (
+          <div className="space-y-8 border-t pt-8 mt-8">
+            <h3 className="text-xl font-semibold">
+              {selectedSubject.name} – {selectedSubject.grade}
+            </h3>
+          </div> 
+        )}
+     </>
 );
+        
+//         <div className="block lg:grid grid-cols-1 lg:grid-cols-3 gap-8">
+//           {/* Mobile and primary desktop sections */}
+//           <div className="lg:col-span-2 space-y-8">
+//             <SubjectPricingInfo
+//               subject={isEditing ? editedSubject : selectedSubject}
+//               onFieldChange={handleNestedSubjectChange}
+//               isEditing={isEditing}
+//             />
+            
+//             <TutorVideoManager
+//               subject={isEditing ? editedSubject : selectedSubject}
+//               onFieldChange={handleNestedSubjectChange}
+//               isEditing={isEditing}
+//               isOwner={isOwner}
+//             />
 
-const MobileSubjectSections = ({
-  isEditing,
-  editedSubject,
-  selectedSubject,
-  handleNestedSubjectChange,
-  isOwner,
-  tutor,
-  reviews
-}) => (
-  <div className="block lg:hidden space-y-8">
-    <SubjectPricingInfo
-      subject={isEditing ? editedSubject : selectedSubject}
-      onFieldChange={handleNestedSubjectChange}
-      isEditing={isEditing}
-    />
-    <TutorVideoManager
-      subject={isEditing ? editedSubject : selectedSubject}
-      onFieldChange={handleNestedSubjectChange}
-      isEditing={isEditing}
-      isOwner={isOwner}
-    />
-    <TutorCourseInfo
-      subject={isEditing ? editedSubject : selectedSubject}
-      onFieldChange={handleNestedSubjectChange}
-      isEditing={isEditing}
-    />
-    {selectedSubject.groups?.length > 0 && (
-      <TutorGroupsCard
-        subject={isEditing ? editedSubject : selectedSubject}
-        onFieldChange={handleNestedSubjectChange}
-        isEditing={isEditing}
-      />
-    )}
-    {!isEditing && (
-      <TutorReviews
-        tutorId={tutor._id}
-        reviews={reviews || []}
-      />
-    )}
-  </div>
-);
+//             {!isEditing && (
+//               <TutorReviews
+//                 tutorId={tutor._id}
+//                 reviews={reviews || []}
+//               />
+//             )}
+//           </div>
 
-const DesktopPrimarySections = ({
-  isEditing,
-  editedSubject,
-  selectedSubject,
-  handleNestedSubjectChange,
-  isOwner,
-  tutor,
-  reviews
-}) => (
-  <div className="hidden lg:block space-y-8">
-    <SubjectPricingInfo
-      subject={isEditing ? editedSubject : selectedSubject}
-      onFieldChange={handleNestedSubjectChange}
-      isEditing={isEditing}
-    />
-    <TutorVideoManager
-      subject={isEditing ? editedSubject : selectedSubject}
-      onFieldChange={handleNestedSubjectChange}
-      isEditing={isEditing}
-      isOwner={isOwner}
-    />
-    {!isEditing && (
-      <TutorReviews
-        tutorId={tutor._id}
-        reviews={reviews || []}
-      />
-    )}
-  </div>
-);
-
-const DesktopSecondarySections = ({
-  isEditing,
-  editedSubject,
-  selectedSubject,
-  handleNestedSubjectChange
-}) => (
-  <>
-    <TutorCourseInfo
-      subject={isEditing ? editedSubject : selectedSubject}
-      onFieldChange={handleNestedSubjectChange}
-      isEditing={isEditing}
-    />
-    {selectedSubject.groups?.length > 0 && (
-      <TutorGroupsCard
-        subject={isEditing ? editedSubject : selectedSubject}
-        onFieldChange={handleNestedSubjectChange}
-        isEditing={isEditing}
-      />
-    )}
-  </>
-);
+//           {/* Secondary desktop sections */}
+//           <div className="hidden lg:block space-y-8">
+//             <TutorCourseInfo
+//               subject={isEditing ? editedSubject : selectedSubject}
+//               onFieldChange={handleNestedSubjectChange}
+//               isEditing={isEditing}
+//             />
+            
+//             {selectedSubject.groups?.length > 0 && (
+//               <TutorGroupsCard
+//                 subject={isEditing ? editedSubject : selectedSubject}
+//                 onFieldChange={handleNestedSubjectChange}
+//                 isEditing={isEditing}
+//               />
+//             )}
+//           </div>
+//         </div>
+//       </div>
+//     )}
+//   </>
+// );
 
 export default TutorProfilePage;

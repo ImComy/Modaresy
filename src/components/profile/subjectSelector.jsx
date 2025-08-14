@@ -8,36 +8,67 @@ import {
 } from '@/components/ui/select';
 import { useTranslation } from 'react-i18next';
 
-const SubjectSelector = ({ tutor, selectedSubjectIndex, setSelectedSubjectIndex }) => {
+const SubjectSelector = ({ 
+  tutor, 
+  selectedSubjectIndex, 
+  setSelectedSubjectIndex,
+  subjects = [],
+  isEditing = false,
+  onRemoveSubject
+}) => {
   const { t } = useTranslation();
-  const subjects = tutor.subjects || [];
 
-  // Initialize selectedSubjectIndex if invalid
   useEffect(() => {
     if (subjects.length > 0 && (selectedSubjectIndex < 0 || selectedSubjectIndex >= subjects.length)) {
       setSelectedSubjectIndex(0);
     }
   }, [subjects, selectedSubjectIndex, setSelectedSubjectIndex]);
+  
+  const educationSystems = useMemo(() => [
+    ...new Set(subjects.map(s => s.education_system || s.subject_id?.education_system))
+  ], [subjects]);
 
-  // Compute unique types and grades for dropdowns
-  const types = useMemo(() => [...new Set(subjects.map(s => s.type))], [subjects]);
-  const grades = useMemo(() => {
-    const currentType = subjects[selectedSubjectIndex]?.type || types[0];
-    return [...new Set(subjects.filter(s => s.type === currentType).map(s => s.grade))];
-  }, [subjects, selectedSubjectIndex]);
+  const gradeOptions = useMemo(() => {
+    const currentSystem = subjects[selectedSubjectIndex]?.education_system || 
+                         subjects[selectedSubjectIndex]?.subject_id?.education_system || 
+                         educationSystems[0];
+    
+    const gradeMap = new Map();
+    
+    subjects
+      .filter(s => (s.education_system || s.subject_id?.education_system) === currentSystem)
+      .forEach(s => {
+        const grade = s.grade || s.subject_id?.grade;
+        if (!gradeMap.has(grade)) {
+          gradeMap.set(grade, {
+            grade,
+            sector: s.sector || s.subject_id?.sector,
+            language: s.language || s.subject_id?.language,
+            system: s.education_system || s.subject_id?.education_system
+          });
+        }
+      });
+    
+    return Array.from(gradeMap.values());
+  }, [subjects, selectedSubjectIndex, educationSystems]);
 
-  // Handle type change
-  const handleTypeChange = (type) => {
-    const firstSubjectWithType = subjects.findIndex(s => s.type === type);
-    if (firstSubjectWithType >= 0) {
-      setSelectedSubjectIndex(firstSubjectWithType);
+  const handleSystemChange = (system) => {
+    const firstSubjectWithSystem = subjects.findIndex(s => 
+      (s.education_system || s.subject_id?.education_system) === system
+    );
+    if (firstSubjectWithSystem >= 0) {
+      setSelectedSubjectIndex(firstSubjectWithSystem);
     }
   };
 
-  // Handle grade change
   const handleGradeChange = (grade) => {
-    const currentType = subjects[selectedSubjectIndex]?.type || types[0];
-    const matchingSubjectIndex = subjects.findIndex(s => s.type === currentType && s.grade === grade);
+    const currentSystem = subjects[selectedSubjectIndex]?.education_system || 
+                         subjects[selectedSubjectIndex]?.subject_id?.education_system || 
+                         educationSystems[0];
+    const matchingSubjectIndex = subjects.findIndex(s => 
+      (s.education_system || s.subject_id?.education_system) === currentSystem && 
+      (s.grade || s.subject_id?.grade) === grade
+    );
     if (matchingSubjectIndex >= 0) {
       setSelectedSubjectIndex(matchingSubjectIndex);
     }
@@ -55,71 +86,52 @@ const SubjectSelector = ({ tutor, selectedSubjectIndex, setSelectedSubjectIndex 
           {t('noSubjectsHeader', 'No Subjects Added')}
         </h2>
         <p className="text-muted-foreground max-w-md mx-auto text-sm">
-          {t('noSubjectsDescription', 'This tutor hasn’t added any subjects yet.')}
+          {t('noSubjectsDescription', 'This tutor hasnt added any subjects yet.')}
         </p>
       </div>
     );
   }
 
-  // Simple layout for 3 or fewer subjects
-  if (subjects.length <= 3) {
-    return (
-      <div className="space-y-3 mb-6">
-        <p className="text-base font-semibold">{t('selectSubjectToView', 'Select a subject to view')}</p>
-        <div className="flex flex-wrap gap-3">
-          {subjects.map((subj, idx) => {
-            const isActive = selectedSubjectIndex === idx;
-            return (
-              <button
-                type="button"
-                key={idx}
-                onClick={() => setSelectedSubjectIndex(idx)}
-                className={`px-4 py-2 text-sm rounded-full transition-all duration-200 border shadow-sm flex items-center gap-2
-                  ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary'
-                      : 'bg-muted text-muted-foreground border-muted hover:bg-primary/10 hover:text-primary'
-                  }`}
-              >
-                {t(subj.subject)} - {t(subj.grade)}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  // Full UI for larger subject sets
-  const currentType = subjects[selectedSubjectIndex]?.type || types[0];
-  const currentGrade = subjects[selectedSubjectIndex]?.grade || grades[0];
+  const currentSystem = subjects[selectedSubjectIndex]?.education_system || 
+                       subjects[selectedSubjectIndex]?.subject_id?.education_system || 
+                       educationSystems[0];
 
   return (
     <div className="space-y-4 mb-6">
       <p className="text-base font-semibold">{t('selectSubjectToView', 'Select a subject to view')}</p>
 
       <div className="flex flex-col sm:flex-row gap-4">
-        <Select value={currentType} onValueChange={handleTypeChange}>
+        <Select value={currentSystem} onValueChange={handleSystemChange}>
           <SelectTrigger className="w-full sm:w-1/2">
-            <SelectValue placeholder={t('selectType', 'Select Type')} />
+            <SelectValue placeholder={t('selectSystem', 'Select Education System')} />
           </SelectTrigger>
           <SelectContent>
-            {types.map((type, idx) => (
-              <SelectItem key={idx} value={type}>
-                {t(type)}
+            {educationSystems.map((system, idx) => (
+              <SelectItem key={idx} value={system}>
+                {t(system)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        <Select value={currentGrade} onValueChange={handleGradeChange}>
+        <Select 
+          value={gradeOptions.length > 0 ? gradeOptions[0].grade : ''}
+          onValueChange={handleGradeChange}
+        >
           <SelectTrigger className="w-full sm:w-1/2">
             <SelectValue placeholder={t('selectGrade', 'Select Grade')} />
           </SelectTrigger>
           <SelectContent>
-            {grades.map((grade, idx) => (
-              <SelectItem key={idx} value={grade}>
-                {t(grade)}
+            {gradeOptions.map((option, idx) => (
+              <SelectItem key={idx} value={option.grade}>
+                <div className="flex flex-col">
+                  <span className="font-medium">{t(option.grade)}</span>
+                  <div className="flex gap-2 text-xs text-muted-foreground">
+                    <span>{t(option.system)}</span>
+                    {option.sector && <span>• {t(option.sector)}</span>}
+                    {option.language && <span>• {t(option.language)}</span>}
+                  </div>
+                </div>
               </SelectItem>
             ))}
           </SelectContent>
@@ -128,27 +140,44 @@ const SubjectSelector = ({ tutor, selectedSubjectIndex, setSelectedSubjectIndex 
 
       <div className="flex flex-wrap gap-3 mt-2">
         {subjects
-          .filter(s => s.type === currentType && s.grade === currentGrade)
-          .map((subj, idx) => {
+          .filter(s => 
+            (s.education_system || s.subject_id?.education_system) === currentSystem && 
+            (s.grade || s.subject_id?.grade) === (gradeOptions[0]?.grade || '')
+          )
+          .map((subject, idx) => {
             const globalIdx = subjects.findIndex(
-              s => s.subject === subj.subject && s.grade === subj.grade && s.type === subj.type
+              s => (s.name || s.subject_id?.name) === (subject.name || subject.subject_id?.name)
             );
             const isActive = selectedSubjectIndex === globalIdx;
+            const subjectName = subject.name || subject.subject_id?.name || t('unnamedSubject');
 
             return (
-              <button
-                type="button"
-                key={idx}
-                onClick={() => setSelectedSubjectIndex(globalIdx)}
-                className={`px-4 py-2 text-sm rounded-full transition-all duration-200 border shadow-sm flex items-center gap-2
-                  ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary'
-                      : 'bg-muted text-muted-foreground border-muted hover:bg-primary/10 hover:text-primary'
-                  }`}
-              >
-                {t(subj.subject)}
-              </button>
+              <div key={idx} className="relative group">
+                <button
+                  type="button"
+                  onClick={() => setSelectedSubjectIndex(globalIdx)}
+                  className={`px-4 py-2 text-sm rounded-full transition-all duration-200 border shadow-sm flex items-center gap-2
+                    ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary'
+                        : 'bg-muted text-muted-foreground border-muted hover:bg-primary/10 hover:text-primary'
+                    }`}
+                >
+                  {subjectName}
+                </button>
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveSubject(globalIdx)}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                )}
+              </div>
             );
           })}
       </div>

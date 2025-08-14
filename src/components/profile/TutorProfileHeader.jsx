@@ -1,15 +1,26 @@
+// TutorProfileHeader.jsx
 import React from 'react';
 import TutorProfileHeaderDisplay from './original/TutorProfileHeader';
 import TutorProfileHeaderEdit from './editing/TutorProfileHeader';
 
-const TutorProfileHeader = ({ tutor, onFieldChange, isEditing, isOwner }) => {
-  // Simple null check to prevent errors
+const TutorProfileHeader = ({ 
+  tutor, 
+  onChange, 
+  onAddSubject, 
+  onUpdateSubject, 
+  onDeleteSubject, 
+  isEditing,
+  isOwner
+}) => {
   if (!tutor) return null;
 
   return isEditing ? (
     <TutorProfileHeaderEdit
       tutor={tutor}
-      onChange={onFieldChange}
+      onChange={onChange}
+      onAddSubject={onAddSubject}        
+      onUpdateSubject={onUpdateSubject}    
+      onDeleteSubject={onDeleteSubject}    
     />
   ) : (
     <TutorProfileHeaderDisplay 

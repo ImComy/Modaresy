@@ -40,6 +40,11 @@ const TutorProfileHeaderDisplay = ({ tutor, isOwner }) => {
   const { t } = useTranslation();
   const { isInWishlist, handleWishlistToggle } = useWishlistLogic(tutor);
 
+  // Calculate average rating from all subjects
+  const averageRating = tutor.subjects?.reduce((sum, subject) => {
+    return sum + (subject.rating || 0);
+  }, 0) / (tutor.subjects?.length || 1);
+
   return (
     <>
       <Card className="shadow-xl bg-gradient-to-br from-primary/5 to-primary/10 border-0">
@@ -67,6 +72,7 @@ const TutorProfileHeaderDisplay = ({ tutor, isOwner }) => {
             tutor={tutor}
             isInWishlist={isInWishlist}
             handleWishlistToggle={handleWishlistToggle}
+            averageRating={averageRating}
             t={t}
           />
 
@@ -81,8 +87,8 @@ const TutorProfileHeaderDisplay = ({ tutor, isOwner }) => {
   );
 };
 
-// Extracted sub-components (similar structure to edit version but display-only)
-const ProfileSection = ({ tutor, isInWishlist, handleWishlistToggle, t }) => (
+// Extracted sub-components
+const ProfileSection = ({ tutor, isInWishlist, handleWishlistToggle, averageRating, t }) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
@@ -203,11 +209,10 @@ const DetailsSection = ({ tutor, t }) => (
 );
 
 const ExperienceLocationSection = ({ tutor, t }) => {
-  // Calculate total experience from subjects if available
-  const totalExperience = tutor.subject_profiles?.reduce((max, subject) => 
-    Math.max(max, subject.subject_id?.years_experience || 0), 
-    tutor.experience_years || 0
-  );
+  // Calculate max experience from subjects
+  const maxExperience = tutor.subjects?.reduce((max, subject) => {
+    return Math.max(max, subject.years_experience || 0);
+  }, tutor.experience_years || 0);
 
   return (
     <div className="space-y-6 w-full md:w-1/2">
@@ -223,20 +228,14 @@ const ExperienceLocationSection = ({ tutor, t }) => {
         <div className="space-y-2 pl-11">
           <div className="flex items-baseline gap-2">
             <span className="font-medium text-lg">
-              {totalExperience} {t('years')}
+              {maxExperience} {t('years')}
             </span>
-          </div>
-          
-          {tutor.subject_profiles?.length > 0 && (
-            <div className="flex items-baseline gap-2">
-              <span className="font-medium">
-                {tutor.subject_profiles.length} {t('subjects')}
-              </span>
+            {tutor.subjects?.length > 0 && (
               <span className="text-sm text-muted-foreground">
-                {t('taught')}
+                ({t('highestAmongSubjects')})
               </span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
       
@@ -267,73 +266,83 @@ const ExperienceLocationSection = ({ tutor, t }) => {
   );
 };
 
-const SubjectsDisplay = ({ tutor, t }) => (
-  <div className={cn(
-    "w-full bg-white dark:bg-gray-800 shadow-lg rounded-xl p-5 z-30",
-    "max-h-[400px] overflow-y-auto flex-1 min-w-0 md:max-w-xs mt-0 md:-mt-32"
-  )}>
-    <div className="text-lg font-semibold flex items-center gap-2 text-primary mb-4">
-      <GraduationCap size={20} />
-      {t('teachesSubjects')}
-    </div>
+const SubjectsDisplay = ({ tutor, t }) => {
+  const subjects = tutor.subjects || [];
 
-    {tutor.subject_profiles?.length > 0 ? (
-      <div className="flex flex-col gap-3">
-        {tutor.subject_profiles.map((subject, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className="rounded-xl px-4 py-3 bg-white/60 dark:bg-white/10 backdrop-blur-sm border border-primary/20 shadow-sm"
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <GraduationCap size={18} className="text-primary shrink-0" />
-              <h4 className="text-base font-semibold">
-                {subject.subject_id?.name || t('unnamedSubject')}
-              </h4>
-            </div>
-            <div className="text-sm text-muted-foreground grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <div className="flex items-center gap-1">
-                  <span>{t('System')}:</span>
-                  <span className="font-medium">{subject.subject_id?.education_system}</span>
+  return (
+    <div className={cn(
+      "w-full bg-white dark:bg-gray-800 shadow-lg rounded-xl p-5 z-30",
+      "max-h-[400px] overflow-y-auto flex-1 min-w-0 md:max-w-xs mt-0 md:-mt-32"
+    )}>
+      <div className="text-lg font-semibold flex items-center gap-2 text-primary mb-4">
+        <GraduationCap size={20} />
+        {t('teachesSubjects')}
+      </div>
+
+      {subjects.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          {subjects.map((subject, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="rounded-xl px-4 py-3 bg-white/60 dark:bg-white/10 backdrop-blur-sm border border-primary/20 shadow-sm"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <GraduationCap size={18} className="text-primary shrink-0" />
+                <h4 className="text-base font-semibold">
+                  {subject.name || t('unnamedSubject')}
+                </h4>
+              </div>
+              <div className="text-xs text-muted-foreground grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1">
+                    <span>{t('System')}:</span>
+                    <span className="font-medium">
+                      {subject.education_system || t('notSpecified')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span>{t('Grade')}:</span>
+                    <span className="font-medium">
+                      {subject.grade || t('notSpecified')}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span>{t('Grade')}:</span>
-                  <span className="font-medium">{subject.subject_id?.grade}</span>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1">
+                    <span>{t('Sector')}:</span>
+                    <span className="font-medium">
+                      {subject.sector || t('notSpecified')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span>{t('Language')}:</span>
+                    <span className="font-medium">
+                      {subject.language || t('notSpecified')}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-1">
-                  <span>{t('Sector')}:</span>
-                  <span className="font-medium">{subject.subject_id?.sector}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span>{t('Language')}:</span>
-                  <span className="font-medium">{subject.subject_id?.language}</span>
-                </div>
-              </div>
-              <div className="col-span-2 pt-1">
-                <span>{t('Price')}: </span>
+              <div className="mt-2 flex items-center gap-1 text-xs">
+                <span>{t('yearsExperience')}:</span>
                 <span className="font-medium">
-                  {subject.private_pricing?.price ? 
-                    `${subject.private_pricing.price} ${subject.private_pricing.currency || ''}/${subject.private_pricing.period || 'session'}` : 
-                    t('contactForPricing')}
+                  {subject.years_experience || 1}
                 </span>
               </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    ) : (
-      <div className="border-2 border-dashed border-border rounded-xl p-6 bg-muted/20 flex flex-col items-center text-center text-muted-foreground gap-3">
-        <GraduationCap size={40} className="text-primary/50" />
-        <p className="font-medium text-sm">{t('noSubjectsAdded')}</p>
-      </div>
-    )}
-  </div>
-);
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <div className="border-2 border-dashed border-border rounded-xl p-6 bg-muted/20 flex flex-col items-center text-center text-muted-foreground gap-3">
+          <GraduationCap size={40} className="text-primary/50" />
+          <p className="font-medium text-sm">{t('noSubjectsAdded')}</p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const AboutMeSection = ({ aboutMe, t }) => (
   <div className="w-full flex flex-col  rtl:text-right">

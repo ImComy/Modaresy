@@ -1,13 +1,5 @@
-// teacher.js
 import mongoose, { Schema } from 'mongoose';
 import User from './user.js';
-import {
-  validateEducationStructure_many
-} from '../services/validation.service.js'
-
-import {
-  Education_Systems
-} from './constants.js'
 
 const TeacherSchema = new Schema({
   social_media: { 
@@ -17,8 +9,12 @@ const TeacherSchema = new Schema({
   },
   address: { type: String, required: false },
   about_me: { type: String, required: false },
-
-  // FIX: single-level array of ObjectIds
+  
+  subjects: [{
+    type: mongoose.Types.ObjectId,
+    ref: 'Subject',
+  }],
+  
   subject_profiles: [{
     type: mongoose.Types.ObjectId,
     ref: 'SubjectProfile',

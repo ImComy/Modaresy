@@ -41,7 +41,13 @@ import AddSubjectCard from './SubjectSection';
     website: FaGlobe,
   };
 
-const TutorProfileHeaderEdit = ({ tutor, onChange, onSave, onCancel }) => {
+const TutorProfileHeaderEdit = ({ 
+  tutor, 
+  onChange,
+  onAddSubject,       // Add these props
+  onUpdateSubject,    // Add these props
+  onDeleteSubject     // Add these props
+}) => {
   const { t } = useTranslation();
   const [constants, setConstants] = useState(null);
   const [formData, setFormData] = useState(initializeFormData(tutor));
@@ -62,7 +68,8 @@ const TutorProfileHeaderEdit = ({ tutor, onChange, onSave, onCancel }) => {
       experience_years: tutorData?.experience_years || 0,
       social_media: tutorData?.social_media || {},
       subject_profiles: tutorData?.subject_profiles || [],
-      rating: tutorData?.rating || 0
+      rating: tutorData?.rating || 0,
+      subjects: tutorData?.subjects || [],
     };
   }
 
@@ -92,66 +99,11 @@ const TutorProfileHeaderEdit = ({ tutor, onChange, onSave, onCancel }) => {
     });
   };
 
-  const handleSubjectChange = (index, field, value, isPricing = false) => {
-    setFormData(prev => {
-      const updatedSubjects = [...prev.subject_profiles];
-      const subjectToUpdate = { ...updatedSubjects[index] };
-      
-      if (isPricing) {
-        subjectToUpdate.private_pricing = {
-          ...subjectToUpdate.private_pricing,
-          [field]: value
-        };
-      } else {
-        subjectToUpdate.subject_id = {
-          ...subjectToUpdate.subject_id,
-          [field]: value
-        };
-      }
-      
-      updatedSubjects[index] = subjectToUpdate;
-      onChange?.('subject_profiles', updatedSubjects);
-      return { ...prev, subject_profiles: updatedSubjects };
-    });
-  };
-
   const handleSocialChange = (platform, url) => {
     setFormData(prev => {
       const updatedSocials = { ...prev.social_media, [platform]: url };
       onChange?.('social_media', updatedSocials);
       return { ...prev, social_media: updatedSocials };
-    });
-  };
-
-  const addSubject = () => {
-    const newSubject = {
-      subject_id: {
-        name: '',
-        grade: '',
-        sector: '',
-        language: '',
-        education_system: ''
-      },
-      private_pricing: {
-        price: '',
-        currency: '',
-        period: 'session'
-      }
-    };
-    
-    setFormData(prev => {
-      const updatedSubjects = [...prev.subject_profiles, newSubject];
-      onChange?.('subject_profiles', updatedSubjects);
-      return { ...prev, subject_profiles: updatedSubjects };
-    });
-  };
-
-  const removeSubject = (index) => {
-    setFormData(prev => {
-      const updatedSubjects = [...prev.subject_profiles];
-      updatedSubjects.splice(index, 1);
-      onChange?.('subject_profiles', updatedSubjects);
-      return { ...prev, subject_profiles: updatedSubjects };
     });
   };
 
@@ -243,11 +195,9 @@ const TutorProfileHeaderEdit = ({ tutor, onChange, onSave, onCancel }) => {
           <DetailsSection
             formData={formData}
             handleFieldChange={handleFieldChange}
-            handleSubjectChange={handleSubjectChange}
-            addSubject={addSubject}
-            removeSubject={removeSubject}
-            onSave={onSave}
-            onCancel={onCancel}
+            onAddSubject={onAddSubject}  // Pass directly
+            onUpdateSubject={onUpdateSubject}  // Pass directly
+            onDeleteSubject={onDeleteSubject}  // Pass directly
             constants={constants}
             t={t}
           />
@@ -264,6 +214,7 @@ const TutorProfileHeaderEdit = ({ tutor, onChange, onSave, onCancel }) => {
         handleSocialChange={handleSocialChange}
         removeSocial={removeSocial}
         addSocial={addSocial}
+        onChange={handleFieldChange}
         t={t}
       />
     </>
@@ -430,6 +381,7 @@ const SocialButtons = ({ setSocialEditOpen, socialMedia, t }) => (
     </Button>
 
     <Button
+      type="button"
       variant="outline"
       className="w-full h-10 flex items-center justify-center gap-2 whitespace-nowrap text-primary border-primary"
       onClick={() => setSocialEditOpen(true)}
@@ -457,7 +409,15 @@ const SocialButtons = ({ setSocialEditOpen, socialMedia, t }) => (
   </div>
 );
 
-const DetailsSection = ({ formData, handleFieldChange, handleSubjectChange, addSubject, removeSubject, onSave, onCancel, constants, t }) => (
+const DetailsSection = ({ 
+  formData, 
+  handleFieldChange, 
+  onAddSubject, 
+  onUpdateSubject, 
+  onDeleteSubject, 
+  constants, 
+  t 
+}) => (
   <motion.div
     initial={{ opacity: 0, x: 10 }}
     animate={{ opacity: 1, x: 0 }}
@@ -473,9 +433,9 @@ const DetailsSection = ({ formData, handleFieldChange, handleSubjectChange, addS
       
       <AddSubjectCard
         formData={formData}
-        handleSubjectChange={handleSubjectChange}
-        addSubject={addSubject}
-        removeSubject={removeSubject}
+        onAddSubject={onAddSubject}
+        onUpdateSubject={onUpdateSubject}
+        onDeleteSubject={onDeleteSubject}
         constants={constants}
         t={t}
       />
@@ -489,45 +449,51 @@ const DetailsSection = ({ formData, handleFieldChange, handleSubjectChange, addS
   </motion.div>
 );
 
-const ExperienceLocationSection = ({ formData, handleFieldChange, t }) => (
-  <div className="space-y-4 w-full md:w-1/2 ">
-    {/* Experience Section */}
-    <div>
-      <div className="flex items-center gap-2 mb-2">
-        <Award className="h-5 w-5 text-primary" />
-        <h3 className="font-medium">{t('experience')}</h3>
+const ExperienceLocationSection = ({ formData, handleFieldChange, t }) => {
+  // Calculate highest experience among current subjects
+  const highestSubjectExperience = formData.subjects?.reduce((max, subject) => {
+    return Math.max(max, subject.years_experience || 0);
+  }, 0) || 0;
+
+  return (
+    <div className="space-y-4 w-full md:w-1/2">      
+      {/* Subject Experience Section */}
+      <div className="bg-muted/30 p-3 rounded-lg border border-primary/20">
+        <div className="flex items-center gap-2 mb-1">
+          <GraduationCap className="h-5 w-5 text-primary" />
+          <h3 className="font-medium">{t('highestSubjectExperience')}</h3>
+        </div>
+        <div className="flex items-center gap-3">
+          <Input
+            type="number"
+            min="0"
+            max="50"
+            value={highestSubjectExperience}
+            readOnly
+            className="w-20 bg-background"
+          />
+          <span className="text-sm text-muted-foreground">
+            {t('years')} ({t('fromSubjects')})
+          </span>
+        </div>
       </div>
-      <div className="flex items-center gap-3">
-        <Input
-          type="number"
-          min="0"
-          max="50"
-          readOnly
-          value={
-            formData.subject_profiles?.reduce((max, subject) => 
-              Math.max(max, subject.subject_id?.years_experience || 0), 
-            0) || 0
-          }
-          className="w-20"
+      
+      {/* Address Section */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <MapPin className="h-5 w-5 text-primary" />
+          <h3 className="font-medium">{t('address')}</h3>
+        </div>
+        <Textarea
+          value={formData.address || ''}
+          onChange={(e) => handleFieldChange('address', e.target.value)}
+          placeholder={t('enterYourAddress')}
+          className="min-h-[80px]"
         />
-        <span className="text-sm text-muted-foreground">{t('years')}</span>
       </div>
     </div>
-    {/* Address Section */}
-    <div>
-      <div className="flex items-center gap-2 mb-2">
-        <MapPin className="h-5 w-5 text-primary" />
-        <h3 className="font-medium">{t('address')}</h3>
-      </div>
-      <Textarea
-        value={formData.address || ''}
-        onChange={(e) => handleFieldChange('address', e.target.value)}
-        placeholder={t('enterYourAddress')}
-        className="min-h-[80px]"
-      />
-    </div>
-  </div>
-);
+  );
+};
 
 const AboutMeSection = ({ aboutMe, onChange, t }) => (
   <div className="w-full flex flex-col">
@@ -616,8 +582,6 @@ const SocialMediaModal = ({ open, onClose, socialMedia, newSocial, setNewSocial,
 TutorProfileHeaderEdit.defaultProps = {
   tutor: {},
   onChange: () => {},
-  onSave: () => {},
-  onCancel: () => {}
 };
 
 export default TutorProfileHeaderEdit;

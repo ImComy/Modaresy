@@ -1,14 +1,11 @@
 import { getProfileData } from '../services/authentication.service.js';
-import { Review } from '../models/subjectRelated.js';
 import { enrollStudent } from '../services/tutor.service.js';
 import { Teacher } from '../models/teacher.js';
-import mongoose from 'mongoose';
 
 export async function getProfile(req, res) {
     try {
         console.log('getProfile called for user:', req.user._id);
         const profileData = getProfileData(req.user);
-        console.log('Profile data retrieved successfully');
         return res.status(200).json({ userdata: profileData });
     } catch (err) {
         console.error('Error in getProfile:', err);
@@ -25,7 +22,6 @@ export async function updateProfile(req, res) {
             return res.status(400).json({ error: 'Invalid update data' });
         }
 
-        // Prepare update object
         const updateData = {
             name: updated_information.name,
             img: updated_information.img,
@@ -38,41 +34,21 @@ export async function updateProfile(req, res) {
             rating: updated_information.rating
         };
 
-        // Handle social_media as Map
-        if (updated_information.social_media) {
-            if (typeof updated_information.social_media === 'object' && 
-                !Array.isArray(updated_information.social_media)) {
-                // Convert object to Map format
-                updateData.social_media = updated_information.social_media;
-            } else {
-                console.warn('Invalid social_media format - expected object');
-                delete updateData.social_media;
-            }
-        }
-
-        // Handle subject_profiles
-        if (Array.isArray(updated_information.subject_profiles)) {
-            updateData.subject_profiles = updated_information.subject_profiles
-                .filter(sp => sp && mongoose.Types.ObjectId.isValid(sp._id || sp))
-                .map(sp => new mongoose.Types.ObjectId(sp._id || sp));
+        if (updated_information.social_media && 
+            typeof updated_information.social_media === 'object' && 
+            !Array.isArray(updated_information.social_media)) {
+            updateData.social_media = updated_information.social_media;
         }
 
         // Remove undefined values
         Object.keys(updateData).forEach(key => {
-            if (updateData[key] === undefined) {
-                delete updateData[key];
-            }
+            if (updateData[key] === undefined) delete updateData[key];
         });
-
-        console.log('Prepared update data:', updateData);
 
         const updatedUser = await Teacher.findByIdAndUpdate(
             req.user._id,
             { $set: updateData },
-            { 
-                new: true,
-                runValidators: true
-            }
+            { new: true, runValidators: true }
         ).select('-password');
 
         if (!updatedUser) {
@@ -84,31 +60,20 @@ export async function updateProfile(req, res) {
             user: updatedUser
         });
     } catch (err) {
-        console.error('Update error:', {
-            error: err.message,
-            stack: err.stack,
-            updateData: req.body.updated_information
-        });
-        return res.status(400).json({
-            error: err.message || 'Failed to update profile'
-        });
+        console.error('Update error:', err);
+        return res.status(400).json({ error: 'Failed to update profile' });
     }
 }
 
 export async function getTutor(req, res) {
     try {
-        console.log('getTutor called for teacher ID:', req.teacher?._id);
-
         if (!req.teacher) {
             return res.status(400).json({ error: "Teacher data not found" });
         }
 
         const teacher = await Teacher.findById(req.teacher._id)
             .select('+about_me')
-            .populate('subject_profiles')
             .lean();
-
-        console.log('Full teacher data from DB:', teacher);
 
         if (!teacher) {
             return res.status(404).json({ error: "Teacher not found" });
@@ -123,38 +88,17 @@ export async function getTutor(req, res) {
 
 export async function getTutors(req, res) {
     try {
-        let { pages, limit, Grade, Sector, Language, Governate, District, MinimumRating, MinMonthlyRange, MaxMonthlyRange } = req.params;
+        let { pages, limit } = req.params;
         pages = parseInt(pages) || 1;
         limit = parseInt(limit) || 10;
         const skip = (pages - 1) * limit;
 
-        const query = { role: 'teacher' };
-        const subjectProfileQuery = {};
-
-        if (Grade) subjectProfileQuery['grade'] = Grade;
-        if (Sector) subjectProfileQuery['sector'] = Sector;
-        if (Language) subjectProfileQuery['language'] = Language;
-        if (Governate) subjectProfileQuery['governate'] = Governate;
-        if (District) subjectProfileQuery['district'] = District;
-        if (MinimumRating) subjectProfileQuery['rating'] = { $gte: parseFloat(MinimumRating) };
-        if (MinMonthlyRange && MaxMonthlyRange) {
-            subjectProfileQuery['monthly_price'] = {
-                $gte: parseFloat(MinMonthlyRange),
-                $lte: parseFloat(MaxMonthlyRange)
-            };
-        }
-
-        if (Object.keys(subjectProfileQuery).length > 0) {
-            query['subject_profiles'] = { $elemMatch: subjectProfileQuery };
-        }
-
-        const tutors = await Teacher.find(query)
-            .populate('subject_profiles')
+        const tutors = await Teacher.find({ role: 'teacher' })
             .skip(skip)
             .limit(limit)
-            .exec();
+            .lean();
 
-        const total = await Teacher.countDocuments(query);
+        const total = await Teacher.countDocuments({ role: 'teacher' });
 
         return res.status(200).json({
             tutors,
@@ -165,25 +109,7 @@ export async function getTutors(req, res) {
         });
     } catch (err) {
         console.error("Error in getTutors:", err);
-        return res.status(500).json({ error: "Error getting tutors", details: err.message });
-    }
-}
-
-export async function reviewTutor(req, res) {
-    try {
-        const reviewData = {
-            ...req.body,
-            User_ID: req.user._id,
-            approved: false
-        };
-        const my_review = new Review(reviewData);
-        await my_review.save();
-        return res.status(200).json(my_review);
-    } catch (err) {
-        return res.status(400).json({
-            error: "Error reviewing tutor",
-            details: err.message
-        });
+        return res.status(500).json({ error: "Error getting tutors" });
     }
 }
 
@@ -191,35 +117,20 @@ export async function acceptEnrollment(req, res) {
     try {
         const { tutorId } = req.body;
 
-        if (!tutorId) {
-            return res.status(400).json({ error: "tutorId is required" });
-        }
-        if (tutorId !== req.user._id.toString()) {
-            return res.status(403).json({ error: "You are not authorized to accept this enrollment" });
-        }
-        if (!req.student) {
-            return res.status(400).json({ error: "Student data not found" });
+        if (!tutorId || tutorId !== req.user._id.toString() || !req.student) {
+            return res.status(400).json({ error: "Invalid request" });
         }
 
         const result = await enrollStudent(req.user, req.student);
-
-        if (result.error) {
-            return res.status(400).json(result);
-        }
-
-        if (req.enrollment) {
-            await req.enrollment.delete();
-        }
+        if (result.error) return res.status(400).json(result);
+        
+        if (req.enrollment) await req.enrollment.delete();
 
         return res.status(200).json({
-            message: "Enrollment accepted successfully",
-            enrollment: result
+            message: "Enrollment accepted successfully"
         });
     } catch (err) {
-        return res.status(500).json({
-            error: "Error accepting enrollment",
-            details: err.message
-        });
+        return res.status(500).json({ error: "Error accepting enrollment" });
     }
 }
 
@@ -227,24 +138,15 @@ export async function rejectEnrollment(req, res) {
     try {
         const { tutorId } = req.body;
 
-        if (!tutorId) {
-            return res.status(400).json({ error: "tutorId is required" });
-        }
-        if (tutorId !== req.user._id.toString()) {
-            return res.status(403).json({ error: "You are not authorized to reject this enrollment" });
-        }
-        if (!req.enrollment) {
-            return res.status(400).json({ error: "Enrollment data not found" });
+        if (!tutorId || tutorId !== req.user._id.toString() || !req.enrollment) {
+            return res.status(400).json({ error: "Invalid request" });
         }
 
         await req.enrollment.delete();
         return res.status(200).json({
-            message: "Enrollment request rejected successfully"
+            message: "Enrollment request rejected"
         });
     } catch (err) {
-        return res.status(500).json({
-            error: "Error rejecting enrollment",
-            details: err.message
-        });
+        return res.status(500).json({ error: "Error rejecting enrollment" });
     }
 }

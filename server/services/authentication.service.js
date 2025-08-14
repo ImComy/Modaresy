@@ -6,6 +6,14 @@ import Admin from '../models/admin.js';
 
 const saltRounds = parseInt(process.env.saltRounds);
 
+export async function isAdmin(req, res, next) {
+  if (req.user && req.user.type === "Admin") {
+    next();
+  } else {
+    return res.status(403).json({ error: "user isn't an admin" });
+  }
+}
+
 export async function hash_password(req, res, next) {
   try {
     req.body.password = await bcrypt.hash(req.body.password, saltRounds);

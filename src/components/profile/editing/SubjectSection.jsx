@@ -14,10 +14,10 @@ import {
 import { Label } from '@/components/ui/label';
 
 const AddSubjectCard = ({ 
-  formData = { subject_profiles: [] }, 
-  handleSubjectChange, 
-  addSubject, 
-  removeSubject, 
+  formData = { subjects: [] }, 
+  onAddSubject, 
+  onUpdateSubject, 
+  onDeleteSubject, 
   constants, 
   t 
 }) => {
@@ -28,7 +28,7 @@ const AddSubjectCard = ({
     language: '',
     name: '',
     years_experience: 1
-  });
+  })
 
   const [editingIndex, setEditingIndex] = useState(null);
   const [availableGrades, setAvailableGrades] = useState([]);
@@ -36,70 +36,74 @@ const AddSubjectCard = ({
   const [availableLanguages, setAvailableLanguages] = useState([]);
   const [availableSubjects, setAvailableSubjects] = useState([]);
 
-  // Update available grades when education system changes
+  useEffect(() => {
+    if (editingIndex === null) {
+      setNewSubject({
+        education_system: '',
+        grade: '',
+        sector: '',
+        language: '',
+        name: '',
+        years_experience: 1
+      });
+    } else {
+      const subject = formData.subjects[editingIndex]; // Changed to subjects
+      if (subject) {
+        setNewSubject({
+          education_system: subject.education_system || '',
+          grade: subject.grade || '',
+          sector: subject.sector || '',
+          language: subject.language || '',
+          name: subject.name || '',
+          years_experience: subject.years_experience || 1
+        });
+      }
+    }
+  }, [editingIndex, formData.subjects]);
+
+  // Update available options when dependencies change
   useEffect(() => {
     if (newSubject.education_system && constants?.EducationStructure) {
       const grades = constants.EducationStructure[newSubject.education_system]?.grades || [];
       setAvailableGrades(grades);
-      setNewSubject(prev => ({ 
-        ...prev, 
-        grade: '', 
-        sector: '',
-        language: '',
-        name: ''
-      }));
+      
+      const languages = constants.EducationStructure[newSubject.education_system]?.languages || ['Arabic'];
+      setAvailableLanguages(languages);
+      
+      // Only reset if not in edit mode
+      if (editingIndex === null) {
+        setNewSubject(prev => ({ 
+          ...prev, 
+          grade: '', 
+          sector: '',
+          language: languages.includes(prev.language) ? prev.language : '',
+          name: ''
+        }));
+      }
     }
-  }, [newSubject.education_system, constants]);
+  }, [newSubject.education_system, constants, editingIndex]);
 
-  // Update available sectors when grade changes
   useEffect(() => {
     if (newSubject.grade && newSubject.education_system && constants?.EducationStructure) {
       const sectors = constants.EducationStructure[newSubject.education_system]?.sectors[newSubject.grade] || [];
       setAvailableSectors(sectors);
-      setNewSubject(prev => ({ 
-        ...prev, 
-        sector: '',
-        language: '',
-        name: ''
-      }));
-    }
-  }, [newSubject.grade, newSubject.education_system, constants]);
-
-  // Update available languages when education system changes
-  useEffect(() => {
-    if (newSubject.education_system && constants?.EducationStructure) {
-      const languages = constants.EducationStructure[newSubject.education_system]?.languages || ['Arabic'];
-      setAvailableLanguages(languages);
-      setNewSubject(prev => ({ 
-        ...prev, 
-        language: languages.includes(prev.language) ? prev.language : '',
-        name: ''
-      }));
-    }
-  }, [newSubject.education_system, constants]);
-
-  // Update available subjects when all other fields are selected
-  useEffect(() => {
-    if (newSubject.education_system && 
-        newSubject.grade && 
-        newSubject.sector && 
-        newSubject.language &&
-        constants?.SubjectsBySystem) {
       
-      const systemSubjects = constants.SubjectsBySystem[newSubject.education_system];
+      // Only reset if not in edit mode
+      if (editingIndex === null) {
+        setNewSubject(prev => ({ ...prev, sector: '', name: '' }));
+      }
+    }
+  }, [newSubject.grade, newSubject.education_system, constants, editingIndex]);
+
+  useEffect(() => {
+    if (newSubject.education_system && newSubject.grade && newSubject.sector && newSubject.language) {
+      const systemSubjects = constants?.SubjectsBySystem?.[newSubject.education_system] || {};
       let subjects = [];
       
       try {
-        if (newSubject.grade === 'Secondary 1') {
-          subjects = systemSubjects?.['Secondary 1'] || [];
-        } else {
-          const gradeSubjects = systemSubjects?.[newSubject.grade];
-          if (gradeSubjects && typeof gradeSubjects === 'object') {
-            subjects = gradeSubjects[newSubject.sector] || [];
-          } else {
-            subjects = [];
-          }
-        }
+        subjects = newSubject.grade === 'Secondary 1' 
+          ? systemSubjects['Secondary 1'] || []
+          : systemSubjects[newSubject.grade]?.[newSubject.sector] || [];
       } catch (error) {
         console.error('Error fetching subjects:', error);
         subjects = [];
@@ -112,78 +116,146 @@ const AddSubjectCard = ({
   }, [newSubject.education_system, newSubject.grade, newSubject.sector, newSubject.language, constants]);
 
   const handleAddSubject = async () => {
-    if (!newSubject.name || !newSubject.education_system) return;
-
-    const subjectToAdd = {
-        subject_id: {
-        ...newSubject,
-        _id: Math.random().toString(36).substring(2, 9) 
-        },
-        private_pricing: {
-        price: 0,
-        currency: '',
-        period: 'session'
-        }
-    };
+    // Validate all required fields
+    if (!newSubject.name || 
+        !newSubject.education_system || 
+        !newSubject.grade || 
+        !newSubject.sector || 
+        !newSubject.language) {
+      console.error('Missing required fields:', newSubject);
+      return;
+    }
 
     try {
-        await addSubject(subjectToAdd);
-        setNewSubject({
+      // Create a new subject object with complete data
+      const subjectData = {
+        ...newSubject,
+        name: newSubject.name,
+        education_system: newSubject.education_system,
+        grade: newSubject.grade,
+        sector: newSubject.sector,
+        language: newSubject.language,
+        years_experience: newSubject.years_experience,
+        private_pricing: {
+          price: 0,
+          currency: 'EGP',
+          period: 'session'
+        }
+      };
+
+      console.log('Adding subject:', subjectData);
+      // Call the parent's addSubject function
+      await onAddSubject(subjectData);
+      
+      setNewSubject({
         education_system: '',
         grade: '',
         sector: '',
         language: '',
         name: '',
         years_experience: 1
-        });
+      });
     } catch (error) {
-        console.error('Failed to add subject:', error);
+      console.error('Error adding subject:', error);
     }
-    };
+  };
+
+  const handleDelete = async (index) => {
+    try {
+      await onDeleteSubject(index);
+    } catch (error) {
+      console.error('Error removing subject:', error);
+    }
+  };
 
   const handleEditSubject = (index) => {
-    const subject = formData.subject_profiles[index];
-    setNewSubject({
-      education_system: subject.subject_id.education_system,
-      grade: subject.subject_id.grade,
-      sector: subject.subject_id.sector,
-      language: subject.subject_id.language,
-      name: subject.subject_id.name,
-      years_experience: subject.subject_id.years_experience || 1
-    });
     setEditingIndex(index);
   };
 
   const handleUpdateSubject = async () => {
-    if (!newSubject.name || !newSubject.education_system) return;
-
-    const updatedSubject = {
-        subject_id: {
-        ...newSubject,
-        _id: formData.subject_profiles[editingIndex].subject_id._id
-        },
-        private_pricing: formData.subject_profiles[editingIndex].private_pricing
-    };
+    // Validate all required fields
+    if (!newSubject.name || 
+        !newSubject.education_system || 
+        !newSubject.grade || 
+        !newSubject.sector || 
+        !newSubject.language || 
+        editingIndex === null) {
+      console.error('Missing required fields:', newSubject);
+      return;
+    }
 
     try {
-        await handleSubjectChange(
-        editingIndex,
-        'subject_id',
-        updatedSubject.subject_id
-        );
-        setEditingIndex(null);
-        setNewSubject({
-        education_system: '',
-        grade: '',
-        sector: '',
-        language: '',
-        name: '',
-        years_experience: 1
-        });
+      await onUpdateSubject(editingIndex, newSubject);
+      setEditingIndex(null);
     } catch (error) {
-        console.error('Failed to update subject:', error);
+      console.error('Error updating subject:', error);
     }
-    };
+  };
+
+  const cancelEdit = () => {
+    setEditingIndex(null);
+  };
+
+  const renderSubjectDetails = (subject, index) => {
+    return (
+      <motion.div
+        key={index}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.05 }}
+        className="rounded-xl p-4 bg-muted/20 border border-muted"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <GraduationCap size={18} className="text-primary" />
+            <span className="font-medium">
+              {subject.name || t('unnamedSubject')} {/* Direct access */}
+            </span>
+          </div>
+          <div className="flex gap-1">
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleEditSubject(index)}
+              >
+                <Edit size={16} className="text-primary" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDelete(index)}
+              >
+                <Trash size={16} className="text-destructive" />
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <span className="text-muted-foreground">{t('System')}: </span>
+            <span>{subject.education_system || t('notSpecified')}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">{t('Grade')}: </span>
+            <span>{subject.grade || t('notSpecified')}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">{t('Sector')}: </span>
+            <span>{subject.sector || t('notSpecified')}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">{t('Language')}: </span>
+            <span>{subject.language || t('notSpecified')}</span>
+          </div>
+        </div>
+        <div className="mt-2 text-sm">
+          <span className="text-muted-foreground">{t('yearsExperience')}: </span>
+          <span>{subject.years_experience || 1}</span>
+        </div>
+      </motion.div>
+    );
+  };
 
   return (
     <div className={cn(
@@ -196,96 +268,121 @@ const AddSubjectCard = ({
       </div>
 
       <div className="space-y-3">
-        <Select
-          value={newSubject.education_system}
-          onValueChange={(val) => setNewSubject(prev => ({ ...prev, education_system: val }))}
-        >
-          <SelectTrigger className="h-8 text-xs">
-            <SelectValue placeholder={t('educationSystem')} />
-          </SelectTrigger>
-          <SelectContent>
-            {constants?.Education_Systems?.map((system) => (
-              <SelectItem key={system} value={system} className="text-xs">
-                {system}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Education System Select */}
+        <div className="space-y-1">
+          <Label className="text-xs">{t('educationSystem')}</Label>
+          <Select
+            value={newSubject.education_system}
+            onValueChange={(val) => setNewSubject(prev => ({ ...prev, education_system: val }))}
+          >
+            <SelectTrigger className="h-10">
+              <SelectValue placeholder={t('selectSystem')} />
+            </SelectTrigger>
+            <SelectContent>
+              {constants?.Education_Systems?.map((system) => (
+                <SelectItem key={system} value={system}>
+                  {system}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select
-          value={newSubject.grade}
-          onValueChange={(val) => setNewSubject(prev => ({ ...prev, grade: val }))}
-          disabled={!newSubject.education_system}
-        >
-          <SelectTrigger className="h-8 text-xs">
-            <SelectValue placeholder={t('grade')} />
-          </SelectTrigger>
-          <SelectContent>
-            {availableGrades.map((grade) => (
-              <SelectItem key={grade} value={grade} className="text-xs">
-                {grade}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Grade Select */}
+        {newSubject.education_system && (
+          <div className="space-y-1">
+            <Label className="text-xs">{t('grade')}</Label>
+            <Select
+              value={newSubject.grade}
+              onValueChange={(val) => setNewSubject(prev => ({ ...prev, grade: val }))}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder={t('selectGrade')} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableGrades.map((grade) => (
+                  <SelectItem key={grade} value={grade}>
+                    {grade}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-        <Select
-          value={newSubject.sector}
-          onValueChange={(val) => setNewSubject(prev => ({ ...prev, sector: val }))}
-          disabled={!newSubject.grade}
-        >
-          <SelectTrigger className="h-8 text-xs">
-            <SelectValue placeholder={t('sector')} />
-          </SelectTrigger>
-          <SelectContent>
-            {availableSectors.map((sector) => (
-              <SelectItem key={sector} value={sector} className="text-xs">
-                {sector}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Sector Select */}
+        {newSubject.grade && (
+          <div className="space-y-1">
+            <Label className="text-xs">{t('sector')}</Label>
+            <Select
+              value={newSubject.sector}
+              onValueChange={(val) => setNewSubject(prev => ({ ...prev, sector: val }))}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder={t('selectSector')} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableSectors.map((sector) => (
+                  <SelectItem key={sector} value={sector}>
+                    {sector}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-        <Select
-          value={newSubject.language}
-          onValueChange={(val) => setNewSubject(prev => ({ ...prev, language: val }))}
-          disabled={!newSubject.education_system}
-        >
-          <SelectTrigger className="h-8 text-xs">
-            <SelectValue placeholder={t('language')} />
-          </SelectTrigger>
-          <SelectContent>
-            {availableLanguages.map((lang) => (
-              <SelectItem key={lang} value={lang} className="text-xs">
-                {lang}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Language Select */}
+        {newSubject.education_system && (
+          <div className="space-y-1">
+            <Label className="text-xs">{t('language')}</Label>
+            <Select
+              value={newSubject.language}
+              onValueChange={(val) => setNewSubject(prev => ({ ...prev, language: val }))}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder={t('selectLanguage')} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableLanguages.map((lang) => (
+                  <SelectItem key={lang} value={lang}>
+                    {lang}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-        <Select
-          value={newSubject.name}
-          onValueChange={(val) => setNewSubject(prev => ({ ...prev, name: val }))}
-          disabled={!newSubject.sector || availableSubjects.length === 0}
-        >
-          <SelectTrigger className="h-8 text-xs">
-            <SelectValue placeholder={
-              availableSubjects.length === 0 && newSubject.sector 
-                ? t('noSubjectsAvailable') 
-                : t('subject')
-            } />
-          </SelectTrigger>
-          <SelectContent>
-            {availableSubjects.map((subject) => (
-              <SelectItem key={subject} value={subject} className="text-xs">
-                {subject}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Subject Select */}
+        {newSubject.sector && (
+          <div className="space-y-1">
+            <Label className="text-xs">{t('subject')}</Label>
+            <Select
+              value={newSubject.name}
+              onValueChange={(val) => setNewSubject(prev => ({ ...prev, name: val }))}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder={
+                  availableSubjects.length === 0 ? t('noSubjectsAvailable') : t('selectSubject')
+                }>
+                  {newSubject.name}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {availableSubjects.map((subject) => (
+                  <SelectItem key={subject} value={subject}>
+                    {subject}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-        <div className="flex items-center gap-2">
-          <Label className="text-xs">{t('yearsExperience')}:</Label>
+        {/* Years Experience Input */}
+        <div className="space-y-1">
+          <Label className="text-xs">{t('yearsExperience')}</Label>
           <Input
             type="number"
             min="1"
@@ -293,123 +390,52 @@ const AddSubjectCard = ({
             value={newSubject.years_experience}
             onChange={(e) => setNewSubject(prev => ({ 
               ...prev, 
-              years_experience: parseInt(e.target.value) || 1 
+              years_experience: Math.max(1, parseInt(e.target.value) || 1)
             }))}
-            className="h-8 w-16 text-xs"
+            className="h-10"
           />
         </div>
 
+        {/* Add/Update Buttons */}
         {editingIndex !== null ? (
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-2">
             <Button
-              size="sm"
-              className="w-full h-8 text-xs"
+              type="button"
+              className="w-full h-10"
               onClick={handleUpdateSubject}
               disabled={!newSubject.name}
             >
-              <Check size={14} className="mr-1" />
+              <Check size={16} className="mr-1" />
               {t('updateSubject')}
             </Button>
             <Button
-              size="sm"
+              type="button"
               variant="outline"
-              className="w-full h-8 text-xs"
-              onClick={() => {
-                setEditingIndex(null);
-                setNewSubject({
-                  education_system: '',
-                  grade: '',
-                  sector: '',
-                  language: '',
-                  name: '',
-                  years_experience: 1
-                });
-              }}
+              className="w-full h-10"
+              onClick={cancelEdit}
             >
               {t('cancel')}
             </Button>
           </div>
         ) : (
           <Button
-            size="sm"
-            className="w-full h-8 text-xs"
+            className="w-full h-10 mt-2"
             onClick={handleAddSubject}
             disabled={!newSubject.name}
           >
-            <Plus size={14} className="mr-1" />
+            <Plus size={16} className="mr-1" />
             {t('addSubject')}
           </Button>
         )}
       </div>
 
-      {formData.subject_profiles?.length > 0 && (
-        <div className="mt-4">
+      {/* Current Subjects List */}
+      {formData.subjects?.length > 0 && ( // Changed to subjects
+        <div className="mt-6">
+          <h3 className="font-semibold mb-3">{t('yourSubjects')}</h3>
           <div className="flex flex-col gap-3">
-            {formData.subject_profiles.map((subject, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="rounded-xl px-4 py-3 bg-white/60 dark:bg-white/10 backdrop-blur-sm border border-primary/20 shadow-sm"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <GraduationCap size={18} className="text-primary shrink-0" />
-                  <span className="text-base font-semibold">
-                    {subject.subject_id?.name || t('unnamedSubject')}
-                  </span>
-                  <div className="ml-auto flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => handleEditSubject(index)}
-                    >
-                      <Edit size={14} className="text-primary" />
-                    </Button>
-                    <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={async () => {
-                        try {
-                        await removeSubject(index);
-                        } catch (error) {
-                        console.error('Failed to remove subject:', error);
-                        }
-                    }}
-                    >
-                    <Trash size={14} className="text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="text-sm text-muted-foreground grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1">
-                      <span>{t('System')}:</span>
-                      <span className="font-medium">{subject.subject_id?.education_system}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span>{t('Grade')}:</span>
-                      <span className="font-medium">{subject.subject_id?.grade}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1">
-                      <span>{t('Sector')}:</span>
-                      <span className="font-medium">{subject.subject_id?.sector}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span>{t('Language')}:</span>
-                      <span className="font-medium">{subject.subject_id?.language}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-2 text-sm">
-                  <span>{t('yearsExperience')}: </span>
-                  <span className="font-medium">{subject.subject_id?.years_experience || 1}</span>
-                </div>
-              </motion.div>
+            {formData.subjects.map((subject, index) => ( // Changed to subjects
+              renderSubjectDetails(subject, index)
             ))}
           </div>
         </div>

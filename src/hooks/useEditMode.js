@@ -1,19 +1,32 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 export default function useEditMode({ 
   onSaveCallback = () => {},
   onCancelCallback = () => {},
   initialData = null 
 } = {}) {
-  console.log('useEditMode initialized with:', { initialData });
-  
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [originalData, setOriginalData] = useState(initialData);
   const [editedData, setEditedData] = useState(initialData);
 
+  // Update internal state when initialData changes
+  useEffect(() => {
+    if (initialData && JSON.stringify(initialData) !== JSON.stringify(originalData)) {
+      console.log('Initial data updated, resetting state');
+      setOriginalData(initialData);
+      setEditedData(initialData);
+      setHasChanges(false);
+    }
+  }, [initialData]);
+
   const startEditing = useCallback(() => {
     console.log('Starting editing mode');
+    if (!originalData) {
+      console.warn('Cannot start editing - originalData is null');
+      return;
+    }
+
     try {
       // Create a deep copy of the original data for editing
       const dataCopy = JSON.parse(JSON.stringify(originalData));
@@ -30,19 +43,20 @@ export default function useEditMode({
   }, [originalData]);
 
   const cancelEditing = useCallback(() => {
-    console.log('Canceling editing mode');
     setIsEditing(false);
     setHasChanges(false);
     setEditedData(originalData);
     if (onCancelCallback) {
-      console.log('Executing onCancelCallback');
       onCancelCallback();
     }
   }, [originalData, onCancelCallback]);
 
   const updateField = useCallback((field, value) => {
-    console.log(`Updating field ${field} with value:`, value);
     setEditedData(prev => {
+      if (!prev) {
+        return prev;
+      }
+      
       const updated = { ...prev, [field]: value };
       // Check if the value actually changed
       const changed = JSON.stringify(updated) !== JSON.stringify(originalData);
@@ -56,6 +70,11 @@ export default function useEditMode({
   const updateNestedField = useCallback((path, value) => {
     console.log(`Updating nested field ${path} with value:`, value);
     setEditedData(prev => {
+      if (!prev) {
+        console.warn('Cannot update nested field - editedData is null');
+        return prev;
+      }
+
       const keys = path.split('.');
       const updated = { ...prev };
       let current = updated;
@@ -65,7 +84,7 @@ export default function useEditMode({
         const key = keys[i];
         if (!current[key]) {
           console.warn(`Path ${path} not found in data structure`);
-          return prev; // Return previous state if path is invalid
+          return prev; 
         }
         current = current[key] = { ...current[key] };
       }
@@ -82,7 +101,11 @@ export default function useEditMode({
   }, [originalData, hasChanges]);
 
   const saveChanges = useCallback(async () => {
-    console.log('Attempting to save changes', editedData);
+    if (!editedData) {
+      console.warn('Cannot save - editedData is null');
+      return false;
+    }
+
     try {
       if (onSaveCallback) {
         const result = await onSaveCallback(editedData);
@@ -114,16 +137,6 @@ export default function useEditMode({
     setHasChanges(false);
   }, [originalData]);
 
-  // Debug effect to log state changes
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Current edit mode state:', {
-      isEditing,
-      hasChanges,
-      originalData,
-      editedData
-    });
-  }
-
   return {
     isEditing,
     hasChanges,
@@ -142,7 +155,6 @@ export default function useEditMode({
     setEditedData: (data) => {
       console.log('Directly setting edited data:', data);
       setEditedData(data);
-      // Auto-detect changes when using direct setter
       const changed = JSON.stringify(data) !== JSON.stringify(originalData);
       setHasChanges(changed);
     }

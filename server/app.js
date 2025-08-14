@@ -4,6 +4,7 @@ import tutors from "./routes/tutors.js"
 import students from "./routes/students.js"
 import admins from "./routes/admins.js"
 import constants from "./routes/constants.js"
+import Subjects from "./routes/subjects.js"
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -37,6 +38,7 @@ app.use('/tutors', tutors)
 app.use('/students', students)
 app.use('/admins', admins)
 app.use('/constants', constants)
+app.use('/subjects', Subjects)
 initializeUserStatsCache();
 
 app.listen(port, () => {
