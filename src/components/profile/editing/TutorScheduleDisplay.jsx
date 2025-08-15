@@ -1,16 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
-  Users,
-  Clock,
-  CalendarDays,
-  Info,
-  PhoneCall,
-  Trash,
-  Plus,
-  CheckCircle,
-  AlertCircle,
-  Edit2,
-  X,
+  Users, Clock, CalendarDays, Info, PhoneCall, Trash, Plus, 
+  CheckCircle, AlertCircle, Edit2, X
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
@@ -22,104 +13,51 @@ import { Fragment } from "react";
 
 const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange }) => {
   const { t } = useTranslation();
-
+  
   // Available days for selection
   const daysOfWeek = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
   ];
-
-  // Available time slots (every 30 minutes from 8:00 AM to 10:00 PM)
+  
   const timeSlots = Array.from({ length: 28 }, (_, i) => {
-    const hour = Math.floor(i / 2) + 8; // Start from 8 AM
+    const hour = Math.floor(i / 2) + 8;
     const minute = i % 2 === 0 ? "00" : "30";
     return `${hour.toString().padStart(2, "0")}:${minute}`;
   });
 
-  // State for editing personal availability
+  // State for groups
+  const [groups, setGroups] = useState(subject?.Groups || []);
+  
+  // State for personal availability
+  const [availability, setAvailability] = useState({
+    times: tutor?.personalAvailability?.times || [],
+    note: tutor?.personalAvailability?.note || "",
+    _tempNewDay: "",
+    _tempNewTime: ""
+  });
+  
   const [editingIndex, setEditingIndex] = useState(null);
 
-  // Initialize temporary fields if not present
+  // Sync groups with subject prop
   useEffect(() => {
-    if (!tutor?.personalAvailability) {
-      onTutorChange({
-        ...tutor,
-        personalAvailability: {
-          times: [],
-          note: "",
-          _tempNewDay: "",
-          _tempNewTime: "",
-        },
-      });
-    }
-  }, [tutor, onTutorChange]);
+    setGroups(subject?.Groups || []);
+  }, [subject]);
 
-  // Convert time from AM/PM to 24-hour format
-  const convertTo24Hour = (timeStr) => {
-    const [time, modifier] = timeStr.split(" ");
-    let [hours, minutes] = time.split(":");
-    hours = parseInt(hours, 10);
-    if (modifier?.toUpperCase() === "PM" && hours !== 12) hours += 12;
-    if (modifier?.toUpperCase() === "AM" && hours === 12) hours = 0;
-    return `${hours.toString().padStart(2, "0")}:${minutes || "00"}`;
-  };
+  // Sync availability with tutor prop
+  useEffect(() => {
+    setAvailability({
+      times: tutor?.personalAvailability?.times || [],
+      note: tutor?.personalAvailability?.note || "",
+      _tempNewDay: "",
+      _tempNewTime: ""
+    });
+  }, [tutor]);
 
-  // Parse mock data time string (e.g., "Saturday 4–6 PM")
-  const parseMockTime = (entry) => {
-    if (typeof entry === "string") {
-      const match = entry.match(/^(\w+)\s+(\d{1,2}(?::\d{2})?)\s*–\s*(\d{1,2}(?::\d{2})?)\s*(AM|PM)$/i);
-      if (match) {
-        const [, day, start, end, modifier] = match;
-        const startTime = convertTo24Hour(`${start} ${modifier}`);
-        const endTime = convertTo24Hour(`${end} ${modifier}`);
-        return { day, time: `${startTime} - ${endTime}` };
-      }
-      console.warn(`parseMockTime: Unparseable entry "${entry}", returning as-is`);
-      return { day: "", time: entry }; // Fallback for unparseable strings
-    }
-    return entry; // Already in { day, time } format
-  };
-
-  // Format entry for display (always return a string)
-  const formatDisplayTime = (entry) => {
-    const parsed = parseMockTime(entry);
-    if (typeof entry === "string") {
-      return entry; // Display string-based entries as-is
-    }
-    if (parsed.day && parsed.time) {
-      return `${parsed.day}, ${parsed.time}`;
-    }
-    console.warn(`formatDisplayTime: Invalid entry`, entry);
-    return "Invalid entry"; // Fallback for invalid entries
-  };
-
-  // Convert times array to string format for saving
-  const normalizeTimesForSave = (times) => {
-    return times.map((entry) => {
-      if (typeof entry === "string") {
-        return entry; // Keep string entries as-is
-      }
-      const parsed = parseMockTime(entry);
-      if (parsed.day && parsed.time) {
-        return `${parsed.day}, ${parsed.time}`;
-      }
-      console.warn(`normalizeTimesForSave: Skipping invalid entry`, entry);
-      return null; // Skip invalid entries
-    }).filter(entry => entry !== null);
-  };
-
-  // ---------------------------
-  // GROUPS HANDLERS (UNCHANGED)
-  // ---------------------------
+  // Group handlers
   const handleGroupChange = (index, field, value) => {
-    console.log(`handleGroupChange: index=${index}, field=${field}, value=`, value);
-    const updatedGroups = [...(subject.Groups || [])];
+    const updatedGroups = [...groups];
     updatedGroups[index] = { ...updatedGroups[index], [field]: value };
+    setGroups(updatedGroups);
     onSubjectChange({ ...subject, Groups: updatedGroups });
   };
 
@@ -131,131 +69,109 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
       note: "",
       isFull: false,
     };
-    const updatedGroups = [...(subject.Groups || []), newGroup];
+    const updatedGroups = [...groups, newGroup];
+    setGroups(updatedGroups);
     onSubjectChange({ ...subject, Groups: updatedGroups });
   };
 
   const handleRemoveGroup = (index) => {
-    const updatedGroups = [...(subject.Groups || [])];
+    const updatedGroups = [...groups];
     updatedGroups.splice(index, 1);
+    setGroups(updatedGroups);
     onSubjectChange({ ...subject, Groups: updatedGroups });
   };
 
   const handleGroupTimeChange = (index, startTime, endTime) => {
-    console.log(`handleGroupTimeChange: index=${index}, startTime=${startTime}, endTime=${endTime}`);
     if (startTime && endTime) {
-      const startIndex = timeSlots.indexOf(startTime);
-      const endIndex = timeSlots.indexOf(endTime);
-      if (endIndex <= startIndex) return;
-      const timeRange = `${startTime} - ${endTime}`;
-      handleGroupChange(index, "time", timeRange);
+      handleGroupChange(index, "time", `${startTime} - ${endTime}`);
     }
   };
 
-  // ---------------------------
-  // PERSONAL AVAILABILITY HANDLERS
-  // ---------------------------
+  // Availability handlers
   const handleAvailabilityChange = (field, value) => {
-    console.log(`handleAvailabilityChange: field=${field}, value=`, value);
-    const updated = {
-      ...tutor.personalAvailability,
-      [field]: value,
-    };
-    onTutorChange({ ...tutor, personalAvailability: updated });
-  };
-
-  const handleAddAvailabilityTime = () => {
-    const newDay = tutor.personalAvailability?._tempNewDay || "";
-    const newTime = tutor.personalAvailability?._tempNewTime || "";
-    const [startTime, endTime] = newTime ? newTime.split(" - ") : ["", ""];
-    console.log(`handleAddAvailabilityTime: day=${newDay}, startTime=${startTime}, endTime=${endTime}`);
-
-    // Validate inputs
-    if (!newDay || !startTime || !endTime) {
-      console.log("Validation failed: missing day or time");
-      return;
-    }
-    const startIndex = timeSlots.indexOf(startTime);
-    const endIndex = timeSlots.indexOf(endTime);
-    if (startIndex < 0 || endIndex < 0 || endIndex <= startIndex) {
-      console.log("Validation failed: invalid time range or times not in timeSlots");
-      return;
-    }
-
-    // Update times array
-    const newEntry = { day: newDay, time: `${startTime} - ${endTime}` };
-    const updatedTimes = editingIndex !== null
-      ? [...(tutor.personalAvailability?.times || [])].map((item, i) =>
-          i === editingIndex ? newEntry : item
-        )
-      : [...(tutor.personalAvailability?.times || []), newEntry];
-
-    console.log("Updating times:", updatedTimes);
+    const updated = { ...availability, [field]: value };
+    setAvailability(updated);
     onTutorChange({
       ...tutor,
       personalAvailability: {
-        ...tutor.personalAvailability,
-        times: normalizeTimesForSave(updatedTimes), // Normalize to strings for saving
-        _tempNewDay: "",
-        _tempNewTime: "",
-      },
+        times: updated.times,
+        note: updated.note
+      }
+    });
+  };
+
+  const handleAddAvailabilityTime = () => {
+    const newDay = availability._tempNewDay;
+    const newTime = availability._tempNewTime;
+    const [startTime, endTime] = newTime ? newTime.split(" - ") : ["", ""];
+    
+    if (!newDay || !startTime || !endTime) return;
+    
+    const newEntry = `${newDay}, ${startTime} - ${endTime}`;
+    const updatedTimes = editingIndex !== null
+      ? [...availability.times].map((item, i) => i === editingIndex ? newEntry : item)
+      : [...availability.times, newEntry];
+    
+    const updated = {
+      ...availability,
+      times: updatedTimes,
+      _tempNewDay: "",
+      _tempNewTime: ""
+    };
+    
+    setAvailability(updated);
+    onTutorChange({
+      ...tutor,
+      personalAvailability: {
+        times: updatedTimes,
+        note: availability.note
+      }
     });
     setEditingIndex(null);
   };
 
   const handleEditAvailabilityTime = (index) => {
-    const entry = parseMockTime(tutor.personalAvailability.times[index]);
-    console.log(`handleEditAvailabilityTime: index=${index}, entry=`, entry);
-    if (!entry.day || !entry.time) {
-      console.warn(`Invalid entry at index ${index}:`, entry);
-      return;
-    }
-    onTutorChange({
-      ...tutor,
-      personalAvailability: {
-        ...tutor.personalAvailability,
-        _tempNewDay: entry.day,
-        _tempNewTime: entry.time,
-      },
+    const entry = availability.times[index];
+    const [day, time] = entry.split(', ');
+    setAvailability({
+      ...availability,
+      _tempNewDay: day,
+      _tempNewTime: time
     });
     setEditingIndex(index);
   };
 
   const handleRemoveAvailabilityTime = (index) => {
-    console.log(`handleRemoveAvailabilityTime: index=${index}`);
-    const updatedTimes = [...(tutor.personalAvailability.times || [])];
+    const updatedTimes = [...availability.times];
     updatedTimes.splice(index, 1);
+    const updated = {
+      ...availability,
+      times: updatedTimes
+    };
+    
+    setAvailability(updated);
     onTutorChange({
       ...tutor,
       personalAvailability: {
-        ...tutor.personalAvailability,
-        times: normalizeTimesForSave(updatedTimes), // Normalize to strings for saving
-        _tempNewDay: editingIndex === index ? "" : tutor.personalAvailability._tempNewDay,
-        _tempNewTime: editingIndex === index ? "" : tutor.personalAvailability._tempNewTime,
-      },
+        times: updatedTimes,
+        note: availability.note
+      }
     });
-    if (editingIndex === index) {
-      setEditingIndex(null);
-    }
+    
+    if (editingIndex === index) setEditingIndex(null);
   };
 
   const handleCancelEdit = () => {
-    console.log("handleCancelEdit");
-    onTutorChange({
-      ...tutor,
-      personalAvailability: {
-        ...tutor.personalAvailability,
-        _tempNewDay: "",
-        _tempNewTime: "",
-      },
+    setAvailability({
+      ...availability,
+      _tempNewDay: "",
+      _tempNewTime: ""
     });
     setEditingIndex(null);
   };
 
-  // Render the component
   return (
     <div className="bg-card border border-border rounded-xl p-6 shadow-sm space-y-6">
-      {/* Header */}
       <div className="text-center mb-6 space-y-2">
         <div className="flex justify-center items-center gap-2 text-primary">
           <CalendarDays className="w-6 h-6" />
@@ -266,8 +182,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
         </p>
       </div>
 
-      {/* Group Cards */}
-      {(subject.Groups || []).map((group, i) => {
+      {groups.map((group, i) => {
         const isFull = group.isFull;
         const [startTime, endTime] = group.time ? group.time.split(" - ") : ["", ""];
         return (
@@ -320,10 +235,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                 <label className="text-sm font-medium">{t("days")}</label>
                 <Listbox
                   value={group.days || []}
-                  onChange={(selected) => {
-                    console.log(`Group days selected: index=${i}, days=`, selected);
-                    handleGroupChange(i, "days", selected);
-                  }}
+                  onChange={(selected) => handleGroupChange(i, "days", selected)}
                   multiple
                 >
                   <div className="relative mt-1">
@@ -385,10 +297,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                 <div className="flex gap-2 mt-1">
                   <Listbox
                     value={startTime || ""}
-                    onChange={(value) => {
-                      console.log(`Group start time selected: index=${i}, startTime=${value}`);
-                      handleGroupTimeChange(i, value, endTime);
-                    }}
+                    onChange={(value) => handleGroupTimeChange(i, value, endTime)}
                   >
                     <div className="relative flex-1">
                       <Listbox.Button className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary">
@@ -443,10 +352,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                   <span className="self-center text-muted-foreground">–</span>
                   <Listbox
                     value={endTime || ""}
-                    onChange={(value) => {
-                      console.log(`Group end time selected: index=${i}, endTime=${value}`);
-                      handleGroupTimeChange(i, startTime, value);
-                    }}
+                    onChange={(value) => handleGroupTimeChange(i, startTime, value)}
                   >
                     <div className="relative flex-1">
                       <Listbox.Button className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary">
@@ -543,12 +449,10 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
         );
       })}
 
-      {/* Add Group */}
       <Button onClick={handleAddGroup} className="w-fit">
         <Plus className="w-4 h-4 mr-2" /> {t("addGroup")}
       </Button>
 
-      {/* Personal Availability */}
       <div className="pt-6 border-t border-border">
         <div className="bg-accent/10 border border-accent/30 rounded-xl p-5 space-y-4">
           <div className="flex items-center gap-2 text-accent">
@@ -556,16 +460,15 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
             <h4 className="text-sm font-semibold">{t("tutorAvailability")}</h4>
           </div>
 
-          {/* Availability Times */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-foreground">{t("tutorCommTimes")}</label>
             <div className="flex flex-wrap gap-2 mt-1">
-              {(tutor.personalAvailability?.times || []).map((entry, index) => (
+              {availability.times.map((entry, index) => (
                 <div
                   key={index}
                   className="flex items-center gap-2 bg-accent text-accent-foreground px-3 py-1 rounded-full text-xs font-medium"
                 >
-                  <span>{formatDisplayTime(entry)}</span>
+                  <span>{entry}</span>
                   <button
                     type="button"
                     onClick={() => handleEditAvailabilityTime(index)}
@@ -587,16 +490,13 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
             <div className="space-y-2 mt-2">
               <div className="flex flex-col gap-2">
                 <Listbox
-                  value={tutor.personalAvailability?._tempNewDay || ""}
-                  onChange={(value) => {
-                    console.log(`Personal availability day selected: value=${value}`);
-                    handleAvailabilityChange("_tempNewDay", value);
-                  }}
+                  value={availability._tempNewDay || ""}
+                  onChange={(value) => setAvailability({...availability, _tempNewDay: value})}
                 >
                   <div className="relative flex-1">
                     <Listbox.Button className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary">
                       <span className="block truncate">
-                        {tutor.personalAvailability?._tempNewDay || t("selectDay")}
+                        {availability._tempNewDay || t("selectDay")}
                       </span>
                       <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
                         <CalendarDays className="h-5 w-5 text-muted-foreground" />
@@ -645,20 +545,16 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                 </Listbox>
                 <div className="flex gap-3">
                   <Listbox
-                    value={tutor.personalAvailability?._tempNewTime?.split(" - ")[0] || ""}
+                    value={availability._tempNewTime?.split(" - ")[0] || ""}
                     onChange={(value) => {
-                      console.log(`Personal availability start time selected: value=${value}`);
-                      const endTime =
-                        tutor.personalAvailability?._tempNewTime?.split(" - ")[1] ||
-                        timeSlots[Math.min(timeSlots.indexOf(value) + 1, timeSlots.length - 1)] ||
-                        "";
-                      handleAvailabilityChange("_tempNewTime", `${value} - ${endTime}`);
+                      const endTime = timeSlots[Math.min(timeSlots.indexOf(value) + 1, timeSlots.length - 1)] || "";
+                      setAvailability({...availability, _tempNewTime: `${value} - ${endTime}`});
                     }}
                   >
                     <div className="relative flex-1">
                       <Listbox.Button className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary">
                         <span className="block truncate">
-                          {tutor.personalAvailability?._tempNewTime?.split(" - ")[0] || t("startTime")}
+                          {availability._tempNewTime?.split(" - ")[0] || t("startTime")}
                         </span>
                         <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
                           <Clock className="h-5 w-5 text-muted-foreground" />
@@ -707,18 +603,16 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                   </Listbox>
                   <span className="self-center text-muted-foreground">–</span>
                   <Listbox
-                    value={tutor.personalAvailability?._tempNewTime?.split(" - ")[1] || ""}
+                    value={availability._tempNewTime?.split(" - ")[1] || ""}
                     onChange={(value) => {
-                      console.log(`Personal availability end time selected: value=${value}`);
-                      const startTime =
-                        tutor.personalAvailability?._tempNewTime?.split(" - ")[0] || timeSlots[0];
-                      handleAvailabilityChange("_tempNewTime", `${startTime} - ${value}`);
+                      const startTime = availability._tempNewTime?.split(" - ")[0] || timeSlots[0];
+                      setAvailability({...availability, _tempNewTime: `${startTime} - ${value}`});
                     }}
                   >
                     <div className="relative flex-1">
                       <Listbox.Button className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary">
                         <span className="block truncate">
-                          {tutor.personalAvailability?._tempNewTime?.split(" - ")[1] || t("endTime")}
+                          {availability._tempNewTime?.split(" - ")[1] || t("endTime")}
                         </span>
                         <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
                           <Clock className="h-5 w-5 text-muted-foreground" />
@@ -740,7 +634,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                                   active ? "bg-accent text-accent-foreground" : "text-foreground",
                                   timeSlots.indexOf(time) <=
                                     timeSlots.indexOf(
-                                      tutor.personalAvailability?._tempNewTime?.split(" - ")[0] || timeSlots[0]
+                                      availability._tempNewTime?.split(" - ")[0] || timeSlots[0]
                                     )
                                     ? "opacity-50 cursor-not-allowed"
                                     : ""
@@ -750,7 +644,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                               disabled={
                                 timeSlots.indexOf(time) <=
                                 timeSlots.indexOf(
-                                  tutor.personalAvailability?._tempNewTime?.split(" - ")[0] || timeSlots[0]
+                                  availability._tempNewTime?.split(" - ")[0] || timeSlots[0]
                                 )
                               }
                             >
@@ -785,9 +679,9 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                   variant="outline"
                   onClick={handleAddAvailabilityTime}
                   disabled={
-                    !tutor.personalAvailability?._tempNewDay ||
-                    !tutor.personalAvailability?._tempNewTime ||
-                    !tutor.personalAvailability?._tempNewTime.includes(" - ")
+                    !availability._tempNewDay ||
+                    !availability._tempNewTime ||
+                    !availability._tempNewTime.includes(" - ")
                   }
                 >
                   {editingIndex !== null ? t("update") : t("add")}
@@ -803,30 +697,29 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                   </Button>
                 )}
               </div>
-              {tutor.personalAvailability?._tempNewTime &&
-                tutor.personalAvailability._tempNewTime.includes(" - ") &&
-                timeSlots.indexOf(tutor.personalAvailability._tempNewTime.split(" - ")[1]) <=
-                  timeSlots.indexOf(tutor.personalAvailability._tempNewTime.split(" - ")[0]) && (
+              {availability._tempNewTime &&
+                availability._tempNewTime.includes(" - ") &&
+                timeSlots.indexOf(availability._tempNewTime.split(" - ")[1]) <=
+                  timeSlots.indexOf(availability._tempNewTime.split(" - ")[0]) && (
                   <p className="text-xs text-destructive mt-1">{t("invalidTimeRange")}</p>
                 )}
             </div>
           </div>
 
-          {/* Note */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-foreground">
               {t("commNote")} ({t("optional")})
             </label>
             <Textarea
               placeholder={t("commNotePlaceholder")}
-              value={tutor.personalAvailability?.note || ""}
+              value={availability.note || ""}
               onChange={(e) => handleAvailabilityChange("note", e.target.value)}
               className="mt-1"
             />
           </div>
 
-          {!tutor.personalAvailability?.note &&
-            !tutor.personalAvailability?.times?.length && (
+          {!availability.note &&
+            !availability.times?.length && (
               <p className="text-xs italic text-muted-foreground mt-1">
                 {t("noCommInfo")}
               </p>

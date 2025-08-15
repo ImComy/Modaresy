@@ -12,14 +12,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash } from 'lucide-react';
 
-const getVideoId = (url) => {
+const getThumbnailUrl = (url) => {
   try {
     const parsedUrl = new URL(url.startsWith('http') ? url : `https://${url}`);
     const hostname = parsedUrl.hostname;
     if (hostname === 'youtu.be') return parsedUrl.pathname.slice(1);
     if (hostname.includes('youtube.com')) {
-      if (parsedUrl.pathname === '/watch') return parsedUrl.searchParams.get('v');
-      if (parsedUrl.pathname.startsWith('/embed/')) return parsedUrl.pathname.split('/embed/')[1];
+      const videoId = parsedUrl.searchParams.get('v') || 
+                     parsedUrl.pathname.split('/').pop();
+      return videoId;
     }
   } catch {
     return null;
@@ -27,71 +28,36 @@ const getVideoId = (url) => {
   return null;
 };
 
-const getThumbnailUrl = (url) => {
-  const id = getVideoId(url);
-  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
-};
-
-const TutorVideoManagerEdit = ({ introVideoUrl, otherVideos = [], onChange }) => {
-  const { t } = useTranslation();
-  const initialVideos = [
-    ...(introVideoUrl
-      ? [{ id: 'intro', title: t('videoManager.introVideo'), url: introVideoUrl }]
-      : []),
-    ...otherVideos,
-  ];
+const TutorVideoManagerEdit = ({ videos: initialVideos = [], onChange }) => {
   const [videos, setVideos] = useState(initialVideos);
   const [newVideo, setNewVideo] = useState({ title: '', url: '' });
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Sync videos state with props when they change (subject switch)
+  // Sync with parent when initialVideos changes
   useEffect(() => {
-    const newVideos = [
-      ...(introVideoUrl
-        ? [{ id: 'intro', title: t('videoManager.introVideo'), url: introVideoUrl }]
-        : []),
-      ...otherVideos,
-    ];
-    if (JSON.stringify(videos) !== JSON.stringify(newVideos)) {
-      if (hasUnsavedChanges) {
-        console.warn('Subject switched with unsaved video changes.');
-      } else {
-        console.log('Syncing videos:', newVideos);
-        setVideos(newVideos);
-      }
-    }
-  }, [introVideoUrl, otherVideos, t]);
-
-  const handleChangeAll = (newList) => {
-    setVideos(newList);
-    setHasUnsavedChanges(true);
-    const [intro, ...rest] = newList;
-    onChange?.({
-      introVideoUrl: intro?.url || '',
-      otherVideos: rest.map(({ id, title, url }) => ({ id, title, url })),
-    });
-  };
+    setVideos(initialVideos);
+  }, [initialVideos]);
 
   const handleAddVideo = () => {
     if (!newVideo.url.trim()) return;
-    const newList = [...videos, { ...newVideo, id: Date.now().toString() }];
-    handleChangeAll(newList);
+    const newList = [...videos, { ...newVideo }];
+    setVideos(newList);
+    onChange?.(newList);
     setNewVideo({ title: '', url: '' });
   };
+  const { t } = useTranslation();
 
-  const handleRemove = (id) => {
-    const updated = videos.filter((v) => v.id !== id);
-    handleChangeAll(updated);
+  const handleRemove = (index) => {
+    const updated = videos.filter((_, i) => i !== index);
+    setVideos(updated);
+    onChange?.(updated);
   };
 
-  const handleChange = (id, field, value) => {
-    const updated = videos.map((v) => (v.id === id ? { ...v, [field]: value } : v));
-    handleChangeAll(updated);
-  };
-
-  const handleSave = () => {
-    setHasUnsavedChanges(false);
-    console.log('Changes saved:', { introVideoUrl: videos[0]?.url || '', otherVideos: videos.slice(1) });
+  const handleChange = (index, field, value) => {
+    const updated = videos.map((v, i) => 
+      i === index ? { ...v, [field]: value } : v
+    );
+    setVideos(updated);
+    onChange?.(updated);
   };
 
   return (
@@ -99,7 +65,7 @@ const TutorVideoManagerEdit = ({ introVideoUrl, otherVideos = [], onChange }) =>
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="w-full max-w-3xl mx-auto"
+      className="w-full"
     >
       <Card className="overflow-hidden shadow-sm">
         <CardHeader>
@@ -110,16 +76,19 @@ const TutorVideoManagerEdit = ({ introVideoUrl, otherVideos = [], onChange }) =>
           {videos.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               {videos.map((video, index) => {
-                const thumbnail = getThumbnailUrl(video.url);
-                const isIntro = index === 0;
+                const videoId = getThumbnailUrl(video.url);
                 return (
                   <div
-                    key={video.id}
+                    key={index}
                     className="rounded-xl border border-primary/30 shadow-sm p-4 flex flex-col gap-3 bg-background"
                   >
                     <div className="aspect-video rounded overflow-hidden border">
-                      {thumbnail ? (
-                        <img src={thumbnail} alt={video.title} className="w-full h-full object-cover" />
+                      {videoId ? (
+                        <img 
+                          src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         <div className="w-full h-full bg-muted flex items-center justify-center text-sm text-destructive">
                           {t('videoManager.invalidVideoUrl')}
@@ -129,28 +98,23 @@ const TutorVideoManagerEdit = ({ introVideoUrl, otherVideos = [], onChange }) =>
                     <Input
                       value={video.title}
                       placeholder={t('videoManager.videoTitle')}
-                      onChange={(e) => handleChange(video.id, 'title', e.target.value)}
+                      onChange={(e) => handleChange(index, 'title', e.target.value)}
                       className="border-primary/30 h-9 text-sm"
                     />
                     <Input
                       value={video.url}
                       placeholder={t('videoManager.videoUrl')}
-                      onChange={(e) => handleChange(video.id, 'url', e.target.value)}
+                      onChange={(e) => handleChange(index, 'url', e.target.value)}
                       className="border-primary/30 h-9 text-sm"
                     />
-                    {!isIntro && (
-                      <Button
-                        variant="ghost"
-                        className="self-end text-red-500 hover:text-red-700 h-9 w-9 sm:w-auto"
-                        onClick={() => handleRemove(video.id)}
-                      >
-                        <Trash className="w-4 h-4 mr-2 sm:mr-2 rtl:ml-2 rtl:ml-2" />
-                        <span className="hidden sm:inline">{t('delete')}</span>
-                      </Button>
-                    )}
-                    {isIntro && (
-                      <p className="text-xs text-muted-foreground">{t('videoManager.introVideoLabel')}</p>
-                    )}
+                    <Button
+                      variant="ghost"
+                      className="self-end text-red-500 hover:text-red-700 h-9 w-9 sm:w-auto"
+                      onClick={() => handleRemove(index)}
+                    >
+                      <Trash className="w-4 h-4 mr-2 sm:mr-2 rtl:ml-2 rtl:ml-2" />
+                      <span className="hidden sm:inline">{t('delete')}</span>
+                    </Button>
                   </div>
                 );
               })}
@@ -163,13 +127,13 @@ const TutorVideoManagerEdit = ({ introVideoUrl, otherVideos = [], onChange }) =>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 value={newVideo.title}
-                onChange={(e) => setNewVideo((v) => ({ ...v, title: e.target.value }))}
+                onChange={(e) => setNewVideo(v => ({ ...v, title: e.target.value }))}
                 placeholder={t('videoManager.videoTitle')}
                 className="border-primary/30 h-9 text-sm"
               />
               <Input
                 value={newVideo.url}
-                onChange={(e) => setNewVideo((v) => ({ ...v, url: e.target.value }))}
+                onChange={(e) => setNewVideo(v => ({ ...v, url: e.target.value }))}
                 placeholder={t('videoManager.videoUrl')}
                 className="border-primary/30 h-9 text-sm"
               />
@@ -177,6 +141,7 @@ const TutorVideoManagerEdit = ({ introVideoUrl, otherVideos = [], onChange }) =>
             <Button
               onClick={handleAddVideo}
               className="mt-2 w-full sm:w-fit bg-primary hover:bg-primary/90 h-9 text-sm"
+              disabled={!newVideo.url.trim()}
             >
               <Plus className="w-4 h-4 mr-2" />
               {t('videoManager.addVideo')}
