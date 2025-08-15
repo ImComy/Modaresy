@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Target, Lightbulb, HeartHandshake as Handshake } from 'lucide-react';
-import MeetTheTeam from '@/components/home/meetTheTeam';
+// import MeetTheTeam from '@/components/home/meetTheTeam';
 
 const AboutUsPage = () => {
   const { t } = useTranslation();
@@ -90,7 +90,7 @@ const AboutUsPage = () => {
 
       {/* Meet the Team */}
       <section className="text-center">
-        <MeetTheTeam />
+        {/* <MeetTheTeam /> */}
       </section>
 
     </motion.div>
