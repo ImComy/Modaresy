@@ -44,9 +44,10 @@ import AddSubjectCard from './SubjectSection';
 const TutorProfileHeaderEdit = ({ 
   tutor, 
   onChange,
-  onAddSubject,       // Add these props
-  onUpdateSubject,    // Add these props
-  onDeleteSubject     // Add these props
+  onAddSubject,
+  onUpdateSubject,
+  onDeleteSubject,
+  isSubjectMutating
 }) => {
   const { t } = useTranslation();
   const [constants, setConstants] = useState(null);
@@ -195,11 +196,12 @@ const TutorProfileHeaderEdit = ({
           <DetailsSection
             formData={formData}
             handleFieldChange={handleFieldChange}
-            onAddSubject={onAddSubject}  // Pass directly
-            onUpdateSubject={onUpdateSubject}  // Pass directly
-            onDeleteSubject={onDeleteSubject}  // Pass directly
+            onAddSubject={onAddSubject}
+            onUpdateSubject={onUpdateSubject}
+            onDeleteSubject={onDeleteSubject}
             constants={constants}
             t={t}
+            isSubjectMutating={isSubjectMutating}
           />
         </CardContent>
       </Card>

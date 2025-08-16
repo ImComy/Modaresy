@@ -63,11 +63,6 @@ export async function createNewTutor(req, res) {
             password,
             address,
             about_me,
-            experience_years,
-            education_system,
-            sectors,
-            languages,
-            grades
         } = req.body;
 
         console.log('Received tutor data:', { name, email, address });
@@ -93,15 +88,14 @@ export async function createNewTutor(req, res) {
             password,
             address,
             about_me,
-            experience_years,
-            education_system,
-            sectors,
-            languages,
-            grades
+            availability: defaultAvailability._id
         });
 
         await newTutor.save();
         console.log(`New tutor created with ID: ${newTutor._id}`);
+        const defaultAvailability = new PersonalAvailability({});
+        await defaultAvailability.save();
+        newTutor.availability = defaultAvailability._id;
         return res.status(201).json({ message: "Tutor created successfully", tutor: newTutor });
     } catch (err) {
         console.error('Error in createNewTutor:', err);

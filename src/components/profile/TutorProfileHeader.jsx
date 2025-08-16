@@ -10,7 +10,8 @@ const TutorProfileHeader = ({
   onUpdateSubject, 
   onDeleteSubject, 
   isEditing,
-  isOwner
+  isOwner,
+  isSubjectMutating
 }) => {
   if (!tutor) return null;
 
@@ -20,7 +21,8 @@ const TutorProfileHeader = ({
       onChange={onChange}
       onAddSubject={onAddSubject}        
       onUpdateSubject={onUpdateSubject}    
-      onDeleteSubject={onDeleteSubject}    
+      onDeleteSubject={onDeleteSubject}
+      isSubjectMutating={isSubjectMutating}
     />
   ) : (
     <TutorProfileHeaderDisplay 

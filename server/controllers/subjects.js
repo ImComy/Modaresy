@@ -61,15 +61,41 @@ export const SubjectController = {
     }
   },
 
-  deleteSubject: async (req, res) => {
-    try {
-      await SubjectService.deleteSubject(req.params.id);
-      res.status(204).end();
-    } catch (err) {
-      const status = err.message.includes("referenced") ? 409 : 500;
-      res.status(status).json({ error: err.message });
+deleteSubject: async (req, res) => {
+  const id = req.params.id;
+  console.log(`[DELETE /subjects/:id] request id=${id}, user=${req.user?._id}`);
+
+  try {
+    // Basic id validation to avoid unnecessary DB calls
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.warn(`[DELETE /subjects/:id] invalid id format: ${id}`);
+      return res.status(400).json({ error: "Invalid subject id" });
     }
-  },
+
+    const deleted = await SubjectService.deleteSubject(id);
+
+    // If your service returns null when not found (recommended), handle that:
+    if (!deleted) {
+      console.warn(`[DELETE /subjects/:id] subject not found: ${id}`);
+      return res.status(404).json({ error: "Subject not found" });
+    }
+
+    console.log(`[DELETE /subjects/:id] deleted subject id=${id}`);
+    // 204: No Content is appropriate for successful DELETE
+    return res.status(204).end();
+  } catch (err) {
+    // If service throws with a clear message, we map conflict vs server error.
+    console.error(`[DELETE /subjects/:id] error deleting id=${id}`, err);
+
+    if (err.message && err.message.toLowerCase().includes("referenc")) {
+      // e.g. "referenced" -> conflict because profiles/reviews exist
+      return res.status(409).json({ error: err.message });
+    }
+
+    // For all other unexpected errors return 500 and include minimal message
+    return res.status(500).json({ error: `Subject deletion failed: ${err.message}` });
+  }
+},
 
   // ====================
   // SUBJECT PROFILES (Teacher-owned)

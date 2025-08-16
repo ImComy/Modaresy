@@ -59,7 +59,10 @@ const SubjectProfileSchema = new Schema({
   lectures_per_week: { type: Number, min: 0 },
   reviews: { type: [mongoose.Types.ObjectId], ref: 'Review', default: [] },
   additional_pricing: { type: mongoose.Types.ObjectId, ref: 'AdditionalPricing', default: null },
-  youtube: { type: [mongoose.Types.ObjectId], ref: 'YouTubeLink', default: [] },
+  youtube: [{
+    title: { type: String, required: true },
+    url: { type: String, required: true }
+  }],
   content: { type: [String], default: [] }
 }, { timestamps: true });
 

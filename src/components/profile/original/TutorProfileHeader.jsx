@@ -325,12 +325,6 @@ const SubjectsDisplay = ({ tutor, t }) => {
                   </div>
                 </div>
               </div>
-              <div className="mt-2 flex items-center gap-1 text-xs">
-                <span>{t('yearsExperience')}:</span>
-                <span className="font-medium">
-                  {subject.years_experience || 1}
-                </span>
-              </div>
             </motion.div>
           ))}
         </div>

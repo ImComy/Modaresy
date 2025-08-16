@@ -1,16 +1,37 @@
 import { getProfileData } from '../services/authentication.service.js';
 import { enrollStudent } from '../services/tutor.service.js';
 import { Teacher } from '../models/teacher.js';
+import { PersonalAvailability } from '../models/misc.js';
 
 export async function getProfile(req, res) {
     try {
         console.log('getProfile called for user:', req.user._id);
-        const profileData = getProfileData(req.user);
+        const teacher = await Teacher.findById(req.user._id)
+            .populate('availability')
+            .select('-password')
+            .lean();
+
+        if (!teacher) {
+            return res.status(404).json({ error: "Teacher not found" });
+        }
+
+        const profileData = getProfileData(teacher);
+        profileData.availability = teacher.availability;
+
         return res.status(200).json({ userdata: profileData });
     } catch (err) {
         console.error('Error in getProfile:', err);
         return res.status(500).json({ error: "Failed to get profile data" });
     }
+}
+
+
+export async function populateAvailability(req, res, next) {
+  if (req.teacher) {
+    req.teacher = await Teacher.findById(req.teacher._id)
+      .populate('availability');
+  }
+  next();
 }
 
 export async function updateProfile(req, res) {
@@ -19,10 +40,11 @@ export async function updateProfile(req, res) {
         const { updated_information } = req.body;
 
         if (!updated_information || typeof updated_information !== 'object') {
-            return res.status(400).json({ error: 'Invalid update data' });
+            return res.status(400).json({ error: 'Invalid update data format' });
         }
 
-        const updateData = {
+        // --- Direct Teacher Fields ---
+        const teacherUpdateData = {
             name: updated_information.name,
             img: updated_information.img,
             bannerimg: updated_information.bannerimg,
@@ -33,27 +55,55 @@ export async function updateProfile(req, res) {
             experience_years: updated_information.experience_years,
             rating: updated_information.rating
         };
+        // Remove undefined values to avoid overwriting existing data with null
+        Object.keys(teacherUpdateData).forEach(key => {
+            if (teacherUpdateData[key] === undefined) {
+                delete teacherUpdateData[key];
+            }
+        });
 
+        // --- Update Teacher Document ---
+        const teacher = await Teacher.findById(req.user._id);
+        if (!teacher) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        Object.assign(teacher, teacherUpdateData);
+
+
+        // --- Handle Social Media (Map) ---
         if (updated_information.social_media && 
             typeof updated_information.social_media === 'object' && 
             !Array.isArray(updated_information.social_media)) {
-            updateData.social_media = updated_information.social_media;
+            
+            Object.entries(updated_information.social_media).forEach(([key, value]) => {
+                teacher.social_media.set(key, value || ''); // Set to empty string if null/undefined
+            });
         }
 
-        // Remove undefined values
-        Object.keys(updateData).forEach(key => {
-            if (updateData[key] === undefined) delete updateData[key];
-        });
-
-        const updatedUser = await Teacher.findByIdAndUpdate(
-            req.user._id,
-            { $set: updateData },
-            { new: true, runValidators: true }
-        ).select('-password');
-
-        if (!updatedUser) {
-            return res.status(404).json({ error: 'Teacher not found' });
+        // --- Handle Personal Availability (Referenced Document) ---
+        if (updated_information.availability) {
+            const availabilityData = updated_information.availability;
+            if (teacher.availability) {
+                await PersonalAvailability.findByIdAndUpdate(teacher.availability, {
+                    times: availabilityData.times,
+                    note: availabilityData.note
+                });
+            } else {
+                // If for some reason availability doesn't exist, create it
+                const newAvailability = await PersonalAvailability.create({
+                    times: availabilityData.times,
+                    note: availabilityData.note
+                });
+                teacher.availability = newAvailability._id;
+            }
         }
+        
+        await teacher.save();
+
+        const updatedUser = await Teacher.findById(req.user._id)
+            .populate('availability')
+            .select('-password')
+            .lean(); // Use lean for the final response object
 
         return res.status(200).json({
             message: "Profile updated successfully",
@@ -72,8 +122,9 @@ export async function getTutor(req, res) {
         }
 
         const teacher = await Teacher.findById(req.teacher._id)
-            .select('+about_me')
-            .lean();
+        .select('+about_me')
+        .populate('availability') 
+        .lean();
 
         if (!teacher) {
             return res.status(404).json({ error: "Teacher not found" });

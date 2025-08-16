@@ -1,183 +1,230 @@
-import React, { useMemo, useEffect } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
+import SubjectPricingInfo from '@/components/profile/Subject';
+import TutorVideoManager from '@/components/profile/TutorVideoManager';
+import TutorCourseInfo from '@/components/profile/TutorCourseInfo';
+import TutorScheduleManager from '@/components/profile/TutorScheduleManager';
+import TutorReviews from '@/components/profile/TutorReviews';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-const SubjectSelector = ({ 
-  tutor, 
-  selectedSubjectIndex, 
-  setSelectedSubjectIndex,
+const SubjectSelector = ({
+  tutor,
   subjects = [],
   isEditing = false,
-  onRemoveSubject
+  isOwner,
+  onUpdateSubject,
+  onTutorChange,
 }) => {
   const { t } = useTranslation();
+  const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(0);
 
-  useEffect(() => {
-    if (subjects.length > 0 && (selectedSubjectIndex < 0 || selectedSubjectIndex >= subjects.length)) {
+  const handleNestedChange = (path, value) => {
+    const selectedSubject = subjects[selectedSubjectIndex];
+    if (!selectedSubject) return;
+
+    const updatedSubjectData = { ...selectedSubject, [path]: value };
+    onUpdateSubject(selectedSubjectIndex, updatedSubjectData);
+  };
+  
+  // Ensure selectedSubjectIndex is valid whenever subjects change
+  React.useEffect(() => {
+    if (subjects.length === 0) {
+      if (selectedSubjectIndex !== -1) setSelectedSubjectIndex(-1);
+      return;
+    }
+    if (selectedSubjectIndex < 0 || selectedSubjectIndex >= subjects.length) {
       setSelectedSubjectIndex(0);
     }
-  }, [subjects, selectedSubjectIndex, setSelectedSubjectIndex]);
-  
-  const educationSystems = useMemo(() => [
-    ...new Set(subjects.map(s => s.education_system || s.subject_id?.education_system))
-  ], [subjects]);
+  }, [subjects, selectedSubjectIndex]);
 
-  const gradeOptions = useMemo(() => {
-    const currentSystem = subjects[selectedSubjectIndex]?.education_system || 
-                         subjects[selectedSubjectIndex]?.subject_id?.education_system || 
-                         educationSystems[0];
-    
-    const gradeMap = new Map();
-    
-    subjects
-      .filter(s => 
-        (s.education_system || s.subject_id?.education_system) === currentSystem
-      )
-      .forEach(s => {
-        const grade = s.grade || s.subject_id?.grade;
-        if (!gradeMap.has(grade)) {
-          gradeMap.set(grade, {
-            grade,
-            sector: s.sector || s.subject_id?.sector,
-            language: s.language || s.subject_id?.language,
-            system: s.education_system || s.subject_id?.education_system
-          });
-        }
-      });
-    
-    return Array.from(gradeMap.values());
-  }, [subjects, selectedSubjectIndex, educationSystems]);
+  const selectedSubject = selectedSubjectIndex >= 0 && subjects[selectedSubjectIndex] 
+    ? subjects[selectedSubjectIndex] 
+    : null;
 
-  const handleSystemChange = (system) => {
-    const firstSubjectWithSystem = subjects.findIndex(s => s.education_system === system);
-    if (firstSubjectWithSystem >= 0) {
-      setSelectedSubjectIndex(firstSubjectWithSystem);
-    }
-  };
-
-  const handleGradeChange = (grade) => {
-    const currentSystem = subjects[selectedSubjectIndex]?.education_system || educationSystems[0];
-    const matchingSubjectIndex = subjects.findIndex(s => 
-      s.education_system === currentSystem && 
-      s.grade === grade
-    );
-    if (matchingSubjectIndex >= 0) {
-      setSelectedSubjectIndex(matchingSubjectIndex);
-    }
-  };
-
-  if (!subjects.length) {
+  if (subjects.length === 0) {
     return (
-      <div className="rounded-xl bg-muted/40 dark:bg-muted/10 border border-border px-6 py-12 text-center space-y-4 shadow-sm">
+      <div className="rounded-xl bg-muted/40 dark:bg-muted/10 border border-border px-6 py-12 text-center space-y-4 shadow-sm mt-10">
         <div className="flex justify-center">
           <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center">
             <span className="text-2xl">📚</span>
           </div>
         </div>
         <h2 className="text-xl font-semibold text-foreground">
-          {t('noSubjectsHeader', 'No Subjects Added')}
+          {t('noSubjectsHeader', { defaultValue: 'No Subjects Added' })}
         </h2>
         <p className="text-muted-foreground max-w-md mx-auto text-sm">
-          {t('noSubjectsDescription', 'This tutor hasn\'t added any subjects yet.')}
+          {t('noSubjectsDescription', { defaultValue: "This tutor hasn't added any subjects yet." })}
         </p>
       </div>
     );
   }
 
-  const currentSystem = subjects[selectedSubjectIndex]?.education_system || educationSystems[0];
-  const currentGrade = subjects[selectedSubjectIndex]?.grade || '';
-
   return (
-    <div className="space-y-4 mb-6">
-      <p className="text-base font-semibold">{t('selectSubjectToView', 'Select a subject to view')}</p>
+    <div className="space-y-8 mt-8">
+      <Card>
+        <CardHeader className="p-4">
+          <CardTitle className="text-lg">{t('subjects')}</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          {/* Horizontal scroll container for subject buttons */}
+          <div className="flex overflow-x-auto pb-2 -mx-1 px-1 hide-scrollbar">
+            <div className="flex flex-nowrap gap-2">
+              {subjects.map((subject, index) => {
+                const isActive = selectedSubjectIndex === index;
+                const subjectName = subject.name || subject.subject_id?.name || t('unknownSubject');
+                const educationSystem = subject.education_system || subject.subject_id?.education_system;
+                const grade = subject.grade || subject.subject_id?.grade;
+                const sector = subject.sector || subject.subject_id?.sector;
+                const language = subject.language || subject.subject_id?.language;
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Select value={currentSystem} onValueChange={handleSystemChange}>
-          <SelectTrigger className="w-full sm:w-1/2">
-            <SelectValue placeholder={t('selectSystem', 'Select Education System')} />
-          </SelectTrigger>
-          <SelectContent>
-            {educationSystems.map((system, idx) => (
-              <SelectItem key={idx} value={system}>
-                {t(system)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select 
-          value={currentGrade}
-          onValueChange={handleGradeChange}
-        >
-          <SelectTrigger className="w-full sm:w-1/2">
-            <SelectValue placeholder={t('selectGrade', 'Select Grade')} />
-          </SelectTrigger>
-          <SelectContent>
-            {gradeOptions.map((option, idx) => (
-              <SelectItem key={idx} value={option.grade}>
-                <div className="flex flex-col">
-                  <span className="font-medium">{t(option.grade)}</span>
-                  <div className="flex gap-2 text-xs text-muted-foreground">
-                    <span>{t(option.system)}</span>
-                    {option.sector && <span>• {t(option.sector)}</span>}
-                    {option.language && <span>• {t(option.language)}</span>}
-                  </div>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex flex-wrap gap-3 mt-2">
-        {subjects
-          .filter(s => 
-            s.education_system === currentSystem && 
-            s.grade === currentGrade
-          )
-          .map((subject, idx) => {
-            const globalIdx = subjects.findIndex(
-              s => s._id === subject._id
-            );
-            const isActive = selectedSubjectIndex === globalIdx;
-            const subjectName = subject.name;
-
-            return (
-              <div key={idx} className="relative group">
-                <button
-                  type="button"
-                  onClick={() => setSelectedSubjectIndex(globalIdx)}
-                  className={`px-4 py-2 text-sm rounded-full transition-all duration-200 border shadow-sm flex items-center gap-2
-                    ${
-                      isActive
-                        ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary'
-                        : 'bg-muted text-muted-foreground border-muted hover:bg-primary/10 hover:text-primary'
-                    }`}
-                >
-                  {subjectName}
-                </button>
-                {isEditing && (
+                return (
                   <button
+                    key={subject._id || subject.tempId}
                     type="button"
-                    onClick={() => onRemoveSubject(globalIdx)}
-                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setSelectedSubjectIndex(index)}
+                    className={`
+                      px-3 py-2 rounded-lg border transition-all duration-200
+                      flex flex-col items-start min-w-[140px] max-w-[160px] flex-shrink-0
+                      ${isActive 
+                        ? 'border-primary bg-primary/10 ring-1 ring-primary' 
+                        : 'border-border hover:bg-muted/40'}
+                    `}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
+                    <h3 className="font-medium text-sm truncate w-full text-left">{subjectName}</h3>
+                    
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      <Badge 
+                        variant="secondary" 
+                        className="text-[10px] px-1.5 py-0.5 truncate max-w-[70px]"
+                        title={educationSystem}
+                      >
+                        {educationSystem}
+                      </Badge>
+                      
+                      <Badge 
+                        variant="secondary" 
+                        className="text-[10px] px-1.5 py-0.5 truncate max-w-[50px]"
+                        title={grade}
+                      >
+                        {grade}
+                      </Badge>
+                      
+                      {sector && (
+                        <Badge 
+                          variant="secondary" 
+                          className="text-[10px] px-1.5 py-0.5 truncate max-w-[60px]"
+                          title={sector}
+                        >
+                          {sector}
+                        </Badge>
+                      )}
+                      
+                      <Badge 
+                        variant="secondary" 
+                        className="text-[10px] px-1.5 py-0.5 truncate max-w-[60px]"
+                        title={language}
+                      >
+                        {language}
+                      </Badge>
+                    </div>
                   </button>
+                );
+              })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedSubject && (
+        <div className="space-y-8">
+          {/* Desktop Layout (lg screens and above) */}
+          <div className="hidden lg:block">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Primary column */}
+              <div className="lg:col-span-2 space-y-8">
+                <SubjectPricingInfo
+                  subject={selectedSubject}
+                  onFieldChange={handleNestedChange}
+                  isEditing={isEditing}
+                />
+                
+                <TutorVideoManager
+                  videos={selectedSubject?.youtube || []}
+                  isEditing={isEditing}
+                  isOwner={isOwner}
+                  onVideosChange={(newVideos) => handleNestedChange('youtube', newVideos)}
+                />
+
+                {!isEditing && (
+                  <TutorReviews
+                    tutorId={tutor._id}
+                    reviews={tutor.reviews || []}
+                  />
                 )}
               </div>
-            );
-          })}
-      </div>
+
+              {/* Secondary column */}
+              <div className="space-y-8">
+                <TutorCourseInfo
+                  subject={selectedSubject}
+                  tutor={tutor}
+                  isEditing={isEditing}
+                  onFieldChange={handleNestedChange}
+                  onTutorChange={onTutorChange}
+                />
+                
+                <TutorScheduleManager
+                  tutor={tutor}
+                  subject={selectedSubject}
+                  isEditing={isEditing}
+                  onFieldChange={handleNestedChange}
+                  onTutorChange={onTutorChange}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile/Tablet Layout (lg screens and below) */}
+          <div className="lg:hidden space-y-8">
+            <SubjectPricingInfo
+              subject={selectedSubject}
+              onFieldChange={handleNestedChange}
+              isEditing={isEditing}
+            />
+            
+            <TutorVideoManager
+              videos={selectedSubject?.youtube || []}
+              isEditing={isEditing}
+              isOwner={isOwner}
+              onVideosChange={(newVideos) => handleNestedChange('youtube', newVideos)}
+            />
+            
+            <TutorCourseInfo
+              subject={selectedSubject}
+              tutor={tutor}
+              isEditing={isEditing}
+              onFieldChange={handleNestedChange}
+              onTutorChange={onTutorChange}
+            />
+            
+            <TutorScheduleManager
+              tutor={tutor}
+              subject={selectedSubject}
+              isEditing={isEditing}
+              onFieldChange={handleNestedChange}
+              onTutorChange={onTutorChange}
+            />
+            
+            {!isEditing && (
+              <TutorReviews
+                tutorId={tutor._id}
+                reviews={tutor.reviews || []}
+              />
+            )}
+          </div>
+        </div> 
+      )}
     </div>
   );
 };

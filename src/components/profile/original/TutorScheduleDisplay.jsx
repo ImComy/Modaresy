@@ -2,7 +2,7 @@ import React from "react";
 import { Repeat, Clock, CalendarDays, Info, PhoneCall, AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-const TutorGroupsCardDisplay = ({ subject, tutor }) => {
+const TutorScheduleDisplay = ({ subject, tutor }) => {
   const { t } = useTranslation();
   const noGroups = !subject || !Array.isArray(subject.Groups) || subject.Groups.length === 0;
 
@@ -81,23 +81,34 @@ const TutorGroupsCardDisplay = ({ subject, tutor }) => {
         </div>
       </div>
 
-      {tutor?.personalAvailability ? (
+      {tutor?.availability ? (
         <div className="rounded-xl p-5 mt-6 border border-accent/30 bg-accent/5 space-y-4">
           <div className="flex items-center gap-2 text-accent mb-1">
             <PhoneCall className="w-5 h-5" />
             <h4 className="text-sm font-semibold">{t("personalComm")}</h4>
           </div>
 
-          {tutor.personalAvailability.times?.length > 0 ? (
+          {tutor.availability.times?.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {tutor.personalAvailability.times.map((time, index) => (
-                <span
-                  key={index}
-                  className="bg-accent text-accent-foreground text-xs font-medium px-3 py-1 rounded-full"
-                >
-                  {time}
-                </span>
-              ))}
+              {tutor.availability.times.map((time, index) => {
+                let displayText = "Invalid time format";
+                
+                if (typeof time === 'string') {
+                  displayText = time;
+                } else if (time && typeof time === 'object' && time.days && time.hours) {
+                  const days = Array.isArray(time.days) ? time.days.join(", ") : time.days;
+                  displayText = `${days}: ${time.hours}`;
+                }
+                
+                return (
+                  <span
+                    key={index}
+                    className="bg-accent text-accent-foreground text-xs font-medium px-3 py-1 rounded-full"
+                  >
+                    {displayText}
+                  </span>
+                );
+              })}
             </div>
           ) : (
             <p className="text-xs italic text-muted-foreground">
@@ -105,9 +116,9 @@ const TutorGroupsCardDisplay = ({ subject, tutor }) => {
             </p>
           )}
 
-          {tutor.personalAvailability.note ? (
+          {tutor.availability.note ? (
             <div className="text-sm text-muted-foreground italic leading-relaxed border-t pt-3 border-border">
-              {tutor.personalAvailability.note}
+              {tutor.availability.note}
             </div>
           ) : null}
         </div>
@@ -120,4 +131,4 @@ const TutorGroupsCardDisplay = ({ subject, tutor }) => {
   );
 };
 
-export default TutorGroupsCardDisplay;
+export default TutorScheduleDisplay;

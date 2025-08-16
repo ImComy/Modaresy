@@ -40,6 +40,12 @@ const TeacherSchema = new Schema({
   enrollmentsRequests: {
     type: [mongoose.Types.ObjectId],
     ref: 'EnrollmentRequest'
+  },
+  
+  availability: {
+    type: mongoose.Types.ObjectId,
+    ref: 'PersonalAvailability',
+    required: false
   }
 }, {
   timestamps: true,

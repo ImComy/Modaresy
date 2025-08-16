@@ -6,6 +6,7 @@ export default function useEditMode({
   initialData = null 
 } = {}) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [originalData, setOriginalData] = useState(initialData);
   const [editedData, setEditedData] = useState(initialData);
@@ -68,27 +69,30 @@ export default function useEditMode({
   }, [originalData, hasChanges]);
 
   const updateNestedField = useCallback((path, value) => {
-    console.log(`Updating nested field ${path} with value:`, value);
     setEditedData(prev => {
       if (!prev) {
         console.warn('Cannot update nested field - editedData is null');
         return prev;
       }
 
-      const keys = path.split('.');
-      const updated = { ...prev };
+      // Create a deep copy to avoid mutation issues.
+      // This is simpler and safer than manual traversal with shallow copies.
+      const updated = JSON.parse(JSON.stringify(prev));
       let current = updated;
       
-      // Traverse the nested path
+      const keys = path.split('.');
+      
+      // Traverse to the parent of the target property
       for (let i = 0; i < keys.length - 1; i++) {
         const key = keys[i];
-        if (!current[key]) {
-          console.warn(`Path ${path} not found in data structure`);
-          return prev; 
+        if (current[key] === undefined || current[key] === null) {
+          console.warn(`Path ${path} not found in data structure at key: ${key}`);
+          return prev; // Return original state if path is broken
         }
-        current = current[key] = { ...current[key] };
+        current = current[key];
       }
       
+      // Set the value on the target property
       const lastKey = keys[keys.length - 1];
       current[lastKey] = value;
       
@@ -106,6 +110,7 @@ export default function useEditMode({
       return false;
     }
 
+    setIsSubmitting(true);
     try {
       if (onSaveCallback) {
         const result = await onSaveCallback(editedData);
@@ -128,6 +133,8 @@ export default function useEditMode({
     } catch (error) {
       console.error('Error saving changes:', error);
       return false;
+    } finally {
+      setIsSubmitting(false);
     }
   }, [editedData, onSaveCallback, originalData]);
 
@@ -139,6 +146,7 @@ export default function useEditMode({
 
   return {
     isEditing,
+    isSubmitting,
     hasChanges,
     editedData,
     originalData,

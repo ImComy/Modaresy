@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import useEditMode from '@/hooks/useEditMode';
-import { apiFetch } from '../api/apiService';
+import { apiFetch } from '@/api/apiService';
+import useEditMode from './useEditMode';
 
 const useTutorProfile = (propTutorId, externalEditing = null) => {
   const params = useParams();
@@ -41,36 +41,36 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
       ]);
 
       if (!tutorData || tutorData.error) {
-        throw new Error(tutorData?.error || 'Tutor not found');
+        throw new Error(tutorData.error || 'Failed to load tutor data');
       }
 
       // Extract and transform subjects data
       const baseSubjects = subjectsResponse?.data?.baseSubjects || [];
       const subjectProfiles = subjectsResponse?.data?.subjectProfiles || [];
       
-      // Create a mapping of subject ID to profile
       const profileMap = new Map();
       subjectProfiles.forEach(profile => {
-        if (profile.subject_id) {
-          profileMap.set(
-            typeof profile.subject_id === 'string' 
-              ? profile.subject_id 
-              : profile.subject_id._id, 
-            profile
-          );
+        if (profile.subject_id?._id) {
+          profileMap.set(profile.subject_id._id.toString(), profile);
         }
       });
 
       // Merge base subjects with their profiles
       const mergedSubjects = baseSubjects.map(subject => {
-        const profile = profileMap.get(subject._id);
-        return profile ? { ...subject, ...profile } : subject;
+        const profile = profileMap.get(subject._id.toString());
+        return {
+          ...subject,
+          ...(profile || {}), // Merge profile data
+          profileId: profile?._id, // Keep a distinct profileId
+          _id: subject._id // Ensure base subject ID is the main _id
+        };
       });
 
       const combinedData = {
         ...tutorData,
-        subjects: mergedSubjects,  // Maintain old subjects structure
-        about_me: tutorData.about_me || ''
+        subjects: mergedSubjects,
+        about_me: tutorData.about_me || '',
+        availability: tutorData.availability || null
       };
       
       setTutor(combinedData);
@@ -171,20 +171,13 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
         method: 'POST',
         body: JSON.stringify(subjectData),
       });
-      
-      if (created && created._id) {
-        await fetchTutorData(id); 
-        return created;
-      }
+      if (created.error) throw new Error(created.error);
+      return created;
     } catch (error) {
-      toast({ 
-        title: 'Error', 
-        description: error.message || 'Failed to add subject', 
-        variant: 'destructive' 
-      });
+      toast({ title: 'Error', description: `Failed to add subject: ${error.message}`, variant: 'destructive' });
       throw error;
     }
-  }, [id, toast, fetchTutorData]);
+  }, [toast]);
 
   const updateSubject = useCallback(async (subjectId, updatedSubject) => {
     try {
@@ -192,44 +185,53 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
         method: 'PUT',
         body: JSON.stringify(updatedSubject)
       });
-
-      if (response.error) {
-        throw new Error(response.error || 'Failed to update subject');
-      }
-      
-      await fetchTutorData(id); 
+      if (response.error) throw new Error(response.error);
       return response;
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to update subject',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: `Failed to update subject: ${error.message}`, variant: 'destructive' });
       throw error;
     }
-  }, [id, toast, fetchTutorData]);
+  }, [toast]);
 
   const deleteSubject = useCallback(async (subjectId) => {
     try {
       const response = await apiFetch(`/subjects/subjects/${subjectId}`, {
         method: 'DELETE',
       });
-
-      if (response.error) {
-        throw new Error(response.error || 'Failed to delete subject');
-      }
-      
-      await fetchTutorData(id); 
-      return response;
+      if (response.error && response.status !== 204) throw new Error(response.error);
+      return { success: true };
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete subject',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: `Failed to delete subject: ${error.message}`, variant: 'destructive' });
       throw error;
     }
-  }, [id, toast, fetchTutorData]);
+  }, [toast]);
+
+  const updateSubjectProfile = useCallback(async (profileId, updateData) => {
+    try {
+      const response = await apiFetch(`/subjects/profiles/${profileId}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData)
+      });
+      if (response.error) throw new Error(response.error);
+      return response;
+    } catch (error) {
+      toast({ title: 'Error', description: `Failed to update subject profile: ${error.message}`, variant: 'destructive' });
+      throw error;
+    }
+  }, [toast]);
+
+  const deleteSubjectProfile = useCallback(async (profileId) => {
+    try {
+      const response = await apiFetch(`/subjects/profiles/${profileId}`, {
+        method: 'DELETE',
+      });
+      if (response.error && response.status !== 204) throw new Error(response.error);
+      return { success: true };
+    } catch (error) {
+      toast({ title: 'Error', description: `Failed to delete subject profile: ${error.message}`, variant: 'destructive' });
+      throw error;
+    }
+  }, [toast]);
 
 
   return {
@@ -249,7 +251,9 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
     fetchTutorData,
     addSubject,
     updateSubject,
-    deleteSubject
+    deleteSubject,
+    updateSubjectProfile,
+    deleteSubjectProfile
   };
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  Users, Clock, CalendarDays, Info, PhoneCall, Trash, Plus, 
+  Clock, CalendarDays, PhoneCall, Trash, Plus, 
   CheckCircle, AlertCircle, Edit2, X
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -14,7 +14,6 @@ import { Fragment } from "react";
 const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange }) => {
   const { t } = useTranslation();
   
-  // Available days for selection
   const daysOfWeek = [
     "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
   ];
@@ -25,35 +24,19 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
     return `${hour.toString().padStart(2, "0")}:${minute}`;
   });
 
-  // State for groups
   const [groups, setGroups] = useState(subject?.Groups || []);
-  
-  // State for personal availability
   const [availability, setAvailability] = useState({
-    times: tutor?.personalAvailability?.times || [],
-    note: tutor?.personalAvailability?.note || "",
+    times: tutor?.availability?.times || [],
+    note: tutor?.availability?.note || "",
     _tempNewDay: "",
     _tempNewTime: ""
   });
-  
   const [editingIndex, setEditingIndex] = useState(null);
 
-  // Sync groups with subject prop
   useEffect(() => {
     setGroups(subject?.Groups || []);
   }, [subject]);
 
-  // Sync availability with tutor prop
-  useEffect(() => {
-    setAvailability({
-      times: tutor?.personalAvailability?.times || [],
-      note: tutor?.personalAvailability?.note || "",
-      _tempNewDay: "",
-      _tempNewTime: ""
-    });
-  }, [tutor]);
-
-  // Group handlers
   const handleGroupChange = (index, field, value) => {
     const updatedGroups = [...groups];
     updatedGroups[index] = { ...updatedGroups[index], [field]: value };
@@ -62,16 +45,13 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
   };
 
   const handleAddGroup = () => {
-    const newGroup = {
+    setGroups([...groups, {
       groupName: "",
       days: [],
       time: "",
       note: "",
       isFull: false,
-    };
-    const updatedGroups = [...groups, newGroup];
-    setGroups(updatedGroups);
-    onSubjectChange({ ...subject, Groups: updatedGroups });
+    }]);
   };
 
   const handleRemoveGroup = (index) => {
@@ -91,13 +71,6 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
   const handleAvailabilityChange = (field, value) => {
     const updated = { ...availability, [field]: value };
     setAvailability(updated);
-    onTutorChange({
-      ...tutor,
-      personalAvailability: {
-        times: updated.times,
-        note: updated.note
-      }
-    });
   };
 
   const handleAddAvailabilityTime = () => {
@@ -107,9 +80,11 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
     
     if (!newDay || !startTime || !endTime) return;
     
+    // Format as string: "Monday, 10:00 - 11:00"
     const newEntry = `${newDay}, ${startTime} - ${endTime}`;
+    
     const updatedTimes = editingIndex !== null
-      ? [...availability.times].map((item, i) => i === editingIndex ? newEntry : item)
+      ? availability.times.map((item, i) => i === editingIndex ? newEntry : item)
       : [...availability.times, newEntry];
     
     const updated = {
@@ -132,12 +107,23 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
 
   const handleEditAvailabilityTime = (index) => {
     const entry = availability.times[index];
-    const [day, time] = entry.split(', ');
-    setAvailability({
-      ...availability,
-      _tempNewDay: day,
-      _tempNewTime: time
-    });
+    if (typeof entry === 'string') {
+      const [day, time] = entry.split(', ');
+      setAvailability({
+        ...availability,
+        _tempNewDay: day,
+        _tempNewTime: time
+      });
+    } else {
+      // Handle object format if exists
+      const days = Array.isArray(entry.days) ? entry.days.join(", ") : entry.days || "";
+      const hours = entry.hours || "";
+      setAvailability({
+        ...availability,
+        _tempNewDay: days,
+        _tempNewTime: hours
+      });
+    }
     setEditingIndex(index);
   };
 
@@ -463,28 +449,40 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
           <div className="space-y-1">
             <label className="text-sm font-medium text-foreground">{t("tutorCommTimes")}</label>
             <div className="flex flex-wrap gap-2 mt-1">
-              {availability.times.map((entry, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 bg-accent text-accent-foreground px-3 py-1 rounded-full text-xs font-medium"
-                >
-                  <span>{entry}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleEditAvailabilityTime(index)}
-                    className="text-xs hover:text-primary"
+              {availability.times.map((entry, index) => {
+                // Convert to display string
+                let displayText = "";
+                if (typeof entry === 'string') {
+                  displayText = entry;
+                } else if (typeof entry === 'object') {
+                  const days = Array.isArray(entry.days) ? entry.days.join(", ") : entry.days || "";
+                  const hours = entry.hours || "";
+                  displayText = `${days}: ${hours}`;
+                }
+                
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 bg-accent text-accent-foreground px-3 py-1 rounded-full text-xs font-medium"
                   >
-                    <Edit2 className="w-3 h-3" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveAvailabilityTime(index)}
-                    className="text-xs hover:text-destructive"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+                    <span>{displayText}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleEditAvailabilityTime(index)}
+                      className="text-xs hover:text-primary"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAvailabilityTime(index)}
+                      className="text-xs hover:text-destructive"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="space-y-2 mt-2">

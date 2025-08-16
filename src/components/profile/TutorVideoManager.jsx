@@ -1,51 +1,27 @@
 import React from 'react';
-import TutorVideoManagerDisplay from './original/TutorVideoManager';
-import TutorVideoManagerEdit from './editing/TutorVideoManager';
-import { useAuth } from '@/context/AuthContext';
-import { useParams } from 'react-router-dom';
+import TutorVideoManagerDisplay from './original/TutorVideoManagerDisplay';
+import TutorVideoManagerEdit from './editing/TutorVideoManagerEdit';
 
 const TutorVideoManager = ({
-  tutor,
-  subject,
-  subjectIndex,
-  setTutor,
+  videos = [],
   isEditing,
-  markDirty,
+  isOwner,
+  onVideosChange,
 }) => {
-  const { id } = useParams();
-  const { authState } = useAuth();
-  const { isLoggedIn, userId } = authState;
-  const isOwner = isLoggedIn && userId === parseInt(id);
-
-  const handleChange = (data) => {
-    if (!setTutor || typeof subjectIndex !== 'number') return;
-
-    setTutor((prev) => {
-      const updatedSubjects = [...prev.subjects];
-      updatedSubjects[subjectIndex] = {
-        ...updatedSubjects[subjectIndex],
-        introVideoUrl: data.introVideoUrl,
-        otherVideos: data.otherVideos,
-      };
-      return {
-        ...prev,
-        subjects: updatedSubjects,
-      };
-    });
-
-    if (markDirty) markDirty();
+  const handleVideosChange = (newVideos) => {
+    if (onVideosChange) {
+      onVideosChange(newVideos);
+    }
   };
 
   return isEditing ? (
     <TutorVideoManagerEdit
-      introVideoUrl={subject?.introVideoUrl}
-      otherVideos={subject?.otherVideos || []}
-      onChange={handleChange}
+      videos={videos}
+      onChange={handleVideosChange}
     />
   ) : (
     <TutorVideoManagerDisplay
-      introVideoUrl={subject?.introVideoUrl}
-      otherVideos={subject?.otherVideos || []}
+      videos={videos}
       isOwner={isOwner}
     />
   );

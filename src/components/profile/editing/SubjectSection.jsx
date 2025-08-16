@@ -19,7 +19,8 @@ const AddSubjectCard = ({
   onUpdateSubject, 
   onDeleteSubject, 
   constants, 
-  t 
+  t,
+  isSubjectMutating
 }) => {
   const [newSubject, setNewSubject] = useState({
     education_system: '',
@@ -115,7 +116,7 @@ const AddSubjectCard = ({
     }
   }, [newSubject.education_system, newSubject.grade, newSubject.sector, newSubject.language, constants]);
 
-  const handleAddSubject = async () => {
+  const handleAddSubject = () => {
     // Validate all required fields
     if (!newSubject.name || 
         !newSubject.education_system || 
@@ -126,53 +127,37 @@ const AddSubjectCard = ({
       return;
     }
 
-    try {
-      // Create a new subject object with complete data
-      const subjectData = {
-        ...newSubject,
-        name: newSubject.name,
-        education_system: newSubject.education_system,
-        grade: newSubject.grade,
-        sector: newSubject.sector,
-        language: newSubject.language,
-        years_experience: newSubject.years_experience,
-        private_pricing: {
-          price: 0,
-          currency: 'EGP',
-          period: 'session'
-        }
-      };
+    // Create a new subject object with complete data
+    const subjectData = {
+      ...newSubject,
+      private_pricing: {
+        price: 0,
+        currency: 'EGP',
+        period: 'session'
+      }
+    };
 
-      console.log('Adding subject:', subjectData);
-      // Call the parent's addSubject function
-      await onAddSubject(subjectData);
-      
-      setNewSubject({
-        education_system: '',
-        grade: '',
-        sector: '',
-        language: '',
-        name: '',
-        years_experience: 1
-      });
-    } catch (error) {
-      console.error('Error adding subject:', error);
-    }
+    onAddSubject(subjectData);
+    
+    setNewSubject({
+      education_system: '',
+      grade: '',
+      sector: '',
+      language: '',
+      name: '',
+      years_experience: 1
+    });
   };
 
-  const handleDelete = async (index) => {
-    try {
-      await onDeleteSubject(index);
-    } catch (error) {
-      console.error('Error removing subject:', error);
-    }
+  const handleDelete = (index) => {
+    onDeleteSubject(index);
   };
 
   const handleEditSubject = (index) => {
     setEditingIndex(index);
   };
 
-  const handleUpdateSubject = async () => {
+  const handleUpdateSubject = () => {
     // Validate all required fields
     if (!newSubject.name || 
         !newSubject.education_system || 
@@ -184,12 +169,8 @@ const AddSubjectCard = ({
       return;
     }
 
-    try {
-      await onUpdateSubject(editingIndex, newSubject);
-      setEditingIndex(null);
-    } catch (error) {
-      console.error('Error updating subject:', error);
-    }
+    onUpdateSubject(editingIndex, newSubject);
+    setEditingIndex(null);
   };
 
   const cancelEdit = () => {
@@ -199,7 +180,7 @@ const AddSubjectCard = ({
   const renderSubjectDetails = (subject, index) => {
     return (
       <motion.div
-        key={index}
+        key={subject._id || subject.tempId}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.05 }}
