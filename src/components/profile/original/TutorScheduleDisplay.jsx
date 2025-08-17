@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 const TutorScheduleDisplay = ({ subject, tutor }) => {
   const { t } = useTranslation();
-  const noGroups = !subject || !Array.isArray(subject.Groups) || subject.Groups.length === 0;
+  const noGroups = !subject || !subject.groups || subject.groups.length === 0;
 
   return (
     <div className="bg-card border border-border rounded-xl p-6 shadow-sm space-y-6">
@@ -14,7 +14,7 @@ const TutorScheduleDisplay = ({ subject, tutor }) => {
           <h2 className="text-2xl font-bold tracking-tight">{t("bookingSchedule")}</h2>
         </div>
         <p className="text-lg text-foreground font-medium">
-          {subject?.subject} – {t("grade")} {subject?.grade}
+          {subject?.name} – {t("grade")} {subject?.grade}
         </p>
       </div>
 
@@ -25,27 +25,28 @@ const TutorScheduleDisplay = ({ subject, tutor }) => {
         </div>
       ) : (
         <div className="grid gap-5">
-          {subject.Groups.map((group, i) => (
+          {subject.groups.map((group, i) => (
             <div
               key={i}
               className={`rounded-xl p-5 border relative transition hover:shadow-md ${
-                group.isFull
+                group.Status 
                   ? "bg-destructive/10 border-destructive/30"
                   : "bg-accent/10 border-accent/30"
               }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-lg font-semibold text-foreground">
-                  {group.groupName || t("unnamedGroup")}
+
+                  {group.Name || t("unnamedGroup")}
                 </h3>
                 <span
                   className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                    group.isFull
+                    group.Status 
                       ? "bg-destructive text-destructive-foreground"
                       : "bg-accent text-accent-foreground"
                   }`}
                 >
-                  {group.isFull ? t("full") : t("available")}
+                  {group.Status ? t("full") : t("available")}
                 </span>
               </div>
 
@@ -53,19 +54,21 @@ const TutorScheduleDisplay = ({ subject, tutor }) => {
                 <div className="flex items-center gap-2">
                   <CalendarDays className="w-4 h-4 text-muted-foreground" />
                   <span>
-                    <strong>{t("days")}:</strong> {group.days?.join(", ") || t("tba")}
+                    <strong>{t("days")}:</strong> 
+                    {group.Days?.join(", ") || t("tba")}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-muted-foreground" />
                   <span>
-                    <strong>{t("time")}:</strong> {group.time || t("tba")}
+                    <strong>{t("time")}:</strong> 
+                    {group.Time || t("tba")}
                   </span>
                 </div>
-                {group.note && (
+                {group.additional_note && (
                   <div className="flex items-center gap-2 italic text-primary">
                     <Info className="w-4 h-4" />
-                    <span>{group.note}</span>
+                    <span>{group.additional_note}</span>
                   </div>
                 )}
               </div>

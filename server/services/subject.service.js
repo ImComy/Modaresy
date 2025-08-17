@@ -1,5 +1,5 @@
 import { Subject, SubjectProfile } from "../models/subject.js";
-import { Review } from "../models/subjectRelated.js";
+import { Review, Group } from "../models/subjectRelated.js";
 import mongoose from "mongoose";
 import { SubjectsBySystem } from "../models/constants.js";
 import { Teacher } from "../models/teacher.js";
@@ -197,6 +197,21 @@ export const SubjectService = {
 
       if (!profile) throw new Error("Profile not found or access denied");
 
+      if (updateData.groups) {
+        const groupUpdates = updateData.groups.map(async (groupData) => {
+          if (groupData._id) {
+            return await Group.findByIdAndUpdate(groupData._id, groupData, { new: true, session });
+          } else {
+            const newGroup = new Group(groupData);
+            await newGroup.save({ session });
+            return newGroup;
+          }
+        });
+        const updatedGroups = await Promise.all(groupUpdates);
+        profile.groups = updatedGroups.map(g => g._id);
+        delete updateData.groups;
+      }
+
       Object.assign(profile, updateData);
       await profile.save({ session });
       return profile;
@@ -276,10 +291,15 @@ export const SubjectService = {
       })
       .populate({
         path: "subject_profiles",
-        populate: {
-          path: "subject_id",
-          select: "name grade education_system sector years_experience",
-        },
+        populate: [
+          {
+            path: "subject_id",
+            select: "name grade education_system sector years_experience",
+          },
+          {
+            path: "groups",
+          },
+        ],
       })
       .lean();
 

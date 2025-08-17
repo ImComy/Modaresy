@@ -10,21 +10,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Listbox, Transition } from "@headlessui/react";
 import { Fragment } from "react";
+import { getConstants } from "@/api/constantsFetch";
 
 const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange }) => {
   const { t } = useTranslation();
   
-  const daysOfWeek = [
+  const [daysOfWeek, setDaysOfWeek] = useState([
     "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
-  ];
-  
+  ]);
+
   const timeSlots = Array.from({ length: 28 }, (_, i) => {
     const hour = Math.floor(i / 2) + 8;
     const minute = i % 2 === 0 ? "00" : "30";
     return `${hour.toString().padStart(2, "0")}:${minute}`;
   });
 
-  const [groups, setGroups] = useState(subject?.Groups || []);
+  const [groups, setGroups] = useState(subject?.groups || []);
   const [availability, setAvailability] = useState({
     times: tutor?.availability?.times || [],
     note: tutor?.availability?.note || "",
@@ -34,40 +35,46 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
   const [editingIndex, setEditingIndex] = useState(null);
 
   useEffect(() => {
-    setGroups(subject?.Groups || []);
+    const fetchConstants = async () => {
+      try {
+        const constants = await getConstants();
+        if (constants?.weekDays?.length > 0) {
+          setDaysOfWeek(constants.weekDays);
+        }
+      } catch (error) {
+        console.error("Failed to fetch constants:", error);
+      }
+    };
+    
+    fetchConstants();
+  }, []);
+
+  useEffect(() => {
+    setGroups(subject?.groups || []);
   }, [subject]);
 
-  // When a group is changed, update local state and propagate only the Groups field to parent (subject profile)
   const handleGroupChange = (index, field, value) => {
-    setGroups(prevGroups => {
-      const updatedGroups = [...prevGroups];
-      updatedGroups[index] = { ...updatedGroups[index], [field]: value };
-      
-      // Propagate changes to parent
-      if (onSubjectChange) {
-        onSubjectChange("Groups", updatedGroups);
-      }
-      
-      return updatedGroups;
-    });
+    const newGroups = [...groups];
+    newGroups[index] = { ...newGroups[index], [field]: value };
+    setGroups(newGroups);
+    onSubjectChange('groups', newGroups);
   };
-
+  
   const handleAddGroup = () => {
     setGroups(prevGroups => {
       const updatedGroups = [
         ...prevGroups,
         {
-          groupName: "",
-          days: [],
-          time: "",
-          note: "",
-          isFull: false,
+          Name: "",
+          Days: [],
+          Time: "",
+          additional_note: "",
+          Status: false,
         },
       ];
       
-      // Propagate changes to parent
       if (onSubjectChange) {
-        onSubjectChange("Groups", updatedGroups);
+        onSubjectChange("groups", updatedGroups);
       }
       
       return updatedGroups;
@@ -79,9 +86,8 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
       const updatedGroups = [...prevGroups];
       updatedGroups.splice(index, 1);
       
-      // Propagate changes to parent
       if (onSubjectChange) {
-        onSubjectChange("Groups", updatedGroups);
+        onSubjectChange("groups", updatedGroups);
       }
       
       return updatedGroups;
@@ -93,37 +99,37 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
       const updatedGroups = [...prevGroups];
       const currentGroup = prevGroups[index];
       
-      // Get current time parts
-      const parts = currentGroup.time ? currentGroup.time.split(" - ") : [];
+      const parts = currentGroup.Time ? currentGroup.Time.split(" - ") : [];
       let currentStart = parts[0] || '';
       let currentEnd = parts[1] || '';
 
-      // Update only the changed part
-      const start = newStart !== undefined ? newStart : currentStart;
-      const end = newEnd !== undefined ? newEnd : currentEnd;
+      let end = newEnd !== undefined ? newEnd : currentEnd;
+      if (newStart !== undefined && !end) {
+        const startIndex = timeSlots.indexOf(newStart);
+        if (startIndex !== -1 && startIndex < timeSlots.length - 1) {
+          end = timeSlots[startIndex + 1]; 
+        }
+      }
 
-      // Combine into new time string
-      const newTime = start + (end ? ` - ${end}` : '');
+      const start = newStart !== undefined ? newStart : currentStart;
+      const newTime = `${start}${end ? ` - ${end}` : ''}`;
 
       updatedGroups[index] = { 
         ...currentGroup, 
-        time: newTime
+        Time: newTime
       };
       
       if (onSubjectChange) {
-        onSubjectChange("Groups", updatedGroups);
+        onSubjectChange("groups", updatedGroups);
       }
       
       return updatedGroups;
     });
   };
 
-  // Availability handlers
-  // When availability changes, propagate only the 'availability' field to parent (tutor entity)
   const handleAvailabilityChange = (field, value) => {
     const updated = { ...availability, [field]: value };
     setAvailability(updated);
-    // Only propagate if not a temp field
     if (field !== "_tempNewDay" && field !== "_tempNewTime" && onTutorChange) {
       const { _tempNewDay, _tempNewTime, ...toSend } = updated;
       onTutorChange("availability", toSend);
@@ -215,13 +221,13 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
           <h2 className="text-2xl font-bold tracking-tight">{t("bookingSchedule")}</h2>
         </div>
         <p className="text-lg text-foreground font-medium">
-          {subject?.subject} – {t("grade")} {subject?.grade}
+          {subject?.name} – {t("grade")} {subject?.grade}
         </p>
       </div>
 
       {groups.map((group, i) => {
-        const isFull = group.isFull;
-        const [startTime, endTime] = group.time ? group.time.split(" - ") : ["", ""];
+        const isFull = group.Status;
+        const [startTime, endTime] = group.Time ? group.Time.split(" - ") : ["", ""];
         return (
           <div
             key={i}
@@ -234,7 +240,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
           >
             <div className="flex items-center justify-between">
               <h3 className="text-md font-semibold">
-                {group.groupName || t("unnamedGroup")}
+                {group.Name || t("unnamedGroup")}
               </h3>
               <span
                 className={cn(
@@ -262,8 +268,8 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
               <div>
                 <label className="text-sm font-medium">{t("groupName")}</label>
                 <Input
-                  value={group.groupName || ""}
-                  onChange={(e) => handleGroupChange(i, "groupName", e.target.value)}
+                  value={group.Name || ""}
+                  onChange={(e) => handleGroupChange(i, "Name", e.target.value)}
                   className="mt-1"
                 />
               </div>
@@ -271,15 +277,15 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
               <div>
                 <label className="text-sm font-medium">{t("days")}</label>
                 <Listbox
-                  value={group.days || []}
-                  onChange={(selected) => handleGroupChange(i, "days", selected)}
+                  value={group.Days || []}
+                  onChange={(selected) => handleGroupChange(i, "Days", selected)}
                   multiple
                 >
                   <div className="relative mt-1">
                     <Listbox.Button className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary">
                       <span className="block truncate">
-                        {group.days?.length > 0
-                          ? group.days.join(", ")
+                        {group.Days?.length > 0
+                          ? group.Days.join(", ")
                           : t("selectDays")}
                       </span>
                       <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
@@ -456,8 +462,8 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                   {t("note")} ({t("optional")})
                 </label>
                 <Textarea
-                  value={group.note || ""}
-                  onChange={(e) => handleGroupChange(i, "note", e.target.value)}
+                  value={group.additional_note || ""}
+                  onChange={(e) => handleGroupChange(i, "additional_note", e.target.value)}
                   className="mt-1"
                 />
               </div>
@@ -468,11 +474,12 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                     type="checkbox"
                     className="accent-destructive w-4 h-4"
                     checked={isFull || false}
-                    onChange={(e) => handleGroupChange(i, "isFull", e.target.checked)}
+                    onChange={(e) => handleGroupChange(i, "Status", e.target.checked)}
                   />
                   {t("markAsFull")}
                 </label>
                 <Button
+                  type="button"
                   variant="ghost"
                   className="text-destructive"
                   onClick={() => handleRemoveGroup(i)}
@@ -538,10 +545,9 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
 
             <div className="space-y-2 mt-2">
               <div className="flex flex-col gap-2">
-                {/* Tutor Availability: Day Selection */}
                 <Listbox
-                  multiple  // Add this prop to enable multiple selection
-                  value={availability._tempNewDay || []}  // Should be an array
+                  multiple 
+                  value={availability._tempNewDay || []}  
                   onChange={(value) => setAvailability({...availability, _tempNewDay: value})}
                 >
                   <div className="relative flex-1">
@@ -679,7 +685,6 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                       >
                         <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-background py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                           {timeSlots.map((time) => {
-                            // Get the current start time from temp availability
                             const startTimeVal = availability._tempNewTime?.split(" - ")[0] || timeSlots[0];
                             const isDisabled = timeSlots.indexOf(time) <= timeSlots.indexOf(startTimeVal);
                             
