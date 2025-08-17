@@ -25,6 +25,7 @@ const TutorScheduleManager = ({
     <TutorScheduleEdit
       tutor={tutor}
       subject={subject}
+      isEditing={isEditing}
       onSubjectChange={handleSubjectFieldChange}
       onTutorChange={handleTutorFieldChange}
     />

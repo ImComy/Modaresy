@@ -117,8 +117,9 @@ const TutorProfileHeaderEdit = ({
 
   const removeSocial = (platform) => {
     setFormData(prev => {
-      const updatedSocials = { ...prev.social_media };
-      delete updatedSocials[platform];
+      // Create a NEW object without the deleted platform
+      const { [platform]: _, ...updatedSocials } = prev.social_media;
+      
       onChange?.('social_media', updatedSocials);
       return { ...prev, social_media: updatedSocials };
     });

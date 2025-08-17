@@ -37,40 +37,86 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
     setGroups(subject?.Groups || []);
   }, [subject]);
 
+  // When a group is changed, update local state and propagate only the Groups field to parent (subject profile)
   const handleGroupChange = (index, field, value) => {
-    const updatedGroups = [...groups];
-    updatedGroups[index] = { ...updatedGroups[index], [field]: value };
-    setGroups(updatedGroups);
-    onSubjectChange({ ...subject, Groups: updatedGroups });
+    setGroups(prevGroups => {
+      const updatedGroups = [...prevGroups];
+      updatedGroups[index] = { ...updatedGroups[index], [field]: value };
+      
+      // Propagate changes to parent
+      if (onSubjectChange) {
+        onSubjectChange("Groups", updatedGroups);
+      }
+      
+      return updatedGroups;
+    });
   };
 
   const handleAddGroup = () => {
-    setGroups([...groups, {
-      groupName: "",
-      days: [],
-      time: "",
-      note: "",
-      isFull: false,
-    }]);
+    setGroups(prevGroups => {
+      const updatedGroups = [
+        ...prevGroups,
+        {
+          groupName: "",
+          days: [],
+          time: "",
+          note: "",
+          isFull: false,
+        },
+      ];
+      
+      // Propagate changes to parent
+      if (onSubjectChange) {
+        onSubjectChange("Groups", updatedGroups);
+      }
+      
+      return updatedGroups;
+    });
   };
 
   const handleRemoveGroup = (index) => {
-    const updatedGroups = [...groups];
-    updatedGroups.splice(index, 1);
-    setGroups(updatedGroups);
-    onSubjectChange({ ...subject, Groups: updatedGroups });
+    setGroups(prevGroups => {
+      const updatedGroups = [...prevGroups];
+      updatedGroups.splice(index, 1);
+      
+      // Propagate changes to parent
+      if (onSubjectChange) {
+        onSubjectChange("Groups", updatedGroups);
+      }
+      
+      return updatedGroups;
+    });
   };
 
   const handleGroupTimeChange = (index, startTime, endTime) => {
     if (startTime && endTime) {
-      handleGroupChange(index, "time", `${startTime} - ${endTime}`);
+      setGroups(prevGroups => {
+        const updatedGroups = [...prevGroups];
+        updatedGroups[index] = { 
+          ...updatedGroups[index], 
+          time: `${startTime} - ${endTime}` 
+        };
+        
+        // Propagate changes to parent
+        if (onSubjectChange) {
+          onSubjectChange("Groups", updatedGroups);
+        }
+        
+        return updatedGroups;
+      });
     }
   };
 
   // Availability handlers
+  // When availability changes, propagate only the 'availability' field to parent (tutor entity)
   const handleAvailabilityChange = (field, value) => {
     const updated = { ...availability, [field]: value };
     setAvailability(updated);
+    // Only propagate if not a temp field
+    if (field !== "_tempNewDay" && field !== "_tempNewTime" && onTutorChange) {
+      const { _tempNewDay, _tempNewTime, ...toSend } = updated;
+      onTutorChange("availability", toSend);
+    }
   };
 
   const handleAddAvailabilityTime = () => {
@@ -80,12 +126,12 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
     
     if (!newDay || !startTime || !endTime) return;
     
-    // Format as string: "Monday, 10:00 - 11:00"
-    const newEntry = `${newDay}, ${startTime} - ${endTime}`;
+    // Format as an object to match the backend schema
+    const newEntry = { days: [newDay], hours: newTime };
     
     const updatedTimes = editingIndex !== null
       ? availability.times.map((item, i) => i === editingIndex ? newEntry : item)
-      : [...availability.times, newEntry];
+      : [...(availability.times || []), newEntry];
     
     const updated = {
       ...availability,
@@ -95,33 +141,28 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
     };
     
     setAvailability(updated);
-    onTutorChange({
-      ...tutor,
-      personalAvailability: {
-        times: updatedTimes,
-        note: availability.note
-      }
-    });
+    if (onTutorChange) {
+      const { _tempNewDay, _tempNewTime, ...toSend } = updated;
+      onTutorChange("availability", toSend);
+    }
     setEditingIndex(null);
   };
 
   const handleEditAvailabilityTime = (index) => {
     const entry = availability.times[index];
-    if (typeof entry === 'string') {
+    // Handle object format
+    if (entry && typeof entry === 'object' && entry.days && entry.hours) {
+      setAvailability({
+        ...availability,
+        _tempNewDay: Array.isArray(entry.days) ? entry.days[0] : entry.days,
+        _tempNewTime: entry.hours
+      });
+    } else if (typeof entry === 'string') { // Fallback for old string data
       const [day, time] = entry.split(', ');
       setAvailability({
         ...availability,
         _tempNewDay: day,
         _tempNewTime: time
-      });
-    } else {
-      // Handle object format if exists
-      const days = Array.isArray(entry.days) ? entry.days.join(", ") : entry.days || "";
-      const hours = entry.hours || "";
-      setAvailability({
-        ...availability,
-        _tempNewDay: days,
-        _tempNewTime: hours
       });
     }
     setEditingIndex(index);
@@ -134,16 +175,11 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
       ...availability,
       times: updatedTimes
     };
-    
     setAvailability(updated);
-    onTutorChange({
-      ...tutor,
-      personalAvailability: {
-        times: updatedTimes,
-        note: availability.note
-      }
-    });
-    
+    if (onTutorChange) {
+      const { _tempNewDay, _tempNewTime, ...toSend } = updated;
+      onTutorChange("availability", toSend);
+    }
     if (editingIndex === index) setEditingIndex(null);
   };
 
@@ -435,7 +471,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
         );
       })}
 
-      <Button onClick={handleAddGroup} className="w-fit">
+            <Button type="button" onClick={handleAddGroup} className="w-fit">
         <Plus className="w-4 h-4 mr-2" /> {t("addGroup")}
       </Button>
 
@@ -616,59 +652,55 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                           <Clock className="h-5 w-5 text-muted-foreground" />
                         </span>
                       </Listbox.Button>
-                      <Transition
-                        as={Fragment}
-                        leave="transition ease-in duration-100"
-                        leaveFrom="opacity-100"
-                        leaveTo="opacity-0"
-                      >
-                        <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-background py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                          {timeSlots.map((time) => (
-                            <Listbox.Option
-                              key={time}
-                              className={({ active }) =>
-                                cn(
-                                  "relative cursor-pointer select-none py-2 pl-10 pr-4",
-                                  active ? "bg-accent text-accent-foreground" : "text-foreground",
-                                  timeSlots.indexOf(time) <=
-                                    timeSlots.indexOf(
-                                      availability._tempNewTime?.split(" - ")[0] || timeSlots[0]
-                                    )
-                                    ? "opacity-50 cursor-not-allowed"
-                                    : ""
-                                )
-                              }
-                              value={time}
-                              disabled={
-                                timeSlots.indexOf(time) <=
-                                timeSlots.indexOf(
-                                  availability._tempNewTime?.split(" - ")[0] || timeSlots[0]
-                                )
-                              }
-                            >
-                              {({ selected }) => (
-                                <>
-                                  <span
-                                    className={cn(
-                                      "block truncate",
-                                      selected ? "font-medium" : "font-normal"
-                                    )}
-                                  >
-                                    {time}
-                                  </span>
-                                  {selected ? (
-                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary">
-                                      <CheckCircle className="h-5 w-5" />
-                                    </span>
-                                  ) : null}
-                                </>
-                              )}
-                            </Listbox.Option>
-                          ))}
-                        </Listbox.Options>
-                      </Transition>
-                    </div>
-                  </Listbox>
+    <Transition
+      as={Fragment}
+      leave="transition ease-in duration-100"
+      leaveFrom="opacity-100"
+      leaveTo="opacity-0"
+    >
+      <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-background py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+        {timeSlots.map((time) => {
+          // Get the current start time from temp availability
+          const startTimeVal = availability._tempNewTime?.split(" - ")[0] || timeSlots[0];
+          const isDisabled = timeSlots.indexOf(time) <= timeSlots.indexOf(startTimeVal);
+          
+          return (
+            <Listbox.Option
+              key={time}
+              className={({ active }) =>
+                cn(
+                  "relative cursor-pointer select-none py-2 pl-10 pr-4",
+                  active ? "bg-accent text-accent-foreground" : "text-foreground",
+                  isDisabled ? "opacity-50 cursor-not-allowed" : ""
+                )
+              }
+              value={time}
+              disabled={isDisabled}
+            >
+              {({ selected }) => (
+                <>
+                  <span
+                    className={cn(
+                      "block truncate",
+                      selected ? "font-medium" : "font-normal"
+                    )}
+                  >
+                    {time}
+                  </span>
+                  {selected && (
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary">
+                      <CheckCircle className="h-5 w-5" />
+                    </span>
+                  )}
+                </>
+              )}
+            </Listbox.Option>
+          );
+        })}
+      </Listbox.Options>
+    </Transition>
+  </div>
+</Listbox>
                 </div>
               </div>
               <div className="flex gap-2">

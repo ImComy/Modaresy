@@ -75,9 +75,14 @@ export async function updateProfile(req, res) {
             typeof updated_information.social_media === 'object' && 
             !Array.isArray(updated_information.social_media)) {
             
+            // Create a new Map from the updated object
+            const newSocialMap = new Map();
             Object.entries(updated_information.social_media).forEach(([key, value]) => {
-                teacher.social_media.set(key, value || ''); // Set to empty string if null/undefined
+                newSocialMap.set(key, value || '');
             });
+            
+            // Replace the entire map
+            teacher.social_media = newSocialMap;
         }
 
         // --- Handle Personal Availability (Referenced Document) ---
