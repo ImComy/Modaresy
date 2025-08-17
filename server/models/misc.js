@@ -2,7 +2,14 @@ import mongoose, { Schema } from 'mongoose';
 import {weekDays} from './constants.js';
 
 export const TimesSchema = new Schema({
-  days: { type: [String], required: true, enum: weekDays},
+  days: { 
+    type: [String], 
+    required: true, 
+    enum: weekDays,
+    set: function(days) {
+      return Array.isArray(days) ? days : [days];
+    }
+  },
   hours: { type: String, required: true }
 });
 

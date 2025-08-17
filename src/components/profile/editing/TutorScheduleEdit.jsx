@@ -88,23 +88,34 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
     });
   };
 
-  const handleGroupTimeChange = (index, startTime, endTime) => {
-    if (startTime && endTime) {
-      setGroups(prevGroups => {
-        const updatedGroups = [...prevGroups];
-        updatedGroups[index] = { 
-          ...updatedGroups[index], 
-          time: `${startTime} - ${endTime}` 
-        };
-        
-        // Propagate changes to parent
-        if (onSubjectChange) {
-          onSubjectChange("Groups", updatedGroups);
-        }
-        
-        return updatedGroups;
-      });
-    }
+  const handleGroupTimeChange = (index, newStart, newEnd) => {
+    setGroups(prevGroups => {
+      const updatedGroups = [...prevGroups];
+      const currentGroup = prevGroups[index];
+      
+      // Get current time parts
+      const parts = currentGroup.time ? currentGroup.time.split(" - ") : [];
+      let currentStart = parts[0] || '';
+      let currentEnd = parts[1] || '';
+
+      // Update only the changed part
+      const start = newStart !== undefined ? newStart : currentStart;
+      const end = newEnd !== undefined ? newEnd : currentEnd;
+
+      // Combine into new time string
+      const newTime = start + (end ? ` - ${end}` : '');
+
+      updatedGroups[index] = { 
+        ...currentGroup, 
+        time: newTime
+      };
+      
+      if (onSubjectChange) {
+        onSubjectChange("Groups", updatedGroups);
+      }
+      
+      return updatedGroups;
+    });
   };
 
   // Availability handlers
@@ -123,11 +134,14 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
     const newDay = availability._tempNewDay;
     const newTime = availability._tempNewTime;
     const [startTime, endTime] = newTime ? newTime.split(" - ") : ["", ""];
+    const daysArray = Array.isArray(newDay) ? newDay : [newDay];
     
     if (!newDay || !startTime || !endTime) return;
     
-    // Format as an object to match the backend schema
-    const newEntry = { days: [newDay], hours: newTime };
+    const newEntry = { 
+      days: daysArray, 
+      hours: newTime 
+    };
     
     const updatedTimes = editingIndex !== null
       ? availability.times.map((item, i) => i === editingIndex ? newEntry : item)
@@ -150,14 +164,15 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
 
   const handleEditAvailabilityTime = (index) => {
     const entry = availability.times[index];
-    // Handle object format
     if (entry && typeof entry === 'object' && entry.days && entry.hours) {
+      const daysArray = Array.isArray(entry.days) ? entry.days : [entry.days];
+      
       setAvailability({
         ...availability,
-        _tempNewDay: Array.isArray(entry.days) ? entry.days[0] : entry.days,
+        _tempNewDay: daysArray,
         _tempNewTime: entry.hours
       });
-    } else if (typeof entry === 'string') { // Fallback for old string data
+    } else if (typeof entry === 'string') { 
       const [day, time] = entry.split(', ');
       setAvailability({
         ...availability,
@@ -523,14 +538,18 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
 
             <div className="space-y-2 mt-2">
               <div className="flex flex-col gap-2">
+                {/* Tutor Availability: Day Selection */}
                 <Listbox
-                  value={availability._tempNewDay || ""}
+                  multiple  // Add this prop to enable multiple selection
+                  value={availability._tempNewDay || []}  // Should be an array
                   onChange={(value) => setAvailability({...availability, _tempNewDay: value})}
                 >
                   <div className="relative flex-1">
                     <Listbox.Button className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary">
                       <span className="block truncate">
-                        {availability._tempNewDay || t("selectDay")}
+                        {Array.isArray(availability._tempNewDay) && availability._tempNewDay.length > 0
+                          ? availability._tempNewDay.join(", ") 
+                          : t("selectDay")}
                       </span>
                       <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
                         <CalendarDays className="h-5 w-5 text-muted-foreground" />
@@ -652,55 +671,55 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                           <Clock className="h-5 w-5 text-muted-foreground" />
                         </span>
                       </Listbox.Button>
-    <Transition
-      as={Fragment}
-      leave="transition ease-in duration-100"
-      leaveFrom="opacity-100"
-      leaveTo="opacity-0"
-    >
-      <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-background py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-        {timeSlots.map((time) => {
-          // Get the current start time from temp availability
-          const startTimeVal = availability._tempNewTime?.split(" - ")[0] || timeSlots[0];
-          const isDisabled = timeSlots.indexOf(time) <= timeSlots.indexOf(startTimeVal);
-          
-          return (
-            <Listbox.Option
-              key={time}
-              className={({ active }) =>
-                cn(
-                  "relative cursor-pointer select-none py-2 pl-10 pr-4",
-                  active ? "bg-accent text-accent-foreground" : "text-foreground",
-                  isDisabled ? "opacity-50 cursor-not-allowed" : ""
-                )
-              }
-              value={time}
-              disabled={isDisabled}
-            >
-              {({ selected }) => (
-                <>
-                  <span
-                    className={cn(
-                      "block truncate",
-                      selected ? "font-medium" : "font-normal"
-                    )}
-                  >
-                    {time}
-                  </span>
-                  {selected && (
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary">
-                      <CheckCircle className="h-5 w-5" />
-                    </span>
-                  )}
-                </>
-              )}
-            </Listbox.Option>
-          );
-        })}
-      </Listbox.Options>
-    </Transition>
-  </div>
-</Listbox>
+                      <Transition
+                        as={Fragment}
+                        leave="transition ease-in duration-100"
+                        leaveFrom="opacity-100"
+                        leaveTo="opacity-0"
+                      >
+                        <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-background py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                          {timeSlots.map((time) => {
+                            // Get the current start time from temp availability
+                            const startTimeVal = availability._tempNewTime?.split(" - ")[0] || timeSlots[0];
+                            const isDisabled = timeSlots.indexOf(time) <= timeSlots.indexOf(startTimeVal);
+                            
+                            return (
+                              <Listbox.Option
+                                key={time}
+                                className={({ active }) =>
+                                  cn(
+                                    "relative cursor-pointer select-none py-2 pl-10 pr-4",
+                                    active ? "bg-accent text-accent-foreground" : "text-foreground",
+                                    isDisabled ? "opacity-50 cursor-not-allowed" : ""
+                                  )
+                                }
+                                value={time}
+                                disabled={isDisabled}
+                              >
+                                {({ selected }) => (
+                                  <>
+                                    <span
+                                      className={cn(
+                                        "block truncate",
+                                        selected ? "font-medium" : "font-normal"
+                                      )}
+                                    >
+                                      {time}
+                                    </span>
+                                    {selected && (
+                                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary">
+                                        <CheckCircle className="h-5 w-5" />
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </Listbox.Option>
+                            );
+                          })}
+                        </Listbox.Options>
+                      </Transition>
+                    </div>
+                  </Listbox>
                 </div>
               </div>
               <div className="flex gap-2">
