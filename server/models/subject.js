@@ -47,20 +47,68 @@ const SubjectProfileSchema = new Schema({
   teacher_id: { type: mongoose.Types.ObjectId, ref: 'Teacher', required: true },
   user_type: { type: String, enum: ["tutor", "student"], required: true },
   description: String,
-  group_pricing: { type: Number, min: 0 },
-  price_period: { type: String, enum: PricePeriod },
-  private_pricing: { type: mongoose.Types.ObjectId, ref: 'PrivatePricing' },
-  offer_id: { type: mongoose.Types.ObjectId, ref: 'Offer', default: null },
-  payment_methods: { type: [String], enum: PaymentMethods, default: ['Cash'] },
-  payment_timing: { type: String, enum: PaymentTimings, required: true, default: "Postpaid" },
+  group_pricing: { 
+    price: { type: Number, min: 0 },
+    price_period: { type: String, enum: PricePeriod },
+    offer: {  
+      percentage: Number,
+      from: String,
+      to: String,
+      description: String
+    }
+  },
+  private_pricing: { 
+    price: Number,
+    price_period: { type: String, enum: PricePeriod },
+    note: String,
+    offer: {  
+      percentage: Number,
+      from: String,
+      to: String,
+      description: String
+    }
+  },
+  additional_pricing: [{  
+    name: String,
+    price: Number,
+    period: { type: String, enum: PricePeriod },
+    description: String,
+    offer: {  
+      percentage: Number,
+      from: String,
+      to: String,
+      description: String
+    }
+  }],
+  payment_methods: { 
+    type: [String], 
+    enum: PaymentMethods, 
+    validate: {
+      validator: methods => methods.length > 0,
+      message: "At least one payment method is required"
+    },
+    default: ['Cash'] 
+  },
+  payment_timing: { 
+    type: String, 
+    enum: PaymentTimings, 
+    required: true, 
+    default: "Postpaid" 
+  },
   groups: { type: [mongoose.Types.ObjectId], ref: 'Group', default: [] },
   session_duration: { type: Number, min: 0 },
   lectures_per_week: { type: Number, min: 0 },
   reviews: { type: [mongoose.Types.ObjectId], ref: 'Review', default: [] },
-  additional_pricing: { type: mongoose.Types.ObjectId, ref: 'AdditionalPricing', default: null },
   youtube: [{
     title: { type: String, required: true },
-    url: { type: String, required: true }
+    url: { 
+      type: String, 
+      required: true,
+      validate: {
+        validator: v => /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/.+$/.test(v),
+        message: "Invalid YouTube URL"
+      }
+    }
   }],
   content: { type: [String], default: [] }
 }, { timestamps: true });

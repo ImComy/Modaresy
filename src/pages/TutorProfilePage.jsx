@@ -66,6 +66,23 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
         existingSubjectsToUpdate.forEach(subject => {
           const { profileId, ...coreData } = subject;
           const { name, grade, education_system, language, sector, years_experience, ...profileData } = coreData;
+
+          // Convert offer percentages to numbers
+          ['group_pricing', 'private_pricing'].forEach(key => {
+            if (profileData[key]?.offer?.percentage) {
+              profileData[key].offer.percentage = Number(profileData[key].offer.percentage);
+            }
+          });
+          
+          if (profileData.additional_pricing) {
+            profileData.additional_pricing = profileData.additional_pricing.map(item => ({
+              ...item,
+              offer: item.offer ? {
+                ...item.offer,
+                percentage: Number(item.offer.percentage) || 0
+              } : null
+            }));
+          }
           
           const coreFields = { name, grade, education_system, language, sector, years_experience };
 

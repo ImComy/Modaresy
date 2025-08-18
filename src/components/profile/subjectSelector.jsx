@@ -145,8 +145,10 @@ const SubjectSelector = ({
               <div className="lg:col-span-2 space-y-8">
                 <SubjectPricingInfo
                   subject={selectedSubject}
-                  onFieldChange={handleNestedChange}
+                  tutor={tutor}
                   isEditing={isEditing}
+                  onFieldChange={handleNestedChange}
+                  onTutorChange={onTutorChange}
                 />
                 
                 <TutorVideoManager

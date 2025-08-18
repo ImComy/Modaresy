@@ -7,10 +7,8 @@ import { useParams } from 'react-router-dom';
 const SubjectPricingInfo = ({
   tutor,
   subject,
-  subjectIndex,
-  setTutor,
   isEditing,
-  markDirty,
+  onFieldChange,
 }) => {
   const { id } = useParams();
   const { authState } = useAuth();
@@ -18,33 +16,19 @@ const SubjectPricingInfo = ({
   const isOwner = isLoggedIn && userId === parseInt(id);
 
   const handleChange = (field, value) => {
-    if (!setTutor || typeof subjectIndex !== 'number') return;
-
-    setTutor(prev => {
-      const updatedSubjects = [...prev.subjects];
-      updatedSubjects[subjectIndex] = {
-        ...updatedSubjects[subjectIndex],
-        [field]: value,
-      };
-      return {
-        ...prev,
-        subjects: updatedSubjects,
-      };
-    });
-
-    if (markDirty) markDirty();
+    onFieldChange(field, value);
   };
 
   return isEditing ? (
     <SubjectPricingInfoEdit
-      {...subject}
       subject={subject}
       onChange={handleChange}
     />
   ) : (
     <SubjectPricingInfoDisplay
-      {...subject}
+      subject={subject}
       isOwner={isOwner}
+      tutor={tutor}
     />
   );
 };

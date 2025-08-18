@@ -1,14 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import { PricePeriod, PaymentTimings, PaymentMethods } from './constants.js';
 
-export const OfferSchema = new Schema({
-  percentage: { type: Number, required: true },
-  start_date: { type: String, required: true },
-  end_date: { type: String, required: true },
-  description: String,
-  for: { type: Number, required: true },
-});
-
 const ReviewSchema = new Schema({
   User_ID: { type: mongoose.Types.ObjectId, ref: 'User', required: true },
   subject_profile: { type: mongoose.Types.ObjectId, ref: 'SubjectProfile', required: true },
@@ -28,7 +20,7 @@ export const AdditionalPricingSchema = new Schema({
 export const PrivatePricingSchema = new Schema({
   price: { type: Number, required: true },
   note: String,
-  price_period: { type: String, enum: PricePeriod, required: true },
+  price_period: { type: String, enum: PricePeriod, required: true }, 
 });
 
 export const GroupSchema = new Schema({
@@ -56,7 +48,6 @@ export const PaymentTimingSchema = new Schema({
   method: { type: String, enum: PaymentMethods, required: true }
 });
 
-export const Offer = mongoose.model('Offer', OfferSchema);
 export const Review = mongoose.model('Review', ReviewSchema);
 export const AdditionalPricing = mongoose.model('AdditionalPricing', AdditionalPricingSchema);
 export const PrivatePricing = mongoose.model('PrivatePricing', PrivatePricingSchema);

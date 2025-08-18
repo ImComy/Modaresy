@@ -188,14 +188,49 @@ export const SubjectService = {
     return profile;
   },
 
-  updateProfile: async (profileId, updateData, teacherId) => {
-    return await runWithRetry(async (session) => {
-      const profile = await SubjectProfile.findOne({
-        _id: profileId,
-        teacher_id: teacherId,
-      }).session(session);
+updateProfile: async (profileId, updateData, teacherId) => {
+  return await runWithRetry(async (session) => {
+    const profile = await SubjectProfile.findOne({
+      _id: profileId,
+      teacher_id: teacherId,
+    }).session(session);
 
-      if (!profile) throw new Error("Profile not found or access denied");
+    if (!profile) throw new Error("Profile not found or access denied");
+
+    // Handle nested offers without Lodash
+    function convertOfferPercentage(obj, path) {
+      const keys = path.split('.');
+      let current = obj;
+      
+      for (let i = 0; i < keys.length - 1; i++) {
+        if (!current[keys[i]]) return;
+        current = current[keys[i]];
+      }
+      
+      const lastKey = keys[keys.length - 1];
+      if (current[lastKey]?.percentage) {
+        current[lastKey].percentage = Number(current[lastKey].percentage);
+      }
+    }
+
+    // Convert percentages for all pricing types
+    convertOfferPercentage(updateData, 'group_pricing.offer');
+    convertOfferPercentage(updateData, 'private_pricing.offer');
+    
+    if (updateData.additional_pricing) {
+      updateData.additional_pricing = updateData.additional_pricing.map(item => {
+        if (item.offer?.percentage) {
+          return {
+            ...item,
+            offer: {
+              ...item.offer,
+              percentage: Number(item.offer.percentage)
+            }
+          };
+        }
+        return item;
+      });
+    }
 
       if (updateData.groups) {
         const groupUpdates = updateData.groups.map(async (groupData) => {
