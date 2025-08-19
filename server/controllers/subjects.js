@@ -163,16 +163,38 @@ deleteSubject: async (req, res) => {
       });
       res.status(201).json(review);
     } catch (err) {
-      res.status(400).json({ error: err.message });
+      res.status(403).json({ error: err.message }); // 403 for permission issues
     }
   },
 
-  approveReview: async (req, res) => {
+  updateReview: async (req, res) => {
     try {
-      const review = await SubjectService.approveReview(req.params.id);
-      res.json(review);
+      const updated = await SubjectService.updateReview(
+        req.params.id,
+        req.user._id,
+        { Rate: req.body.rating, Comment: req.body.comment }
+      );
+      res.json(updated);
     } catch (err) {
-      res.status(400).json({ error: err.message });
+      res.status(403).json({ error: err.message });
+    }
+  },
+
+  deleteReview: async (req, res) => {
+    try {
+      await SubjectService.deleteReview(req.params.id, req.user._id);
+      res.status(204).end();
+    } catch (err) {
+      res.status(403).json({ error: err.message });
+    }
+  },
+
+  getProfileReviews: async (req, res) => {
+    try {
+      const reviews = await SubjectService.getProfileReviews(req.params.profileId);
+      res.json(reviews);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch reviews" });
     }
   },
 

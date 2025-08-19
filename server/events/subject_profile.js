@@ -63,3 +63,21 @@ export async function calculateSubjectProfileRating(subject_profile_id) {
     throw err;
   }
 }
+
+
+export const calculateProfileRating = async (profileId) => {
+  const reviews = await Review.find({ subject_profile: profileId });
+  const total = reviews.reduce((sum, review) => sum + review.Rate, 0);
+  return reviews.length ? parseFloat((total / reviews.length).toFixed(1)) : 0;
+};
+
+export const calculateTeacherRating = async (teacherId) => {
+  const profiles = await SubjectProfile.find({ teacher_id: teacherId });
+  const ratings = await Promise.all(
+    profiles.map(profile => calculateProfileRating(profile._id))
+  );
+  const validRatings = ratings.filter(r => r > 0);
+  return validRatings.length ? 
+    parseFloat((validRatings.reduce((a, b) => a + b, 0) / validRatings.length).toFixed(1)) : 
+    0;
+};

@@ -2,11 +2,18 @@ import mongoose, { Schema } from 'mongoose';
 import { PricePeriod, PaymentTimings, PaymentMethods } from './constants.js';
 
 const ReviewSchema = new Schema({
-  User_ID: { type: mongoose.Types.ObjectId, ref: 'User', required: true },
-  subject_profile: { type: mongoose.Types.ObjectId, ref: 'SubjectProfile', required: true },
-  Rate: { type: Number, required: true, min: 0, max: 5 },
+  User_ID: { 
+    type: mongoose.Types.ObjectId, 
+    ref: 'Student', 
+    required: true 
+  },
+  subject_profile: { 
+    type: mongoose.Types.ObjectId, 
+    ref: 'SubjectProfile', 
+    required: true 
+  },
+  Rate: { type: Number, required: true, min: 1, max: 5 },
   Comment: String,
-  approved: { type: Boolean, default: false, required: true },
   createdAt: { type: Date, default: Date.now }
 });
 

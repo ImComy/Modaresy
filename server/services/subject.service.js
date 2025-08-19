@@ -3,6 +3,8 @@ import { Review, Group } from "../models/subjectRelated.js";
 import mongoose from "mongoose";
 import { SubjectsBySystem } from "../models/constants.js";
 import { Teacher } from "../models/teacher.js";
+import Student from "../models/student.js";
+import { calculateTeacherRating, calculateProfileRating } from '../events/subject_profile.js'
 
 // ====================
 // VALIDATION UTILITIES
@@ -136,7 +138,6 @@ export const SubjectService = {
 
       await SubjectProfile.deleteMany({ subject_id: id }).session(session);
 
-      // Separate teacher updates to reduce conflicts
       await Teacher.updateMany(
         { subjects: id },
         { $pull: { subjects: id } },
@@ -197,7 +198,6 @@ updateProfile: async (profileId, updateData, teacherId) => {
 
     if (!profile) throw new Error("Profile not found or access denied");
 
-    // Handle nested offers without Lodash
     function convertOfferPercentage(obj, path) {
       const keys = path.split('.');
       let current = obj;
@@ -213,7 +213,6 @@ updateProfile: async (profileId, updateData, teacherId) => {
       }
     }
 
-    // Convert percentages for all pricing types
     convertOfferPercentage(updateData, 'group_pricing.offer');
     convertOfferPercentage(updateData, 'private_pricing.offer');
     
@@ -271,40 +270,100 @@ updateProfile: async (profileId, updateData, teacherId) => {
   },
 
   createReview: async ({ profileId, userId, rating, comment }) => {
-    if (rating < 1 || rating > 5) throw new Error("Rating must be 1-5");
+    return await runWithRetry(async (session) => {
+      const student = await Student.findById(userId).session(session);
+      if (!student) throw new Error("Only students can create reviews");
 
-    const review = new Review({
-      subject_profile: profileId,
-      User_ID: userId,
-      Rate: rating,
-      Comment: comment,
-      approved: false,
+      const review = new Review({
+        subject_profile: profileId,
+        User_ID: userId,
+        Rate: rating,
+        Comment: comment
+      });
+
+      await review.save({ session });
+
+      const newRating = await calculateProfileRating(profileId);
+      const updatedProfile = await SubjectProfile.findByIdAndUpdate(
+        profileId,
+        {
+          $addToSet: { reviews: review._id },
+          rating: newRating
+        },
+        { new: true, session }
+      );
+
+      if (updatedProfile) {
+        const teacherRating = await calculateTeacherRating(updatedProfile.teacher_id);
+        await Teacher.findByIdAndUpdate(updatedProfile.teacher_id, { rating: teacherRating }, { session });
+      }
+
+      return review;
     });
-
-    await review.save();
-    return review;
   },
 
-  approveReview: async (reviewId) => {
-    const review = await Review.findByIdAndUpdate(
-      reviewId,
-      { approved: true },
-      { new: true }
-    );
+  updateReview: async (reviewId, userId, updateData) => {
+    return await runWithRetry(async (session) => {
+      const review = await Review.findOne({
+        _id: reviewId,
+        User_ID: userId
+      }).session(session);
 
-    if (!review) throw new Error("Review not found");
+      if (!review) throw new Error("Review not found or access denied");
 
-    const reviews = await Review.find({
-      subject_profile: review.subject_profile,
-      approved: true,
+      if (updateData.Rate !== undefined) review.Rate = updateData.Rate;
+      if (updateData.Comment !== undefined) review.Comment = updateData.Comment;
+
+      await review.save({ session });
+
+      const newRating = await calculateProfileRating(review.subject_profile);
+      const updatedProfile = await SubjectProfile.findByIdAndUpdate(
+        review.subject_profile,
+        { rating: newRating },
+        { new: true, session }
+      );
+
+      if (updatedProfile) {
+        const teacherRating = await calculateTeacherRating(updatedProfile.teacher_id);
+        await Teacher.findByIdAndUpdate(updatedProfile.teacher_id, { rating: teacherRating }, { session });
+      }
+
+      return review;
     });
+  },
 
-    const avg = reviews.reduce((sum, r) => sum + r.Rate, 0) / reviews.length;
-    await SubjectProfile.findByIdAndUpdate(review.subject_profile, {
-      rating: avg.toFixed(1),
+  deleteReview: async (reviewId, userId) => {
+    return await runWithRetry(async (session) => {
+      const review = await Review.findOneAndDelete({
+        _id: reviewId,
+        User_ID: userId
+      }).session(session);
+
+      if (!review) throw new Error("Review not found or access denied");
+
+      const profileId = review.subject_profile;
+
+      const newRating = await calculateProfileRating(profileId);
+      const updatedProfile = await SubjectProfile.findByIdAndUpdate(
+        profileId,
+        {
+          $pull: { reviews: review._id },
+          rating: newRating
+        },
+        { new: true, session }
+      );
+
+      if (updatedProfile) {
+        const teacherRating = await calculateTeacherRating(updatedProfile.teacher_id);
+        await Teacher.findByIdAndUpdate(updatedProfile.teacher_id, { rating: teacherRating }, { session });
+      }
+
+      return review;
     });
+  },
 
-    return review;
+  getProfileReviews: async (profileId) => {
+    return Review.find({ subject_profile: profileId }).populate('User_ID', 'name');
   },
 
   getAllSubjectsPublic: async () => {
@@ -334,6 +393,9 @@ updateProfile: async (profileId, updateData, teacherId) => {
           {
             path: "groups",
           },
+          {
+            path: "reviews",
+          }
         ],
       })
       .lean();

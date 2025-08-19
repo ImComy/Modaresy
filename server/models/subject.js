@@ -7,7 +7,6 @@ import { PricePeriod, PaymentTimings, PaymentMethods } from './constants.js';
 
 const SubjectSchema = new Schema({
   name: { type: String, required: true },
-  rating: { type: Number, min: 0, max: 5, default: 0 },
   grade: {
     type: String,
     required: true,
@@ -47,6 +46,7 @@ const SubjectProfileSchema = new Schema({
   teacher_id: { type: mongoose.Types.ObjectId, ref: 'Teacher', required: true },
   user_type: { type: String, enum: ["tutor", "student"], required: true },
   description: String,
+  rating: { type: Number, min: 0, max: 5, default: 0 },
   group_pricing: { 
     price: { type: Number, min: 0 },
     price_period: { type: String, enum: PricePeriod },
