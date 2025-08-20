@@ -15,6 +15,7 @@ const SubjectSelector = ({
   isOwner,
   onUpdateSubject,
   onTutorChange,
+  onReviewUpdate, 
 }) => {
   const { t } = useTranslation();
   const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(0);
@@ -27,7 +28,6 @@ const SubjectSelector = ({
     onUpdateSubject(selectedSubjectIndex, updatedSubjectData);
   };
   
-  // Ensure selectedSubjectIndex is valid whenever subjects change
   React.useEffect(() => {
     if (subjects.length === 0) {
       if (selectedSubjectIndex !== -1) setSelectedSubjectIndex(-1);
@@ -83,13 +83,11 @@ const SubjectSelector = ({
                     key={subject._id || subject.tempId}
                     type="button"
                     onClick={() => setSelectedSubjectIndex(index)}
-                    className={`
-                      px-3 py-2 rounded-lg border transition-all duration-200
+                    className={`px-3 py-2 rounded-lg border transition-all duration-200
                       flex flex-col items-start min-w-[140px] max-w-[160px] flex-shrink-0
                       ${isActive 
                         ? 'border-primary bg-primary/10 ring-1 ring-primary' 
-                        : 'border-border hover:bg-muted/40'}
-                    `}
+                        : 'border-border hover:bg-muted/40'}`}
                   >
                     <h3 className="font-medium text-sm truncate w-full text-left">{subjectName}</h3>
                     
@@ -159,10 +157,11 @@ const SubjectSelector = ({
                 />
 
                 {!isEditing && (
-                  <TutorReviews
-                    tutorId={tutor._id}
-                    reviews={tutor.reviews || []}
-                  />
+                    <TutorReviews
+                      tutorId={tutor._id}
+                      subjectProfile={selectedSubject}
+                      onReviewUpdate={onReviewUpdate}
+                    />
                 )}
               </div>
 
@@ -219,10 +218,11 @@ const SubjectSelector = ({
             />
             
             {!isEditing && (
-              <TutorReviews
-                tutorId={tutor._id}
-                reviews={tutor.reviews || []}
-              />
+                <TutorReviews
+                  tutorId={tutor._id}
+                  subjectProfile={selectedSubject}
+                  onReviewUpdate={onReviewUpdate}
+                />
             )}
           </div>
         </div> 

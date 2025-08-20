@@ -9,33 +9,35 @@ export async function apiFetch(endpoint, options = {}) {
       ...(options.headers || {}),
     };
 
-    // Debug logs
-    console.log('Making request to:', `${API_BASE}${endpoint}`);
-    console.log('Request options:', { ...options, headers });
+    console.log("apiFetch →", `${API_BASE}${endpoint}`);
+    console.log("options:", { ...options, headers });
 
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers,
     });
 
-    // If not OK, try to parse error JSON or fallback
+    const rawText = await response.text();
+    console.log("apiFetch response status:", response.status, response.statusText);
+    console.log("apiFetch rawText:", rawText);
+
     if (!response.ok) {
-      const errorData = await response.text().then(t => t ? JSON.parse(t) : {});
-      console.error('API Error Response:', errorData);
-      throw new Error(errorData.error || 'Request failed');
+      let parsed;
+      try { parsed = rawText ? JSON.parse(rawText) : {}; }
+      catch { parsed = rawText || { message: rawText }; }
+      const err = new Error(parsed?.error || parsed?.message || String(parsed) || 'Request failed');
+      err.status = response.status;
+      err.body = parsed;
+      console.error("apiFetch throwing error:", err);
+      throw err;
     }
 
-    // Avoid parsing JSON if there's no content
-    if (response.status === 204) {
-      return null;
-    }
+    if (response.status === 204 || !rawText) return null;
 
-    // Parse JSON only if there is a body
-    const text = await response.text();
-    return text ? JSON.parse(text) : null;
-
+    try { return JSON.parse(rawText); }
+    catch { return rawText; }
   } catch (error) {
-    console.error('API Error:', error);
+    console.error("apiFetch caught:", error);
     throw error;
   }
 }

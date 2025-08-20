@@ -161,9 +161,10 @@ deleteSubject: async (req, res) => {
         rating: req.body.rating,
         comment: req.body.comment
       });
-      res.status(201).json(review);
+  res.status(201).json(review);
     } catch (err) {
-      res.status(403).json({ error: err.message }); // 403 for permission issues
+  const status = err.status || (err.message && err.message.toLowerCase().includes('access') ? 403 : 400);
+  res.status(status).json({ error: err.message });
     }
   },
 
@@ -172,11 +173,12 @@ deleteSubject: async (req, res) => {
       const updated = await SubjectService.updateReview(
         req.params.id,
         req.user._id,
-        { Rate: req.body.rating, Comment: req.body.comment }
+        { Rate: req.body.rating, Comment: req.body.comment, rating: req.body.rating, comment: req.body.comment }
       );
       res.json(updated);
     } catch (err) {
-      res.status(403).json({ error: err.message });
+      const status = err.status || (err.message && err.message.toLowerCase().includes('access') ? 403 : 400);
+      res.status(status).json({ error: err.message });
     }
   },
 
@@ -185,7 +187,8 @@ deleteSubject: async (req, res) => {
       await SubjectService.deleteReview(req.params.id, req.user._id);
       res.status(204).end();
     } catch (err) {
-      res.status(403).json({ error: err.message });
+  const status = err.status || (err.message && err.message.toLowerCase().includes('access') ? 403 : 400);
+  res.status(status).json({ error: err.message });
     }
   },
 

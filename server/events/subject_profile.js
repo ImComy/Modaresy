@@ -1,5 +1,6 @@
 import { Review } from "../models/subjectRelated.js";
 import { SubjectProfile } from "../models/subject.js";
+import { Teacher } from "../models/teacher.js";
 
 export async function calculateSubjectProfileRating(subject_profile_id) {
   try {
@@ -64,20 +65,51 @@ export async function calculateSubjectProfileRating(subject_profile_id) {
   }
 }
 
+export const calculateProfileRating = async (profileId, session = null) => {
+  const query = Review.find({ subject_profile: profileId }).select('Rate');
+  if (session) query.session(session);
+  const reviews = await query.lean();
 
-export const calculateProfileRating = async (profileId) => {
-  const reviews = await Review.find({ subject_profile: profileId });
-  const total = reviews.reduce((sum, review) => sum + review.Rate, 0);
-  return reviews.length ? parseFloat((total / reviews.length).toFixed(1)) : 0;
+  const numericRates = (reviews || [])
+    .map((r) => Number(r?.Rate))
+    .filter((v) => Number.isFinite(v) && v > 0);
+
+  if (!numericRates.length) return null;
+
+  const total = numericRates.reduce((s, v) => s + v, 0);
+  return parseFloat((total / numericRates.length).toFixed(1));
 };
 
-export const calculateTeacherRating = async (teacherId) => {
-  const profiles = await SubjectProfile.find({ teacher_id: teacherId });
+export const calculateTeacherRating = async (teacherId, session = null) => {
+  const q = SubjectProfile.find({ teacher_id: teacherId }).select('_id');
+  if (session) q.session(session);
+  const profiles = await q.lean();
+
   const ratings = await Promise.all(
-    profiles.map(profile => calculateProfileRating(profile._id))
+    (profiles || []).map((p) => calculateProfileRating(p._id, session))
   );
-  const validRatings = ratings.filter(r => r > 0);
-  return validRatings.length ? 
-    parseFloat((validRatings.reduce((a, b) => a + b, 0) / validRatings.length).toFixed(1)) : 
-    0;
+
+  const validRatings = ratings.filter((r) => typeof r === 'number' && Number.isFinite(r) && r > 0);
+
+  if (!validRatings.length) return 0;
+  const sum = validRatings.reduce((a, b) => a + b, 0);
+  return parseFloat((sum / validRatings.length).toFixed(1));
+};
+
+export const updateRatingsForProfile = async (profileId, session = null) => {
+  const profileRating = await calculateProfileRating(profileId, session);
+  const finalProfileRating = profileRating === null ? 0 : profileRating;
+
+  const profile = await SubjectProfile.findByIdAndUpdate(
+    profileId,
+    { rating: finalProfileRating },
+    { new: true, session }
+  ).lean();
+
+  if (profile && profile.teacher_id) {
+    const teacherRating = await calculateTeacherRating(profile.teacher_id, session);
+    await Teacher.findByIdAndUpdate(profile.teacher_id, { rating: teacherRating }, { session });
+  }
+
+  return { profileRating: finalProfileRating };
 };

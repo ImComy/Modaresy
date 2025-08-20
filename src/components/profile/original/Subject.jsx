@@ -100,7 +100,7 @@ const SubjectPricingInfoDisplay = (props) => {
           offer: it.offer || null
         })),
       bio: fromSubject.description ?? propBio ?? "",
-      rating: fromSubject.subjectRating ?? propRating ?? null,
+      rating: fromSubject.rating ?? propRating ?? null,
       paymentTiming: fromSubject.payment_timing ?? propPaymentTiming ?? null,
       paymentMethods: fromSubject.payment_methods ?? propPaymentMethods ?? [],
     };
@@ -179,14 +179,23 @@ const SubjectPricingInfoDisplay = (props) => {
 
   return (
     <Card className="w-full border-muted shadow-sm rounded-xl relative overflow-visible">
-      {typeof normalized.rating === "number" && (
-        <div className="absolute -top-3 right-4 bg-background px-3 py-1 border border-muted rounded-full shadow-sm flex items-center gap-1 text-sm">
-          {renderStars(normalized.rating)}
-          <span className="text-xs text-muted-foreground">
-            ({normalized.rating.toFixed(1)})
-          </span>
-        </div>
-      )}
+      {typeof normalized.rating === "number" ? (
+        normalized.rating > 0 ? (
+          <div className="absolute -top-3 right-4 bg-background px-3 py-1 border border-muted rounded-full shadow-sm flex items-center gap-1 text-sm">
+            {renderStars(normalized.rating)}
+            <span className="text-xs text-muted-foreground">
+              ({normalized.rating.toFixed(1)})
+            </span>
+          </div>
+        ) : (
+          <div className="absolute -top-3 right-4 bg-background px-3 py-1 border border-muted rounded-full shadow-sm flex items-center gap-1 text-sm">
+            <span className="text-xs text-muted-foreground">
+              {t('noReviews', 'No reviews')}
+            </span>
+          </div>
+        )
+      ) : null}
+
 
       <CardContent className="p-4 space-y-5">
         <div className="space-y-3 p-4 bg-muted/30 rounded-xl border border-muted">

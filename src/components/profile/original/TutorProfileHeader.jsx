@@ -116,11 +116,17 @@ const ProfileSection = ({ tutor, isInWishlist, handleWishlistToggle, averageRati
         
         {/* Rating Display */}
         <div className="text-sm text-muted-foreground flex justify-center items-center gap-1">
-          {typeof averageRating === 'number' ? (
-            <>
-              {renderStars(averageRating)} <span>({averageRating.toFixed(1)})</span>
-            </>
-          ) : t('noRating')}
+          {typeof averageRating === 'number' && !isNaN(averageRating) ? (
+            averageRating > 0 ? (
+              <>
+                {renderStars(averageRating)} <span>({averageRating.toFixed(1)})</span>
+              </>
+            ) : (
+              <span>{t('noReviews', 'No reviews')}</span>
+            )
+          ) : (
+            t('noRating')
+          )}
         </div>
         
         {/* Location Display */}

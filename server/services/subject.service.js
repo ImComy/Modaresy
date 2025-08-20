@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import { SubjectsBySystem } from "../models/constants.js";
 import { Teacher } from "../models/teacher.js";
 import Student from "../models/student.js";
-import { calculateTeacherRating, calculateProfileRating } from '../events/subject_profile.js'
+import { calculateTeacherRating, calculateProfileRating, updateRatingsForProfile } from '../events/subject_profile.js'
 
 // ====================
 // VALIDATION UTILITIES
@@ -271,39 +271,65 @@ updateProfile: async (profileId, updateData, teacherId) => {
 
   createReview: async ({ profileId, userId, rating, comment }) => {
     return await runWithRetry(async (session) => {
+      if (!mongoose.Types.ObjectId.isValid(profileId)) {
+          throw new Error("Invalid profile ID");
+      }
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+          throw new Error("Invalid user ID");
+      }
+
       const student = await Student.findById(userId).session(session);
       if (!student) throw new Error("Only students can create reviews");
 
-      const review = new Review({
-        subject_profile: profileId,
-        User_ID: userId,
-        Rate: rating,
-        Comment: comment
-      });
-
-      await review.save({ session });
-
-      const newRating = await calculateProfileRating(profileId);
-      const updatedProfile = await SubjectProfile.findByIdAndUpdate(
-        profileId,
-        {
-          $addToSet: { reviews: review._id },
-          rating: newRating
-        },
-        { new: true, session }
-      );
-
-      if (updatedProfile) {
-        const teacherRating = await calculateTeacherRating(updatedProfile.teacher_id);
-        await Teacher.findByIdAndUpdate(updatedProfile.teacher_id, { rating: teacherRating }, { session });
+      const existing = await Review.findOne({ subject_profile: profileId, User_ID: userId }).session(session);
+      if (existing) {
+        const err = new Error('Student already reviewed this profile');
+        err.status = 409;
+        throw err;
       }
 
-      return review;
+      const review = new Review({
+          subject_profile: profileId,
+          User_ID: userId,
+          Rate: rating, 
+          rating: rating, 
+          Comment: comment, 
+          comment: comment,
+      });
+
+      try {
+        await review.save({ session });
+      } catch (err) {
+        if (err.code === 11000) {
+          const e = new Error('Student already reviewed this profile');
+          e.status = 409;
+          throw e;
+        }
+        throw err;
+      }
+      await SubjectProfile.findByIdAndUpdate(
+        profileId,
+        { $addToSet: { reviews: review._id } },
+        { session }
+      );
+
+      await updateRatingsForProfile(profileId, session);
+
+      const populated = await Review.findById(review._id).populate('User_ID', 'name').session(session);
+      return populated;
     });
   },
 
   updateReview: async (reviewId, userId, updateData) => {
     return await runWithRetry(async (session) => {
+      // Add proper ObjectId validation at the beginning
+      if (!mongoose.Types.ObjectId.isValid(reviewId)) {
+          throw new Error("Invalid review ID");
+      }
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+          throw new Error("Invalid user ID");
+      }
+
       const review = await Review.findOne({
         _id: reviewId,
         User_ID: userId
@@ -312,28 +338,28 @@ updateProfile: async (profileId, updateData, teacherId) => {
       if (!review) throw new Error("Review not found or access denied");
 
       if (updateData.Rate !== undefined) review.Rate = updateData.Rate;
+      if (updateData.rating !== undefined) review.Rate = updateData.rating;
       if (updateData.Comment !== undefined) review.Comment = updateData.Comment;
+      if (updateData.comment !== undefined) review.Comment = updateData.comment;
 
-      await review.save({ session });
+  await review.save({ session });
 
-      const newRating = await calculateProfileRating(review.subject_profile);
-      const updatedProfile = await SubjectProfile.findByIdAndUpdate(
-        review.subject_profile,
-        { rating: newRating },
-        { new: true, session }
-      );
+  await updateRatingsForProfile(review.subject_profile, session);
 
-      if (updatedProfile) {
-        const teacherRating = await calculateTeacherRating(updatedProfile.teacher_id);
-        await Teacher.findByIdAndUpdate(updatedProfile.teacher_id, { rating: teacherRating }, { session });
-      }
-
-      return review;
+  const populated = await Review.findById(review._id).populate('User_ID', 'name').session(session);
+  return populated;
     });
   },
 
   deleteReview: async (reviewId, userId) => {
     return await runWithRetry(async (session) => {
+      if (!mongoose.Types.ObjectId.isValid(reviewId)) {
+          throw new Error("Invalid review ID");
+      }
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+          throw new Error("Invalid user ID");
+      }
+
       const review = await Review.findOneAndDelete({
         _id: reviewId,
         User_ID: userId
@@ -343,20 +369,13 @@ updateProfile: async (profileId, updateData, teacherId) => {
 
       const profileId = review.subject_profile;
 
-      const newRating = await calculateProfileRating(profileId);
-      const updatedProfile = await SubjectProfile.findByIdAndUpdate(
+      await SubjectProfile.findByIdAndUpdate(
         profileId,
-        {
-          $pull: { reviews: review._id },
-          rating: newRating
-        },
-        { new: true, session }
+        { $pull: { reviews: review._id } },
+        { session }
       );
 
-      if (updatedProfile) {
-        const teacherRating = await calculateTeacherRating(updatedProfile.teacher_id);
-        await Teacher.findByIdAndUpdate(updatedProfile.teacher_id, { rating: teacherRating }, { session });
-      }
+      await updateRatingsForProfile(profileId, session);
 
       return review;
     });

@@ -17,6 +17,8 @@ const ReviewSchema = new Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+ReviewSchema.index({ subject_profile: 1, User_ID: 1 }, { unique: true });
+
 export const AdditionalPricingSchema = new Schema({
   name: { type: String, required: true },
   price: { type: Number, required: true },

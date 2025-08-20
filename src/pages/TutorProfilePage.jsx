@@ -38,7 +38,6 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
     initialData: tutor,
     onSaveCallback: async (updatedData) => {
       try {
-        // Logic to differentiate between new, updated, and deleted subjects
         const originalSubjects = tutor?.subjects || [];
         const updatedSubjects = updatedData.subjects || [];
 
@@ -49,25 +48,20 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
         const deletedSubjectIds = originalSubjects.filter(s => !updatedSubjectIds.has(s._id)).map(s => s._id);
         const existingSubjectsToUpdate = updatedSubjects.filter(s => s._id && originalSubjectIds.has(s._id));
 
-        // Perform API calls
         const promises = [];
 
-        // Add new subjects
         addedSubjects.forEach(subject => {
           promises.push(addSubjectToBackend(subject));
         });
 
-        // Delete subjects
         deletedSubjectIds.forEach(subjectId => {
           promises.push(deleteSubjectFromBackend(subjectId));
         });
 
-        // Update existing subjects
         existingSubjectsToUpdate.forEach(subject => {
           const { profileId, ...coreData } = subject;
           const { name, grade, education_system, language, sector, years_experience, ...profileData } = coreData;
 
-          // Convert offer percentages to numbers
           ['group_pricing', 'private_pricing'].forEach(key => {
             if (profileData[key]?.offer?.percentage) {
               profileData[key].offer.percentage = Number(profileData[key].offer.percentage);
@@ -86,10 +80,8 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
           
           const coreFields = { name, grade, education_system, language, sector, years_experience };
 
-          // Update base subject
           promises.push(updateSubjectInBackend(subject._id, coreFields));
 
-          // Update subject profile
           if (profileId) {
             const profileFields = Object.keys(profileData).reduce((acc, key) => {
               if (!['subjects', '_id', 'tutor_id', 'createdAt', 'updatedAt', '__v'].includes(key)) {
@@ -101,7 +93,6 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
           }
         });
 
-        // Update main tutor profile (excluding subjects)
         const tutorProfileData = { ...updatedData };
         delete tutorProfileData.subjects;
         promises.push(apiFetch('/tutors/updateProfile', {
@@ -122,7 +113,6 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
     onCancelCallback: () => reset()
   });
 
-  // ====== Subject Handlers (Local State Management) ======
   const addSubject = (newSubject) => {
     const updatedSubjects = [...(editedData?.subjects || []), { ...newSubject, tempId: Date.now() }];
     updateField('subjects', updatedSubjects);
@@ -144,7 +134,6 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
     updateField('subjects', updatedSubjects);
   };
 
-  // Prevent form from causing a full page reload
   const handleSubmit = async (e) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     if (!hasChanges) return;
@@ -155,7 +144,6 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
     }
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -165,7 +153,6 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
     );
   }
 
-  // Error state
   if (!tutor) {
     return <div className="text-center py-10">{t('tutorNotFound')}</div>;
   }
@@ -184,7 +171,7 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
             isSaving={isSubmitting}
             startEditing={startEditing}
             cancelEditing={cancelEditing}
-            onSave={saveChanges} // saveChanges is called by button; handleSubmit handles enter/submit
+            onSave={saveChanges} 
           />
         )}
 
@@ -206,6 +193,7 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
           onUpdateSubject={updateSubject}
           onDeleteSubject={removeSubject}
           onTutorChange={updateField}
+          onReviewUpdate={() => fetchTutorData(tutor._id)}
         />
       </form>
     </motion.div>
