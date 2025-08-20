@@ -3,6 +3,7 @@ import React, { createContext, useState, useEffect, useContext, useCallback } fr
 import { useToast } from '@/components/ui/use-toast';
 import { studentService } from '@/api/student';
 import { mockTutors } from '@/data/enhanced';
+import { apiFetch } from '@/api/apiService';
 
 const WishlistContext = createContext();
 
@@ -16,46 +17,99 @@ export const useWishlist = () => {
 
 export const WishlistProvider = ({ children }) => {
   const [wishlistIds, setWishlistIds] = useState([]);
+  const [wishlistTutorsState, setWishlistTutorsState] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Safe getter for wishlist tutors
-  const getWishlistTutors = useCallback(() => {
-    if (!Array.isArray(wishlistIds)) return [];
-    return mockTutors.filter(tutor => 
-      wishlistIds.includes(String(tutor._id || tutor.id))
-    ) || [];
-  }, [wishlistIds]);
+  const fetchWishlist = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await studentService.getWishlist();
+      const ids = Array.isArray(response) ? response.map(String) : [];
+      setWishlistIds(ids);
+    } catch (error) {
+      console.error('Failed to load wishlist:', error);
+      setWishlistIds([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  // Fetch wishlist from backend
-const fetchWishlist = useCallback(async () => {
-  setIsLoading(true);
-  try {
-    const response = await studentService.getWishlist();
-    // Ensure we have an array of strings
-    const ids = Array.isArray(response) ? response.map(String) : [];
-    setWishlistIds(ids);
-  } catch (error) {
-    console.error('Failed to load wishlist:', error);
-    setWishlistIds([]); // Fallback to empty array
-  } finally {
-    setIsLoading(false);
-  }
-}, []);
+  const fetchWishlistTutors = useCallback(async (ids) => {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      setWishlistTutorsState([]);
+      return;
+    }
 
-  // Add to wishlist
+    try {
+      const promises = ids.map(async (id) => {
+        try {
+          const [tutorData, subjectsResponse] = await Promise.all([
+            apiFetch(`/tutors/loadTutor/${id}`),
+            apiFetch(`/subjects/load/${id}`)
+          ]);
+
+          let tutor = tutorData?.tutor || tutorData || null;
+          if (!tutor) {
+            tutor = mockTutors.find(t => String(t._id || t.id) === String(id)) || null;
+          }
+
+          if (!tutor) return null;
+
+          if (tutor._id && !tutor.id) tutor.id = String(tutor._id);
+          if (tutor.id && !tutor._id) tutor._id = String(tutor.id);
+
+          const baseSubjects = subjectsResponse?.data?.baseSubjects || [];
+          const subjectProfiles = subjectsResponse?.data?.subjectProfiles || [];
+          const profileMap = new Map();
+          subjectProfiles.forEach(profile => {
+            if (profile.subject_id?._id) {
+              profileMap.set(profile.subject_id._id.toString(), profile);
+            }
+          });
+
+          const mergedSubjects = baseSubjects.map(subject => {
+            const profile = profileMap.get(subject._id.toString());
+            return {
+              ...subject,
+              ...(profile || {}),
+              profileId: profile?._id,
+              _id: subject._id
+            };
+          });
+
+          tutor.subjects = mergedSubjects;
+
+          tutor.name = tutor.name || tutor.fullname || tutor.username || 'Unknown Tutor';
+          tutor.img = tutor.img || tutor.avatar || tutor.photo || '/pfp.png';
+          tutor.bannerimg = tutor.bannerimg || tutor.banner || '';
+          tutor.location = tutor.location || tutor.city || '';
+
+          return tutor;
+        } catch (err) {
+          return mockTutors.find(t => String(t._id || t.id) === String(id)) || null;
+        }
+      });
+
+      const results = await Promise.all(promises);
+      setWishlistTutorsState(results.filter(Boolean));
+    } catch (err) {
+      console.error('Failed to fetch wishlist tutors:', err);
+      setWishlistTutorsState([]);
+    }
+  }, []);
+
   const addToWishlist = useCallback(async (tutorId) => {
     try {
       const id = String(tutorId);
       await studentService.addToWishlist(id);
-      setWishlistIds(prev => [...(prev || []), id]); // Safe array spread
+      setWishlistIds(prev => [...(prev || []), id]);
     } catch (error) {
       console.error('Add to wishlist failed:', error);
       throw error;
     }
   }, []);
 
-  // Remove from wishlist
   const removeFromWishlist = useCallback(async (tutorId) => {
     try {
       const id = String(tutorId);
@@ -67,22 +121,21 @@ const fetchWishlist = useCallback(async () => {
     }
   }, []);
 
-  
-
-  // Check if tutor is in wishlist
   const isInWishlist = useCallback((tutorId) => {
     return (wishlistIds || []).includes(String(tutorId));
   }, [wishlistIds]);
 
-  // Initial load
   useEffect(() => {
     fetchWishlist();
   }, [fetchWishlist]);
 
-  // Context value
+  useEffect(() => {
+    fetchWishlistTutors(wishlistIds || []);
+  }, [wishlistIds, fetchWishlistTutors]);
+
   const contextValue = {
-    wishlistTutors: getWishlistTutors(), // Always returns array
-    wishlistIds: wishlistIds || [], // Always returns array
+    wishlistTutors: wishlistTutorsState,
+    wishlistIds: wishlistIds || [],
     isLoading,
     isInWishlist,
     addToWishlist,

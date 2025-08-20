@@ -17,29 +17,44 @@ export function isStudent(user) {
 export const addToWishlist = async (req, res) => {
   try {
     const { tutorId } = req.body;
+
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!tutorId) return res.status(400).json({ error: 'Missing tutorId' });
+
     const idToStore = String(tutorId);
 
-    let wishlist;
-    if (!req.user.wishlist_id) {
+    // Try to load existing wishlist if there is an id
+    let wishlist = null;
+    if (req.user.wishlist_id) {
+      wishlist = await Wishlist.findById(req.user.wishlist_id);
+    }
+
+    // If wishlist missing for any reason, create a new one and attach to user
+    if (!wishlist) {
       wishlist = new Wishlist({ teacher_ids: [idToStore] });
       await wishlist.save();
       req.user.wishlist_id = wishlist._id;
-    } else {
-      wishlist = await Wishlist.findById(req.user.wishlist_id);
-      
-      if (wishlist.teacher_ids.includes(idToStore)) {
-        return res.status(400).json({ error: "Tutor already in wishlist" });
-      }
-      
-      wishlist.teacher_ids.push(idToStore);
-    }
-    
-    await wishlist.save();
-    await req.user.save();
+      await req.user.save();
 
-    return res.status(200).json({ 
-      message: "Tutor added to wishlist",
-      wishlist: wishlist.teacher_ids 
+      return res.status(200).json({
+        message: 'Tutor added to wishlist',
+        wishlist: wishlist.teacher_ids,
+      });
+    }
+
+    // Ensure array exists
+    if (!Array.isArray(wishlist.teacher_ids)) wishlist.teacher_ids = [];
+
+    if (wishlist.teacher_ids.includes(idToStore)) {
+      return res.status(400).json({ error: 'Tutor already in wishlist' });
+    }
+
+    wishlist.teacher_ids.push(idToStore);
+    await wishlist.save();
+
+    return res.status(200).json({
+      message: 'Tutor added to wishlist',
+      wishlist: wishlist.teacher_ids,
     });
   } catch (err) {
     console.error("Wishlist error:", err);
@@ -52,15 +67,15 @@ export const addToWishlist = async (req, res) => {
 
 export const getWishlistIds = async (req, res) => {
   try {
-    if (!req.user.wishlist_id) {
-      return res.status(200).json({ tutorIds: [] });
-    }
-    
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+
+    if (!req.user.wishlist_id) return res.status(200).json({ tutorIds: [] });
+
     const wishlist = await Wishlist.findById(req.user.wishlist_id);
-    if (!wishlist) {
+    if (!wishlist || !Array.isArray(wishlist.teacher_ids)) {
       return res.status(200).json({ tutorIds: [] });
     }
-    
+
     return res.status(200).json({ tutorIds: wishlist.teacher_ids });
   } catch (err) {
     return res.status(500).json({ 
@@ -73,23 +88,25 @@ export const getWishlistIds = async (req, res) => {
 export const removeFromWishlist = async (req, res) => {
   try {
     const { tutorId } = req.body;
-    const wishlist = await Wishlist.findById(req.user.wishlist_id); // Need to actually fetch it
-    
-    if (!wishlist) return res.status(404).json({ error: "Wishlist not found" });
-    
-    // Convert to string for consistency
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!tutorId) return res.status(400).json({ error: 'Missing tutorId' });
+
+    if (!req.user.wishlist_id) return res.status(404).json({ error: 'Wishlist not found' });
+
+    const wishlist = await Wishlist.findById(req.user.wishlist_id);
+    if (!wishlist) return res.status(404).json({ error: 'Wishlist not found' });
+
     const idToRemove = String(tutorId);
-    
-    if (!wishlist.teacher_ids.includes(idToRemove)) {
-      return res.status(400).json({ error: "Tutor not in wishlist" });
+    if (!Array.isArray(wishlist.teacher_ids) || !wishlist.teacher_ids.includes(idToRemove)) {
+      return res.status(400).json({ error: 'Tutor not in wishlist' });
     }
-    
+
     wishlist.teacher_ids = wishlist.teacher_ids.filter(id => id !== idToRemove);
     await wishlist.save();
-    
-    return res.status(200).json({ 
-      message: "Tutor removed from wishlist",
-      tutorIds: wishlist.teacher_ids 
+
+    return res.status(200).json({
+      message: 'Tutor removed from wishlist',
+      tutorIds: wishlist.teacher_ids,
     });
   } catch (err) {
     return res.status(500).json({ 

@@ -19,7 +19,6 @@ const WishlistPage = () => {
     removeFromWishlist 
   } = useWishlist();
 
-  // Refresh wishlist on mount and handle errors
   useEffect(() => {
     const loadWishlist = async () => {
       try {
