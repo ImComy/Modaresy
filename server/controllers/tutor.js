@@ -1,5 +1,5 @@
 import { getProfileData } from '../services/authentication.service.js';
-import { enrollStudent } from '../services/tutor.service.js';
+import { enrollStudent, filterTutors } from '../services/tutor.service.js';
 import { Teacher } from '../models/teacher.js';
 import { PersonalAvailability } from '../models/misc.js';
 
@@ -43,7 +43,6 @@ export async function updateProfile(req, res) {
             return res.status(400).json({ error: 'Invalid update data format' });
         }
 
-        // --- Direct Teacher Fields ---
         const teacherUpdateData = {
             name: updated_information.name,
             img: updated_information.img,
@@ -55,37 +54,30 @@ export async function updateProfile(req, res) {
             experience_years: updated_information.experience_years,
             rating: updated_information.rating
         };
-        // Remove undefined values to avoid overwriting existing data with null
         Object.keys(teacherUpdateData).forEach(key => {
             if (teacherUpdateData[key] === undefined) {
                 delete teacherUpdateData[key];
             }
         });
 
-        // --- Update Teacher Document ---
         const teacher = await Teacher.findById(req.user._id);
         if (!teacher) {
             return res.status(404).json({ error: 'User not found' });
         }
         Object.assign(teacher, teacherUpdateData);
 
-
-        // --- Handle Social Media (Map) ---
         if (updated_information.social_media && 
             typeof updated_information.social_media === 'object' && 
             !Array.isArray(updated_information.social_media)) {
             
-            // Create a new Map from the updated object
             const newSocialMap = new Map();
             Object.entries(updated_information.social_media).forEach(([key, value]) => {
                 newSocialMap.set(key, value || '');
             });
-            
-            // Replace the entire map
+
             teacher.social_media = newSocialMap;
         }
 
-        // --- Handle Personal Availability (Referenced Document) ---
         if (updated_information.availability) {
             const availabilityData = updated_information.availability;
             if (teacher.availability) {
@@ -94,7 +86,6 @@ export async function updateProfile(req, res) {
                     note: availabilityData.note
                 });
             } else {
-                // If for some reason availability doesn't exist, create it
                 const newAvailability = await PersonalAvailability.create({
                     times: availabilityData.times,
                     note: availabilityData.note
@@ -108,7 +99,7 @@ export async function updateProfile(req, res) {
         const updatedUser = await Teacher.findById(req.user._id)
             .populate('availability')
             .select('-password')
-            .lean(); // Use lean for the final response object
+            .lean(); 
 
         return res.status(200).json({
             message: "Profile updated successfully",
@@ -205,4 +196,33 @@ export async function rejectEnrollment(req, res) {
     } catch (err) {
         return res.status(500).json({ error: "Error rejecting enrollment" });
     }
+}
+
+export async function filterTutorsController(req, res) {
+  try {
+    const filters = {
+      educationSystem: req.query.education_system || req.query.educationSystem,
+      grade: req.query.grade,
+      subject: req.query.subject,
+      language: req.query.language,
+      sector: req.query.sector,
+      governate: req.query.governate,
+      district: req.query.district,
+      minRating: req.query.min_rating 
+        ? parseFloat(req.query.min_rating) 
+        : (req.query.minRating ? parseFloat(req.query.minRating) : undefined),
+      minPrice: req.query.min_price 
+        ? parseFloat(req.query.min_price) 
+        : (req.query.minPrice ? parseFloat(req.query.minPrice) : undefined),
+      maxPrice: req.query.max_price 
+        ? parseFloat(req.query.max_price) 
+        : (req.query.maxPrice ? parseFloat(req.query.maxPrice) : undefined),
+    };
+
+    const filteredTutors = await filterTutors(filters);
+    return res.status(200).json({ tutors: filteredTutors });
+  } catch (error) {
+    console.error("Error in filterTutorsController:", error);
+    return res.status(500).json({ error: error.message });
+  }
 }
