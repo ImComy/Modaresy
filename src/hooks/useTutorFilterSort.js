@@ -37,12 +37,6 @@ const getInitialSearchTerm = () => getStoredValue(LS_KEYS.searchTerm, '');
 const getInitialFilters = () => ({
   subject: getStoredValue(LS_KEYS.filters.subject, 'none'),
   grade: getStoredValue(LS_KEYS.filters.grade, 'none'),
-    constants,
-    loadingConstants,
-    errorConstants,
-    // server fetch state
-    loadingTutors,
-    tutorsError,
   educationSystem: getStoredValue(LS_KEYS.filters.educationSystem, 'all'),
   language: getStoredValue(LS_KEYS.filters.language, 'all'),
 });
@@ -393,7 +387,6 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
     return sorted;
   }, [filteredTutors, sortBy]);
 
-  // expose helpers & options
   return {
     searchTerm,
     setSearchTerm,
@@ -417,7 +410,8 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
     governatesOptions,
     districtsOptions,
     languagesOptions,
-
+    loadingTutors,
+    
     setEducationFromCombo,
     parseCombo,
   };

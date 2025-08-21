@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import GeneralTutorCard from './GeneralTutorCard';
 import { useTranslation } from 'react-i18next';
@@ -7,12 +7,23 @@ import { LogIn, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import debounce from 'lodash/debounce';
+import { apiFetch } from '@/api/apiService';
 
 const INITIAL_TUTORS_COUNT = 12;
 const LOAD_MORE_COUNT = 8;
 const COLUMN_COUNT = 4; // matches xl:columns-4
 const MAX_SUGGESTIONS = 10; // Limit dropdown suggestions
 const DEBOUNCE_DELAY = 300; // Debounce search input
+
+
+const Loader = () => (
+  <div className="flex justify-center items-center py-10">
+    <motion.div
+      className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"
+      aria-label="Loading"
+    />
+  </div>
+);
 
 export const GeneralTutorGrid = ({ tutors }) => {
   const { t } = useTranslation();
@@ -21,6 +32,10 @@ export const GeneralTutorGrid = ({ tutors }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const searchRef = useRef(null);
+  const [recommended, setRecommended] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMoreServer, setHasMoreServer] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const filters = useMemo(() => {
     try {
@@ -46,18 +61,32 @@ export const GeneralTutorGrid = ({ tutors }) => {
     }
   }, []);
 
-  const scoredTutors = useMemo(() => {
-    return tutors.map((tutor) => {
-      let score = 0;
-      const avgRating = tutor.avgRating ?? 0;
+  // If authenticated, use server-provided recommendations; otherwise fallback to passed tutors
+  const sourceTutors = authState.isLoggedIn ? recommended : tutors;
 
-      const hasSubject = filters.subject && tutor.subjects?.some(s => s.subject === filters.subject);
-      const hasGrade = filters.grade && tutor.subjects?.some(s => s.grade === filters.grade);
-      const inRating = avgRating >= filters.minRating;
-      const inPrice = tutor.hourlyRate >= filters.rateRange[0] && tutor.hourlyRate <= filters.rateRange[1];
-      const locPref = filters.location === 'all' || !filters.location || tutor.location === filters.location;
+  const scoredTutors = useMemo(() => {
+    return (sourceTutors || []).map((tutor) => {
+      let score = 0;
+      const avgRating = tutor.avgRating ?? tutor.rating ?? 0;
+
+      // support both new shape (subject_profiles with subject_doc) and legacy subjects array
+      const hasSubject = filters.subject && (
+        (tutor.subjects && tutor.subjects.some(s => (s.subject || s.name) === filters.subject)) ||
+        (tutor.subject_profiles && tutor.subject_profiles.some(p => (p.subject_doc?.name || p.subject) === filters.subject))
+      );
+      const hasGrade = filters.grade && (
+        (tutor.subjects && tutor.subjects.some(s => s.grade === filters.grade)) ||
+        (tutor.subject_profiles && tutor.subject_profiles.some(p => p.subject_doc?.grade === filters.grade))
+      );
+
+      const inRating = avgRating >= (filters.minRating || 0);
+      const inPrice = (() => {
+        const rate = tutor.hourlyRate ?? tutor.rate ?? 0;
+        return rate >= (filters.rateRange?.[0] ?? 0) && rate <= (filters.rateRange?.[1] ?? 100000);
+      })();
+      const locPref = filters.location === 'all' || !filters.location || tutor.governate === filters.location || tutor.location === filters.location;
       const secPref = filters.sector === 'all' || !filters.sector || tutor.sector === filters.sector;
-      const nameMatch = !searchQuery || tutor.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const nameMatch = !searchQuery || (tutor.name || '').toLowerCase().includes(searchQuery.toLowerCase());
 
       if (hasSubject) score += 3;
       if (hasGrade) score += 2;
@@ -66,9 +95,9 @@ export const GeneralTutorGrid = ({ tutors }) => {
       if (locPref) score += 1;
       if (secPref) score += 1;
 
-      return { ...tutor, score: nameMatch ? score : -1 }; // Exclude non-matching names
+      return { ...tutor, score: nameMatch ? score : -1 };
     });
-  }, [tutors, filters, searchQuery]);
+  }, [sourceTutors, filters, searchQuery]);
 
   const sortedTutors = useMemo(() => {
     return [...scoredTutors]
@@ -86,17 +115,14 @@ export const GeneralTutorGrid = ({ tutors }) => {
 
   const suggestedTutors = useMemo(() => {
     if (!searchQuery) return [];
-    return tutors
-      .filter(tutor => tutor.name.toLowerCase().includes(searchQuery.toLowerCase()))
-      .slice(0, MAX_SUGGESTIONS) // Limit to 10 suggestions
-      .map(tutor => ({
-        id: tutor.id,
-        name: tutor.name,
-      }));
-  }, [tutors, searchQuery]);
+    return sourceTutors
+      .filter(tutor => (tutor.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+      .slice(0, MAX_SUGGESTIONS)
+      .map(tutor => ({ id: tutor._id || tutor.id, name: tutor.name }));
+  }, [sourceTutors, searchQuery]);
 
   const tutorsToShow = sortedTutors.slice(0, visibleCount);
-  const hasMore = visibleCount < sortedTutors.length;
+  const hasMore = authState.isLoggedIn ? hasMoreServer : visibleCount < sortedTutors.length;
 
   // Distribute evenly across columns
   const columns = Array.from({ length: COLUMN_COUNT }, () => []);
@@ -127,6 +153,50 @@ export const GeneralTutorGrid = ({ tutors }) => {
     if (searchRef.current && !searchRef.current.contains(e.target)) {
       setIsDropdownOpen(false);
     }
+  };
+
+  const fetchRecommendations = useCallback(async (search, pageNum = 1) => {
+    if (!authState.isLoggedIn) return;
+    setLoading(true);
+    try {
+      const res = await apiFetch(`/tutors/recommend?q=${encodeURIComponent(search || '')}&page=${pageNum}&limit=${INITIAL_TUTORS_COUNT}`);
+      console.debug('recommend endpoint response:', res);
+      let tutorsArr = (res && res.tutors) || [];
+
+      if ((!tutorsArr || tutorsArr.length === 0) && pageNum === 1) {
+        try {
+          const fallback = await apiFetch('/tutors/loadTutors/1/12');
+          tutorsArr = (fallback && fallback.tutors) || [];
+          console.debug('fallback loadTutors response:', fallback);
+        } catch (fbErr) {
+          console.error('fallback fetch failed', fbErr);
+        }
+      }
+
+      tutorsArr = (tutorsArr || []).map(t => ({ ...t, id: t._id ? String(t._id) : (t.id || undefined) }));
+
+      if (pageNum === 1) setRecommended(tutorsArr);
+      else setRecommended(prev => [...prev, ...(tutorsArr || [])]);
+
+      const total = res && (res.total || 0);
+      setHasMoreServer((pageNum * INITIAL_TUTORS_COUNT) < (total || tutorsArr.length));
+    } catch (err) {
+      console.error('recommend fetch error', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [authState.isLoggedIn]);
+
+  useEffect(() => {
+    if (!authState.isLoggedIn) return;
+    setPage(1);
+    fetchRecommendations(searchQuery, 1);
+  }, [authState.isLoggedIn, searchQuery, fetchRecommendations]);
+
+  const loadMoreServer = () => {
+    const next = page + 1;
+    setPage(next);
+    fetchRecommendations(searchQuery, next);
   };
 
   React.useEffect(() => {
@@ -212,32 +282,47 @@ export const GeneralTutorGrid = ({ tutors }) => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {columns.map((col, colIdx) => (
-          <div key={colIdx} className="flex flex-col gap-4">
-            {col.map((tutor) => (
-              <motion.div
-                key={tutor.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.25 }}
-              >
-                <GeneralTutorCard tutor={tutor} />
-              </motion.div>
-            ))}
-          </div>
-        ))}
+        {loading && sourceTutors.length === 0 ? (
+          <Loader />
+        ) : (
+          columns.map((col, colIdx) => (
+            <div key={colIdx} className="flex flex-col gap-4">
+              {col.map((tutor) => (
+                <motion.div
+                  key={tutor.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <GeneralTutorCard tutor={tutor} />
+                </motion.div>
+              ))}
+            </div>
+          ))
+        )}
       </div>
+
 
       {hasMore && (
         <div className="mt-8 flex justify-center">
-          <button
-            onClick={() => setVisibleCount((prev) => prev + LOAD_MORE_COUNT)}
-            className="px-6 py-2 rounded-full bg-primary text-white hover:bg-primary/90 transition font-medium shadow"
-          >
-            {t('loadMore', 'Load More')}
-          </button>
+          {authState.isLoggedIn ? (
+            <button
+              onClick={loadMoreServer}
+              disabled={!hasMore || loading}
+              className="px-6 py-2 rounded-full bg-primary text-white hover:bg-primary/90 transition font-medium shadow disabled:opacity-60"
+            >
+              {loading ? t('loading', 'Loading...') : t('loadMore', 'Load More')}
+            </button>
+          ) : (
+            <button
+              onClick={() => setVisibleCount((prev) => prev + LOAD_MORE_COUNT)}
+              className="px-6 py-2 rounded-full bg-primary text-white hover:bg-primary/90 transition font-medium shadow"
+            >
+              {t('loadMore', 'Load More')}
+            </button>
+          )}
         </div>
       )}
     </div>

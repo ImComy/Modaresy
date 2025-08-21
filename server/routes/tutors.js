@@ -12,6 +12,7 @@ import {
   filterTutorsController
 } from '../controllers/tutor.js';
 import { getStudentById } from '../services/student.service.js';
+import { recommendTutorsController } from '../controllers/tutor.js';
 
 const router = express.Router();
 
@@ -27,6 +28,9 @@ router.put("/updateProfile", verifyToken, isTeacher, updateProfile, populateAvai
 
 // Filtering
 router.get("/filter", filterTutorsController);
+
+// Recommendations (student-only)
+router.get('/recommend', verifyToken, recommendTutorsController);
 
 // Enrollment actions
 router.post("/acceptEnrollment", verifyToken, isTeacher, getStudentById, getEnrollmentRequest, acceptEnrollment);

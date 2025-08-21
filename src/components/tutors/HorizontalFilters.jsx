@@ -344,13 +344,7 @@ const HorizontalFilters = (props) => {
       {/* Detached Sort & Rate */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-4 p-4 rounded-xl flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          <motion.span className="font-semibold text-2xl sm:text-3xl flex items-center gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
-            {t('Results')}
-            { /* simple spinner */ }
-            {props.loadingTutors ? (
-              <svg className="animate-spin h-5 w-5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
-            ) : null}
-          </motion.span>
+          <motion.span className="font-semibold text-2xl sm:text-3xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>{t('Results')}</motion.span>
           <motion.div className="flex items-center gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
             <Button variant="ghost" size="icon" className="rounded-full border border-border" onClick={handleSortCycle} title={t(SORT_OPTIONS[sortIndex].label)}>
               <motion.div key={sortIndex} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}>{SORT_OPTIONS[sortIndex].icon}</motion.div>

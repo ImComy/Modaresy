@@ -1,4 +1,3 @@
-// Filters.jsx
 import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -18,17 +17,13 @@ const Filters = () => {
   const {
     searchTerm,
     setSearchTerm,
-
     filters,
     setFilters,   
     handleFilterChange, 
-
     handleRateChange,
     sortBy,
     setSortBy,
-
     sortedTutors,
-
     subjectsOptions,
     gradesOptions,
     sectorsOptions,
@@ -37,11 +32,10 @@ const Filters = () => {
     languagesOptions,
     educationSystemsOptions,
     educationCombos,
-
     setEducationFromCombo,
     parseCombo,
-
     loadingConstants,
+    loadingTutors,
   } = useTutorFilterSort(mockTutors);
 
   const fadeInUp = {
@@ -61,7 +55,6 @@ const Filters = () => {
         </motion.h2>
 
         <HorizontalFilters
-          // core state
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           filters={filters}
@@ -70,8 +63,6 @@ const Filters = () => {
           handleRateChange={handleRateChange}
           sortBy={sortBy}
           setSortBy={setSortBy}
-
-          // options from backend/hook
           subjectsOptions={subjectsOptions}
           gradesOptions={gradesOptions}
           sectorsOptions={sectorsOptions}
@@ -80,16 +71,12 @@ const Filters = () => {
           languagesOptions={languagesOptions}
           educationSystemsOptions={educationSystemsOptions}
           educationCombos={educationCombos}
-
-          // combined combo helpers
           setEducationFromCombo={setEducationFromCombo}
           parseCombo={parseCombo}
-
-          // loading
           loadingConstants={loadingConstants}
         />
 
-        <TutorGrid tutors={sortedTutors} filters={filters} />
+        <TutorGrid tutors={sortedTutors} filters={filters} loading={loadingTutors} />
       </section>
 
       <section className="space-y-6 container mx-auto px-4 -mt-20">

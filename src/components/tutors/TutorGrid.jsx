@@ -2,10 +2,10 @@ import React, { useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import TutorCard from './TutorCard';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, UserX } from 'lucide-react';
+import { AlertTriangle, UserX, Loader } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
-const TutorGrid = ({ tutors, filters }) => {
+const TutorGrid = ({ tutors, filters, loading = false }) => {
   const { t } = useTranslation();
 
   const isMissingRequiredFilters = useMemo(() => {
@@ -22,6 +22,18 @@ const TutorGrid = ({ tutors, filters }) => {
         )
     );
   }, [tutors, filters.subject, filters.grade]);
+
+  // Show loader when loading
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <div className="flex flex-col items-center gap-3">
+          <Loader className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">{t('loadingTutors', 'Loading tutors...')}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isMissingRequiredFilters) {
     return (

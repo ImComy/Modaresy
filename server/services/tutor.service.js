@@ -196,3 +196,66 @@ export async function filterTutors(filters) {
     throw new Error(`Filter error: ${err.message}`);
   }
 }
+
+export async function recommendTutorsForStudent(student, { q, page = 1, limit = 12 } = {}) {
+  try {
+    const studentEdu = student.education_system;
+    const studentGrade = student.grade;
+    const studentSector = student.sector;
+    const governate = student.governate;
+
+    const pipeline = [];
+    pipeline.push({
+      $lookup: {
+        from: 'subjectprofiles',
+        localField: 'subject_profiles',
+        foreignField: '_id',
+        as: 'subject_profiles'
+      }
+    });
+    pipeline.push({ $unwind: { path: '$subject_profiles', preserveNullAndEmptyArrays: true } });
+    pipeline.push({
+      $lookup: {
+        from: 'subjects',
+        localField: 'subject_profiles.subject_id',
+        foreignField: '_id',
+        as: 'subject_doc'
+      }
+    });
+    pipeline.push({ $unwind: { path: '$subject_doc', preserveNullAndEmptyArrays: true } });
+
+    pipeline.push({
+      $addFields: {
+        matchSubject: { $cond: [ { $eq: ['$subject_doc.grade', studentGrade] }, 2, 0 ] },
+        matchEdu: { $cond: [ { $eq: ['$subject_doc.education_system', studentEdu] }, 2, 0 ] },
+        matchSector: { $cond: [ { $eq: ['$subject_doc.sector', studentSector] }, 1, 0 ] },
+        profileRatingScore: { $cond: [ { $ifNull: ['$subject_profiles.rating', false] }, '$subject_profiles.rating', 0 ] },
+      }
+    });
+
+    pipeline.push({
+      $group: {
+        _id: '$_id',
+        doc: { $first: '$$ROOT' },
+        totalScore: { $sum: { $add: [ '$matchSubject', '$matchEdu', '$matchSector', '$profileRatingScore' ] } },
+        subject_profiles: { $push: '$subject_profiles' }
+      }
+    });
+
+    pipeline.push({ $replaceRoot: { newRoot: { $mergeObjects: ['$doc', { score: '$totalScore', subject_profiles: '$subject_profiles' }] } } });
+
+    if (governate) pipeline.push({ $addFields: { locationBoost: { $cond: [ { $eq: ['$governate', governate] }, 1, 0 ] } } });
+    pipeline.push({ $addFields: { finalScore: { $add: [ '$score', { $ifNull: ['$locationBoost', 0] }, '$rating' ] } } });
+
+    pipeline.push({ $sort: { finalScore: -1, rating: -1 } });
+
+    const skip = Math.max(0, (page - 1) * limit);
+    pipeline.push({ $skip: skip }, { $limit: limit }, { $project: { password: 0, __v: 0, 'subject_profiles.__v': 0 } });
+
+    const tutors = await Teacher.aggregate(pipeline).exec();
+    const total = await Teacher.countDocuments();
+    return { tutors, total };
+  } catch (err) {
+    throw new Error('recommend error: ' + err.message);
+  }
+}
