@@ -25,13 +25,18 @@ await mongoose.connect(process.env.MONGO_URI)
 .catch(err => console.error("Connection error:", err));
 
 const app = express();
-const port = process.env.port;
+// Use standard PORT env var (Railway sets PORT) or fall back to .env port or 3000
+const port = process.env.PORT || process.env.port || 3000;
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: 'http://localhost:5173', 
-  credentials: true,
-}));
+
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+app.use(
+  cors({
+    origin: CLIENT_URL,
+    credentials: true,
+  })
+);
 
 app.use('/users', users)
 app.use('/tutors', tutors)
@@ -40,6 +45,13 @@ app.use('/admins', admins)
 app.use('/constants', constants)
 app.use('/subjects', Subjects)
 initializeUserStatsCache();
+
+// If there is a client build, serve it from /dist when in production
+const distPath = path.join(__dirname, '../dist');
+if (process.env.NODE_ENV === 'production' || process.env.SERVE_CLIENT === 'true') {
+  app.use(express.static(distPath));
+  app.get('*', (req, res) => res.sendFile(path.join(distPath, 'index.html')));
+}
 
 app.listen(port, () => {
   console.log(`Modaresy is listening on port ${port}`)
