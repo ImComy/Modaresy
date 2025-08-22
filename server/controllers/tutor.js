@@ -143,12 +143,42 @@ export async function getTutors(req, res) {
         const tutors = await Teacher.find({ role: 'teacher' })
             .skip(skip)
             .limit(limit)
+            .populate({
+                path: 'subject_profiles',
+                populate: { path: 'subject_id', model: 'Subject' }
+            })
+            .populate({ path: 'subjects', model: 'Subject' })
             .lean();
+
+        const normalized = tutors.map(t => {
+            if (Array.isArray(t.subject_profiles) && t.subject_profiles.length > 0) {
+                t.subject_profiles = t.subject_profiles
+                    .map(p => {
+                        if (p && p.subject_id && typeof p.subject_id === 'object') {
+                            p.subject_doc = p.subject_id;
+                        }
+                        return p;
+                    })
+                    .filter(p => p && p.subject_doc && (p.subject_doc.name || p.subject_doc.subject));
+            } else {
+                t.subject_profiles = [];
+            }
+
+            if (Array.isArray(t.subjects) && t.subjects.length > 0) {
+                t.subjects = t.subjects
+                    .map(s => (s && typeof s === 'object' ? s : null))
+                    .filter(s => s && (s.name || s.subject));
+            } else {
+                t.subjects = [];
+            }
+
+            return t;
+        });
 
         const total = await Teacher.countDocuments({ role: 'teacher' });
 
         return res.status(200).json({
-            tutors,
+            tutors: normalized,
             page: pages,
             limit,
             totalPages: Math.ceil(total / limit),

@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { Search, UserCheck, MessageSquare, Sparkles, GraduationCap, MapPin as MapPinIcon } from 'lucide-react';
 import TutorGrid from '@/components/tutors/TutorGrid';
 import HorizontalFilters from '@/components/tutors/HorizontalFilters';
-import { mockTutors } from '@/data/enhanced';
 import useTutorFilterSort from '@/hooks/useTutorFilterSort'; 
 import { useNavigate } from 'react-router-dom';
 import { GeneralTutorGrid } from '../components/tutors/GeneralTutorGrid';
@@ -36,7 +35,7 @@ const Filters = () => {
     parseCombo,
     loadingConstants,
     loadingTutors,
-  } = useTutorFilterSort(mockTutors);
+  } = useTutorFilterSort();
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 15 },
@@ -83,7 +82,7 @@ const Filters = () => {
         <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center mt-20">
           {t('RecommendedTutors')}
         </motion.h2>
-        <GeneralTutorGrid tutors={mockTutors} />
+  <GeneralTutorGrid tutors={sortedTutors} />
       </section>
     </div>
   );

@@ -35,7 +35,8 @@ export const mockTutors = [
       {
         subject: "Mathematics",
         grade: "11",
-        type: "General - scientific",
+        sector: "General",
+        education_system: "scientific",
         bio: "Experienced Mathematics tutor with over 8 years of teaching high school and university students. Passionate about making complex concepts understandable and helping students build strong problem-solving skills. Proven track record of improving grades and boosting confidence. My approach focuses on identifying individual student needs and tailoring lessons accordingly. I utilize various teaching methods, including visual aids and real-world examples, to ensure comprehension and retention.",
         duration: 60,
         lecturesPerWeek: 2,
@@ -102,7 +103,8 @@ export const mockTutors = [
       {
       subject: "Chemistry",
       grade: "12",
-      type: "General - scientific",
+      sector: "General",
+      education_system: "scientific",
       bio: "Complete Thanaweya Amma coverage with lab-focused insights and model exam walkthroughs.",
       duration: 90,
       lecturesPerWeek: 2,
@@ -164,7 +166,8 @@ export const mockTutors = [
       {
         subject: "Biology",
         grade: "12",
-        type: "General - scientific",
+        sector: "General",
+        education_system: "scientific",
         bio: "Passionate and experienced tutor committed to student success. Uses a tailored approach with real-world examples and interactive methods.",
         duration: 60,
         lecturesPerWeek: 3,
@@ -208,7 +211,8 @@ export const mockTutors = [
       {
         subject: "English",
         grade: "5",
-        type: "Language",
+        sector: "Language",
+        education_system: "General",
         bio: "Passionate and experienced tutor committed to student success. Uses a tailored approach with real-world examples and interactive methods.",
         duration: 60,
         lecturesPerWeek: 2,
@@ -264,7 +268,8 @@ export const mockTutors = [
       {
         subject: "Mathematics",
         grade: "11",
-        type: "General - scientific",
+        sector: "General",
+        education_system: "scientific",
         bio: "Passionate and experienced tutor committed to student success. Uses a tailored approach with real-world examples and interactive methods.",
         duration: 60,
         lecturesPerWeek: 2,
@@ -301,7 +306,8 @@ export const mockTutors = [
       {
         subject: "Chemistry",
         grade: "11",
-        type: "General - scientific",
+        sector: "General",
+        education_system: "scientific",
         bio: "Passionate and experienced tutor committed to student success. Uses a tailored approach with real-world examples and interactive methods.",
         duration: 60,
         lecturesPerWeek: 2,

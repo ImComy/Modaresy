@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import User from './user.js';
+import { Subject } from './subject.js';
 
 const TeacherSchema = new Schema({
   social_media: { 
@@ -71,3 +72,18 @@ const EnrollmentRequestSchma = new Schema({
 export const Enrollment = mongoose.model('Enrollment', EnrollmentSchema);
 export const EnrollmentRequest = mongoose.model('EnrollmentRequest', EnrollmentRequestSchma);
 export const Teacher = User.discriminator('Teacher', TeacherSchema);
+
+TeacherSchema.pre('save', async function (next) {
+  try {
+    if (Array.isArray(this.subjects) && this.subjects.length > 0) {
+      const subs = await Subject.find({ _id: { $in: this.subjects } }).select('years_experience').lean();
+      const maxYears = subs.reduce((max, s) => Math.max(max, (s && s.years_experience) || 0), 0);
+      this.experience_years = maxYears;
+    } else {
+      this.experience_years = 0;
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});

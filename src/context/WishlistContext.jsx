@@ -1,4 +1,3 @@
-// src/context/WishlistContext.jsx
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { studentService } from '@/api/student';
@@ -80,10 +79,24 @@ export const WishlistProvider = ({ children }) => {
 
           tutor.subjects = mergedSubjects;
 
-          tutor.name = tutor.name || tutor.fullname || tutor.username || 'Unknown Tutor';
-          tutor.img = tutor.img || tutor.avatar || tutor.photo || '/pfp.png';
-          tutor.bannerimg = tutor.bannerimg || tutor.banner || '';
-          tutor.location = tutor.location || tutor.city || '';
+          if (Array.isArray(subjectProfiles) && subjectProfiles.length) {
+            tutor.subject_profiles = subjectProfiles.map(p => {
+              if (p && p.subject_id && typeof p.subject_id === 'object') {
+                const copy = { ...p };
+                copy.subject_doc = p.subject_id;
+                return copy;
+              }
+              return p;
+            }).filter(Boolean);
+          } else {
+            tutor.subject_profiles = tutor.subject_profiles || [];
+          }
+
+          tutor.name = tutor.name || 'Unknown Tutor';
+          tutor.img = tutor.img || '';
+          tutor.bannerimg = tutor.bannerimg || '';
+          tutor.location = tutor.location || '';
+          tutor.experience_years = tutor.experience_years || 0;
 
           return tutor;
         } catch (err) {

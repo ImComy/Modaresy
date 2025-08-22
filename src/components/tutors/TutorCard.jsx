@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, DollarSign, BookOpen, Heart, CalendarDays, GraduationCap, Users, Clock } from 'lucide-react';
+import { MapPin, DollarSign, BookOpen, Heart, GraduationCap, Users, Clock, Globe } from 'lucide-react';
 import renderStars from '@/components/ui/renderStars';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -17,40 +17,67 @@ const TutorCard = ({ tutor, filters }) => {
   const { authState } = useAuth();
   const { isInWishlist, handleWishlistToggle } = useWishlistLogic(tutor);
 
-  function getGradeLabel(grade, t) {
-    switch (grade) {
-      case "1": return t("primary1", "Primary 1");
-      case "2": return t("primary2", "Primary 2");
-      case "3": return t("primary3", "Primary 3");
-      case "4": return t("primary4", "Primary 4");
-      case "5": return t("primary5", "Primary 5");
-      case "6": return t("primary6", "Primary 6");
-      case "7": return t("preparatory1", "Preparatory 1");
-      case "8": return t("preparatory2", "Preparatory 2");
-      case "9": return t("preparatory3", "Preparatory 3");
-      case "10": return t("secondary1", "Secondary 1");
-      case "11": return t("secondary2", "Secondary 2");
-      case "12": return t("secondary3", "Secondary 3");
-      case "KG": return t("kg", "KG");
-      case "University": return t("university", "University");
-      case "Other": return t("other", "Other");
-      default: return grade;
-    }
-  }
+  const subjectList = Array.isArray(tutor?.subjects) && tutor.subjects.length
+    ? tutor.subjects
+    : (Array.isArray(tutor?.subject_profiles) && tutor.subject_profiles.length
+      ? tutor.subject_profiles.map(p => ({
+          ...p.subject_doc,
+          profile: p,
+          rating: p.rating ?? p.subject_doc?.rating,
+          private_pricing: p.private_pricing ?? p.subject_doc?.private_pricing,
+          group_pricing: p.group_pricing ?? p.subject_doc?.group_pricing,
+        }))
+      : []);
 
-  // Get the subject object matching the selected subject and grade
-  const selectedSubject = Array.isArray(tutor?.subjects)
-    ? tutor.subjects.find(
-        s =>
-          s.subject === filters?.subject &&
-          s.grade === filters?.grade
-      )
-    : undefined;
+  const selectedSubject = subjectList.find(s => {
+    const name = (s?.subject || s?.name || '').toString();
+    const grade = (s?.grade || '').toString();
+    return name === (filters?.subject ?? name) && grade === (filters?.grade ?? grade);
+  }) || subjectList[0];
 
-  const displayName =
-    tutor?.name && tutor.name.length > 16
-      ? tutor.name.slice(0, 15) + '...'
-      : tutor?.name;
+  const displayName = tutor?.name && tutor.name.length > 16 ? tutor.name.slice(0, 15) + '...' : tutor?.name;
+
+  const locationLabel = tutor?.governate
+    ? `${tutor.governate}${tutor?.district ? ` - ${tutor.district}` : ''}`
+    : tutor?.location || t('unknownLocation', 'Unknown location');
+
+  const price = (typeof selectedSubject?.price === 'number' && isFinite(selectedSubject.price))
+    ? selectedSubject.price
+    : (typeof tutor?.price === 'number' && isFinite(tutor.price) ? tutor.price : null);
+
+  const rating = (typeof selectedSubject?.rating === 'number' && isFinite(selectedSubject.rating))
+    ? selectedSubject.rating
+    : (typeof tutor?.avgRating === 'number' && isFinite(tutor.avgRating) ? tutor.avgRating :
+       (typeof tutor?.rating === 'number' && isFinite(tutor.rating) ? tutor.rating : null));
+
+  const languages = (selectedSubject?.language && typeof selectedSubject.language === 'string')
+    ? [selectedSubject.language]
+    : (Array.isArray(selectedSubject?.language) ? selectedSubject.language.filter(Boolean) : (Array.isArray(tutor?.languages) ? tutor.languages.slice(0) : []));
+
+  const derivedSector = selectedSubject?.sector || selectedSubject?.Sector || tutor?.sector || 'General';
+  const derivedEducationSystem = selectedSubject?.education_system || selectedSubject?.educationSystem || tutor?.education_system || null;
+
+  const renderBadgeList = (items, icon = null, labelPrefix = '') => {
+    if (!items || items.length === 0) return null;
+    const visible = items.slice(0, 3);
+    const extra = items.length - visible.length;
+    return (
+      <div className="flex items-center gap-2 flex-wrap">
+        {visible.map((it, idx) => (
+          <Badge
+            key={`${labelPrefix}-${it}-${idx}`}
+            className="bg-muted/30 border border-border text-xs px-2 py-0.5 rounded-md"
+          >
+            <span className="mr-1 align-middle text-[11px]">{icon}</span>
+            <span className="truncate max-w-[7rem]">{it}</span>
+          </Badge>
+        ))}
+        {extra > 0 && (
+          <Badge className="bg-muted/20 border border-border text-xs px-2 py-0.5 rounded-md">+{extra}</Badge>
+        )}
+      </div>
+    );
+  };
 
   return (
     <motion.div
@@ -72,29 +99,34 @@ const TutorCard = ({ tutor, filters }) => {
                   {tutor?.name?.split(' ')?.map((n) => n[0])?.join('')}
                 </AvatarFallback>
               </Avatar>
+
               <div className="min-w-0">
-                <h3
-                  className="font-semibold text-base text-foreground truncate"
-                  title={tutor?.name}
-                >
+                <h3 className="font-semibold text-base text-foreground truncate" title={tutor?.name}>
                   {displayName}
                 </h3>
-                <div className="text-muted-foreground flex items-center gap-1 text-primary">
+
+                <div className="text-muted-foreground flex items-center gap-2 text-sm">
                   <BookOpen size={14} />
-                  <span className="truncate">{selectedSubject?.subject || filters?.subject}</span>
+                  <span className="truncate">{selectedSubject?.subject || filters?.subject || t('unknownSubject', 'Subject')}</span>
                 </div>
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  {typeof selectedSubject?.rating === 'number' && isFinite(selectedSubject.rating)
-                    ? (
-                        <>
-                          {renderStars(selectedSubject.rating)}
-                          <span>({selectedSubject.rating.toFixed(1)})</span>
-                        </>
-                      )
-                    : t('noRating')}
+
+                <div className="flex items-center gap-2 text-muted-foreground text-xs mt-1">
+                  {rating && rating > 0 ? (
+                    <div className="flex items-center gap-1">
+                      {renderStars(rating)}
+                      <span className="text-[12px]">({rating.toFixed(1)})</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      {t('noReviews', 'No reviews yet')}
+                    </span>
+                  )}
                 </div>
+
+
               </div>
             </div>
+
             {authState.isLoggedIn && (
               <Button
                 variant="ghost"
@@ -114,35 +146,61 @@ const TutorCard = ({ tutor, filters }) => {
             )}
           </div>
 
+          {/* Location with governate - district */}
           <div className="flex items-center gap-1 text-muted-foreground text-xs">
             <MapPin size={12} />
-            <span>{tutor?.location}</span>
+            <span className="truncate">{locationLabel}</span>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {selectedSubject?.grade && (
-              <Badge
-                className="bg-primary/10 border border-primary text-primary text-xs px-2 py-0.5 hover:bg-primary/20 transition-colors" 
-              >
-                <GraduationCap size={12} className="mr-1" />
-                {getGradeLabel(selectedSubject.grade, t)}
-              </Badge>
-            )}
-            {selectedSubject?.type && (
-              <Badge
-                className="text-green-700 border border-green-300 bg-green-200 text-xs px-2 py-0.5 hover:bg-green-300 transition-colors"
-              >
+          {/* Badges: grade, type, languages, education systems */}
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-2">
+              {selectedSubject?.grade && (
+                <Badge className="bg-primary/10 border border-primary text-primary text-xs px-2 py-0.5 hover:bg-primary/20 transition-colors">
+                  <GraduationCap size={12} className="mr-1" />
+                  {selectedSubject.grade}
+                </Badge>
+              )}
+
+              {/* Sector badge (derived from explicit sector or subject.type) */}
+              <Badge className="text-green-700 border border-green-300 bg-green-200 text-xs px-2 py-0.5 hover:bg-green-300 transition-colors">
                 <Users size={12} className="mr-1" />
-                {selectedSubject.type}
+                {derivedSector}
               </Badge>
-            )}
-          </div>
-          <div className="flex-1 flex">
-            <p className="text-xs text-muted-foreground line-clamp-2 self-start">
-              {selectedSubject?.bio || ''}
-            </p>
+
+              {/* Languages */}
+              {languages.length > 0 && (
+                <div className="flex items-center gap-2">
+                  {languages.map((lang, idx) => (
+                    <Badge
+                      key={`lang-${idx}-${lang}`}
+                      className="bg-muted/20 border border-border text-xs px-2 py-0.5 hover:bg-muted/30 transition-colors"
+                    >
+                      <span className="mr-1 text-[12px]">🌐</span>
+                      <span className="truncate max-w-[7rem]">{lang}</span>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* Education system badge (derived) */}
+              {derivedEducationSystem && (
+                <Badge className="bg-muted/20 border border-border text-xs px-2 py-0.5 hover:bg-muted/30 transition-colors">
+                  <GraduationCap size={12} className="mr-1" />
+                  <span className="truncate max-w-[7rem]">{derivedEducationSystem}</span>
+                </Badge>
+              )}
+            </div>
+
+            {/* Short bio / subject note */}
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground line-clamp-2 self-start">
+                {selectedSubject?.bio || tutor?.bio || ''}
+              </p>
+            </div>
           </div>
 
+          {/* Footer: price + view profile */}
           <div className="flex justify-between items-center text-muted-foreground mt-2 pt-2 border-t border-border/30 gap-2">
             <span className="font-bold text-primary text-lg">
               {selectedSubject?.price && isFinite(selectedSubject.price)

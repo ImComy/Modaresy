@@ -8,7 +8,6 @@ export const useWishlistLogic = (tutor) => {
   const { toast } = useToast();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
 
-  // Safe tutor ID extraction
   const tutorId = String(tutor?._id || tutor?.id || '');
 
   const handleWishlistToggle = useCallback(async (e) => {

@@ -238,7 +238,7 @@ export async function recommendTutorsForStudent(student, { q, page = 1, limit = 
         _id: '$_id',
         doc: { $first: '$$ROOT' },
         totalScore: { $sum: { $add: [ '$matchSubject', '$matchEdu', '$matchSector', '$profileRatingScore' ] } },
-        subject_profiles: { $push: '$subject_profiles' }
+        subject_profiles: { $push: { $mergeObjects: [ '$subject_profiles', { subject_doc: '$subject_doc' } ] } }
       }
     });
 

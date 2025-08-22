@@ -9,35 +9,36 @@ export async function apiFetch(endpoint, options = {}) {
       ...(options.headers || {}),
     };
 
-    console.log("apiFetch →", `${API_BASE}${endpoint}`);
-    console.log("options:", { ...options, headers });
-
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers,
     });
 
     const rawText = await response.text();
-    console.log("apiFetch response status:", response.status, response.statusText);
-    console.log("apiFetch rawText:", rawText);
 
     if (!response.ok) {
       let parsed;
-      try { parsed = rawText ? JSON.parse(rawText) : {}; }
-      catch { parsed = rawText || { message: rawText }; }
-      const err = new Error(parsed?.error || parsed?.message || String(parsed) || 'Request failed');
+      try {
+        parsed = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        parsed = rawText || { message: rawText };
+      }
+      const err = new Error(
+        parsed?.error || parsed?.message || String(parsed) || "Request failed"
+      );
       err.status = response.status;
       err.body = parsed;
-      console.error("apiFetch throwing error:", err);
       throw err;
     }
 
     if (response.status === 204 || !rawText) return null;
 
-    try { return JSON.parse(rawText); }
-    catch { return rawText; }
+    try {
+      return JSON.parse(rawText);
+    } catch {
+      return rawText;
+    }
   } catch (error) {
-    console.error("apiFetch caught:", error);
     throw error;
   }
 }

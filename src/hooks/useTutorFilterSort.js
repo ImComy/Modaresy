@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import Fuse from 'fuse.js';
 import { getConstants } from '@/api/constantsFetch';
 import { apiFetch } from '@/api/apiService';
-import { mockTutors } from '@/data/enhanced';
 
 const LS_KEYS = {
   searchTerm: 'filter-searchTerm',
@@ -45,7 +44,7 @@ const getInitialSortBy = () => getStoredValue(LS_KEYS.sortBy, 'ratingDesc');
 
 const safeToLower = (v) => (v == null ? '' : String(v).toLowerCase());
 
-export const useTutorFilterSort = (initialTutors = mockTutors) => {
+export const useTutorFilterSort = (initialTutors = []) => {
   const [searchTerm, setSearchTerm] = useState(getInitialSearchTerm);
   const [filtersState, setFiltersState] = useState(getInitialFilters);
   const [sortBy, setSortBy] = useState(getInitialSortBy);
@@ -285,11 +284,28 @@ export const useTutorFilterSort = (initialTutors = mockTutors) => {
       subjects: Array.isArray(teacher.subject_profiles) ? teacher.subject_profiles.map(p => {
         const subj = p.subject || p.subject_doc || {};
         const price = (p.private_pricing && p.private_pricing.price) || (p.group_pricing && p.group_pricing.price) || null;
+        // derive education system and sector explicitly
+  let educationSystem = subj.education_system || subj.educationSystem || p.education_system || p.educationSystem || null;
+  let sector = subj.sector || p.sector || null;
+        // fallback to legacy `type` parsing if sector or educationSystem missing
+        if ((!educationSystem || !sector) && (p.type || subj.type)) {
+          const legacy = (p.type || subj.type || '').toString();
+          const parts = legacy.split('-').map(s => s.trim()).filter(Boolean);
+          if (parts.length === 1) {
+            // single token -> treat as education system
+            if (!educationSystem) educationSystem = parts[0];
+            if (!sector) sector = 'General';
+          } else if (parts.length > 1) {
+            if (!sector) sector = parts[0];
+            if (!educationSystem) educationSystem = parts.slice(1).join(' - ');
+          }
+        }
         return {
           subject: subj.name || subj.title || p.subject_name || '',
           grade: subj.grade || p.grade || 'Unknown',
           language: subj.language || p.language || 'Unknown',
-          type: subj.sector || p.type || 'General',
+          education_system: educationSystem || null,
+          sector: sector || 'General',
           price,
           rating: p.rating ?? null,
         };

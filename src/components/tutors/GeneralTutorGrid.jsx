@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import GeneralTutorCard from './GeneralTutorCard';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
-import { LogIn, Search, ChevronUp, ChevronDown } from 'lucide-react';
+import { LogIn, Search, ChevronUp, ChevronDown, AlertTriangle, UserX } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import debounce from 'lodash/debounce';
@@ -11,10 +11,9 @@ import { apiFetch } from '@/api/apiService';
 
 const INITIAL_TUTORS_COUNT = 12;
 const LOAD_MORE_COUNT = 8;
-const COLUMN_COUNT = 4; // matches xl:columns-4
-const MAX_SUGGESTIONS = 10; // Limit dropdown suggestions
-const DEBOUNCE_DELAY = 300; // Debounce search input
-
+const COLUMN_COUNT = 4;
+const MAX_SUGGESTIONS = 10;
+const DEBOUNCE_DELAY = 300;
 
 const Loader = () => (
   <div className="flex justify-center items-center py-10">
@@ -25,9 +24,24 @@ const Loader = () => (
   </div>
 );
 
-export const GeneralTutorGrid = ({ tutors }) => {
+const ErrorBanner = ({ message }) => (
+  <Card className="max-w-md mx-auto mt-6 border-red-500/40 bg-red-50 dark:bg-red-950">
+    <CardContent className="flex items-center gap-4 py-4 text-red-600 dark:text-red-300">
+      <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+      <div>
+        <h4 className="font-semibold text-sm">Connection Error</h4>
+        <p className="text-xs mt-1 text-red-500 dark:text-red-400">
+          {message || 'An error occurred while connecting to the server. Please try again later.'}
+        </p>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+export const GeneralTutorGrid = ({ tutors, error = null }) => {
   const { t } = useTranslation();
   const { authState } = useAuth();
+  const [fetchError, setFetchError] = useState(null);
   const [visibleCount, setVisibleCount] = useState(INITIAL_TUTORS_COUNT);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -37,9 +51,11 @@ export const GeneralTutorGrid = ({ tutors }) => {
   const [hasMoreServer, setHasMoreServer] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  console.log('GeneralTutorGrid props:', { tutors, error, authState });
+
   const filters = useMemo(() => {
     try {
-      return {
+      const f = {
         subject: localStorage.getItem('filter-subject') || null,
         grade: localStorage.getItem('filter-grade') || null,
         minRating: parseFloat(localStorage.getItem('filter-minRating') || '') || 0,
@@ -48,7 +64,10 @@ export const GeneralTutorGrid = ({ tutors }) => {
         sector: localStorage.getItem('filter-sector') || null,
         sortBy: localStorage.getItem('filter-sortBy') || 'ratingDesc',
       };
-    } catch {
+      console.debug('Loaded filters from localStorage:', f);
+      return f;
+    } catch (err) {
+      console.error('Failed to parse filters from localStorage:', err);
       return {
         subject: null,
         grade: null,
@@ -61,15 +80,14 @@ export const GeneralTutorGrid = ({ tutors }) => {
     }
   }, []);
 
-  // If authenticated, use server-provided recommendations; otherwise fallback to passed tutors
   const sourceTutors = authState.isLoggedIn ? recommended : tutors;
+  console.log('Using sourceTutors:', sourceTutors);
 
   const scoredTutors = useMemo(() => {
-    return (sourceTutors || []).map((tutor) => {
+    const mapped = (sourceTutors || []).map((tutor) => {
       let score = 0;
       const avgRating = tutor.avgRating ?? tutor.rating ?? 0;
 
-      // support both new shape (subject_profiles with subject_doc) and legacy subjects array
       const hasSubject = filters.subject && (
         (tutor.subjects && tutor.subjects.some(s => (s.subject || s.name) === filters.subject)) ||
         (tutor.subject_profiles && tutor.subject_profiles.some(p => (p.subject_doc?.name || p.subject) === filters.subject))
@@ -97,11 +115,13 @@ export const GeneralTutorGrid = ({ tutors }) => {
 
       return { ...tutor, score: nameMatch ? score : -1 };
     });
+    console.debug('Scored tutors:', mapped);
+    return mapped;
   }, [sourceTutors, filters, searchQuery]);
 
   const sortedTutors = useMemo(() => {
-    return [...scoredTutors]
-      .filter(tutor => tutor.score >= 0) // Only include tutors that match the search query
+    const sorted = [...scoredTutors]
+      .filter(tutor => tutor.score >= 0)
       .sort((a, b) => {
         if (a.isTopRated && !b.isTopRated) return -1;
         if (!a.isTopRated && b.isTopRated) return 1;
@@ -111,30 +131,39 @@ export const GeneralTutorGrid = ({ tutors }) => {
         }
         return (a.hourlyRate ?? 0) - (b.hourlyRate ?? 0);
       });
+    console.debug('Sorted tutors:', sorted);
+    return sorted;
   }, [scoredTutors, filters]);
 
   const suggestedTutors = useMemo(() => {
     if (!searchQuery) return [];
-    return sourceTutors
+    const list = sourceTutors
       .filter(tutor => (tutor.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
       .slice(0, MAX_SUGGESTIONS)
       .map(tutor => ({ id: tutor._id || tutor.id, name: tutor.name }));
+    console.debug('Suggested tutors for query:', searchQuery, list);
+    return list;
   }, [sourceTutors, searchQuery]);
 
   const tutorsToShow = sortedTutors.slice(0, visibleCount);
+  console.log(`Showing ${tutorsToShow.length} of ${sortedTutors.length} tutors`);
+
   const hasMore = authState.isLoggedIn ? hasMoreServer : visibleCount < sortedTutors.length;
 
-  // Distribute evenly across columns
   const columns = Array.from({ length: COLUMN_COUNT }, () => []);
   tutorsToShow.forEach((tutor, i) => {
     columns[i % COLUMN_COUNT].push(tutor);
   });
+  console.debug('Column distribution:', columns);
+
+  const noTutors = (!sourceTutors || sourceTutors.length === 0) && !loading;
 
   const debouncedSearchChange = useCallback(
     debounce((value) => {
+      console.log('Search input changed:', value);
       setSearchQuery(value);
       setIsDropdownOpen(value.length > 0);
-      setVisibleCount(INITIAL_TUTORS_COUNT); // Reset visible count on new search
+      setVisibleCount(INITIAL_TUTORS_COUNT);
     }, DEBOUNCE_DELAY),
     []
   );
@@ -144,6 +173,7 @@ export const GeneralTutorGrid = ({ tutors }) => {
   };
 
   const handleSearchSelect = (tutorName) => {
+    console.log('Search suggestion selected:', tutorName);
     setSearchQuery(tutorName);
     setIsDropdownOpen(false);
     setVisibleCount(INITIAL_TUTORS_COUNT);
@@ -157,31 +187,48 @@ export const GeneralTutorGrid = ({ tutors }) => {
 
   const fetchRecommendations = useCallback(async (search, pageNum = 1) => {
     if (!authState.isLoggedIn) return;
+    console.log('Fetching recommendations:', { search, pageNum });
     setLoading(true);
     try {
       const res = await apiFetch(`/tutors/recommend?q=${encodeURIComponent(search || '')}&page=${pageNum}&limit=${INITIAL_TUTORS_COUNT}`);
-      console.debug('recommend endpoint response:', res);
+      console.debug('Recommend endpoint response:', res);
       let tutorsArr = (res && res.tutors) || [];
 
       if ((!tutorsArr || tutorsArr.length === 0) && pageNum === 1) {
+        console.warn('No recommendations found, fetching fallback tutors');
         try {
           const fallback = await apiFetch('/tutors/loadTutors/1/12');
           tutorsArr = (fallback && fallback.tutors) || [];
-          console.debug('fallback loadTutors response:', fallback);
+          console.debug('Fallback loadTutors response:', fallback);
         } catch (fbErr) {
-          console.error('fallback fetch failed', fbErr);
+          console.error('Fallback fetch failed', fbErr);
         }
       }
 
-      tutorsArr = (tutorsArr || []).map(t => ({ ...t, id: t._id ? String(t._id) : (t.id || undefined) }));
+      tutorsArr = (tutorsArr || []).map(t => {
+        const copy = { ...t, id: t._id ? String(t._id) : (t.id || undefined) };
+        if (!Array.isArray(copy.subject_profiles)) copy.subject_profiles = [];
+        copy.subject_profiles = copy.subject_profiles
+          .map(p => ({ ...p, subject_doc: p?.subject_doc || p?.subject_id || null }))
+          .filter(p => p && p.subject_doc && (p.subject_doc.name || p.subject_doc.subject));
+        if (!Array.isArray(copy.subjects)) copy.subjects = [];
+        copy.subjects = copy.subjects.map(s => (s && typeof s === 'object' ? s : null)).filter(Boolean);
+        return copy;
+      });
 
-      if (pageNum === 1) setRecommended(tutorsArr);
-      else setRecommended(prev => [...prev, ...(tutorsArr || [])]);
+      if (pageNum === 1) {
+        console.log('Setting recommended tutors (first page):', tutorsArr);
+        setRecommended(tutorsArr);
+      } else {
+        console.log('Appending recommended tutors (page', pageNum, '):', tutorsArr);
+        setRecommended(prev => [...prev, ...(tutorsArr || [])]);
+      }
 
       const total = res && (res.total || 0);
       setHasMoreServer((pageNum * INITIAL_TUTORS_COUNT) < (total || tutorsArr.length));
     } catch (err) {
-      console.error('recommend fetch error', err);
+      console.error('Recommend fetch error:', err);
+      setFetchError('Unable to load personalized recommendations.');
     } finally {
       setLoading(false);
     }
@@ -189,22 +236,25 @@ export const GeneralTutorGrid = ({ tutors }) => {
 
   useEffect(() => {
     if (!authState.isLoggedIn) return;
+    console.log('Auth state changed → fetching recommendations again');
     setPage(1);
     fetchRecommendations(searchQuery, 1);
   }, [authState.isLoggedIn, searchQuery, fetchRecommendations]);
 
   const loadMoreServer = () => {
     const next = page + 1;
+    console.log('Loading more tutors from server, next page:', next);
     setPage(next);
     fetchRecommendations(searchQuery, next);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
   if (!authState.isLoggedIn) {
+    console.log('User not logged in → showing login prompt');
     return (
       <div className="max-w-full mx-auto bg-muted/40 border border-border rounded-2xl shadow-md p-8 text-center space-y-5">
         <div className="flex justify-center">
@@ -216,10 +266,7 @@ export const GeneralTutorGrid = ({ tutors }) => {
           {t('getPersonalizedTutors', 'Discover Your Ideal Tutor')}
         </h2>
         <p className="text-muted-foreground text-sm leading-relaxed">
-          {t(
-            'signInToSeeRecommendations',
-            'Sign in to receive personalized tutor recommendations based on your preferences.'
-          )}
+          {t('signInToSeeRecommendations', 'Sign in to receive personalized tutor recommendations based on your preferences.')}
         </p>
         <a
           href="/login"
@@ -233,6 +280,8 @@ export const GeneralTutorGrid = ({ tutors }) => {
 
   return (
     <div className="max-w-full mx-auto">
+      {(error || fetchError) && <ErrorBanner message={error || fetchError} />}
+      {/* Search Bar */}
       <div className="relative mb-8" ref={searchRef}>
         <div className="relative flex items-center bg-background border border-input rounded-lg h-12 sm:h-14 shadow-md focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all duration-300 hover:shadow-lg hover:scale-[1.01]">
           <Search className="w-5 h-5 mx-5 text-muted-foreground ml-4" />
@@ -281,9 +330,20 @@ export const GeneralTutorGrid = ({ tutors }) => {
         </AnimatePresence>
       </div>
 
+      {/* Tutors Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {loading && sourceTutors.length === 0 ? (
           <Loader />
+        ) : noTutors ? (
+          <Card className="max-w-md mx-auto mt-10 bg-muted/60 dark:bg-muted/40 col-span-full">
+            <CardContent className="flex items-center gap-4 py-6 text-muted-foreground">
+              <UserX className="w-6 h-6 flex-shrink-0" />
+              <div>
+                <h4 className="font-semibold text-base">{t('noTutorsFound', 'No Tutors Found')}</h4>
+                <p className="text-sm mt-1">{t('tryChangingFilters', 'Try adjusting your filters to see results.')}</p>
+              </div>
+            </CardContent>
+          </Card>
         ) : (
           columns.map((col, colIdx) => (
             <div key={colIdx} className="flex flex-col gap-4">
@@ -296,6 +356,7 @@ export const GeneralTutorGrid = ({ tutors }) => {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.25 }}
                 >
+                  {console.log('Rendering tutor card:', tutor)}
                   <GeneralTutorCard tutor={tutor} />
                 </motion.div>
               ))}
@@ -304,7 +365,7 @@ export const GeneralTutorGrid = ({ tutors }) => {
         )}
       </div>
 
-
+      {/* Load More */}
       {hasMore && (
         <div className="mt-8 flex justify-center">
           {authState.isLoggedIn ? (
