@@ -11,7 +11,8 @@
     "lint": "eslint \"src*.{js,jsx}\" --quiet",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
-    "devstart": "nodemon ./server/app.js"
+    "devstart": "nodemon ./server/app.js",
+    "start": "node ./server/app.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

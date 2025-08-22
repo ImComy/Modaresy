@@ -1,12 +1,5 @@
 {
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "redirects": [
-    {
-      "source": "/(.*)",
-      "destination": "https://modaresy-git-prototype-imcomys-projects.vercel.app/?_vercel_share=IsiWzpYd4RbAOtRRZLXtsEpDIsR26MGb",
-      "permanent": false
-    }
   ]
 }
