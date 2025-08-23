@@ -25,7 +25,6 @@ await mongoose.connect(process.env.MONGO_URI)
 .catch(err => console.error("Connection error:", err));
 
 const app = express();
-// Use standard PORT env var (Railway sets PORT) or fall back to .env port or 3000
 const port = process.env.PORT || process.env.port || 3000;
 app.use(express.json());
 app.use(cookieParser());
@@ -38,22 +37,12 @@ app.use(
   })
 );
 
-function safeMount(prefix, router, name) {
-  try {
-    console.log(`Mounting ${name} at ${prefix}`);
-    app.use(prefix, router);
-  } catch (err) {
-    console.error(`Failed mounting ${name} at ${prefix}:`, err);
-    throw err;
-  }
-}
-
-safeMount('/users', users, 'users');
-safeMount('/tutors', tutors, 'tutors');
-safeMount('/students', students, 'students');
-safeMount('/admins', admins, 'admins');
-safeMount('/constants', constants, 'constants');
-safeMount('/subjects', Subjects, 'subjects');
+app.use('/users', users)
+app.use('/tutors', tutors)
+app.use('/students', students)
+app.use('/admins', admins)
+app.use('/constants', constants)
+app.use('/subjects', Subjects)
 initializeUserStatsCache();
 
 // If there is a client build, serve it from /dist when in production
