@@ -29,7 +29,7 @@ const port = process.env.PORT || process.env.port || 3000;
 app.use(express.json());
 app.use(cookieParser());
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const CLIENT_URL = 'https://www.modaresy.me';
 app.use(
   cors({
     origin: CLIENT_URL,
@@ -45,7 +45,6 @@ app.use('/constants', constants)
 app.use('/subjects', Subjects)
 initializeUserStatsCache();
 
-// If there is a client build, serve it from /dist when in production
 const distPath = path.join(__dirname, '../dist');
 if (process.env.NODE_ENV === 'production' || process.env.SERVE_CLIENT === 'true') {
   app.use(express.static(distPath));
