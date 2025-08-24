@@ -24,6 +24,7 @@ import Filters from './pages/Filters';
 import NotFoundPage from './pages/notfound';
 import ForgotPasswordPage from './pages/forgot-password';
 import AdminPage from './pages/AdminPage';
+import ChatPage from './pages/chat';
 
 // ProtectedRoute component to restrict access based on auth status and user role
 const ProtectedRoute = ({ element, requireAuth = false, allowedRoles = null, unsignedOnly = false }) => {
@@ -155,6 +156,7 @@ function RoutesWrapper() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/Filters" element={<Filters />} />
+        <Route path="/chat" element={<ChatPage />} />
 
         {/* Routes restricted to unsigned users */}
         <Route
