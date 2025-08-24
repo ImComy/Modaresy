@@ -20,7 +20,7 @@ router.delete("/profiles/:id", verifyToken, isTeacher, SubjectController.deleteP
 
 // Public
 router.get("/loadall", verifyToken, SubjectController.getAllSubjectsPublic);
-router.get("/load/:tutorId", verifyToken, SubjectController.getSubjectsForTutor);
+router.get("/load/:tutorId", SubjectController.getSubjectsForTutor);
 router.put("/update", verifyToken, isTeacher, SubjectController.updateAny);
 
 // Reviews
