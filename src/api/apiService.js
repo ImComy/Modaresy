@@ -1,4 +1,4 @@
-export const API_BASE = "https://modaresy.me";
+export const API_BASE = "https://modaresy-production-ab96.up.railway.app/";
 
 export async function apiFetch(endpoint, options = {}) {
   try {
