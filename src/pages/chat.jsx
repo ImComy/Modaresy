@@ -118,29 +118,79 @@ const ConversationItem = ({ conv, active, onClick, isAi }) => {
 const AttachmentPreview = ({ a, onRemove, onOpen }) => {
   const type = filePreviewType(a.file);
   return (
-    <div className="flex items-center gap-3 border rounded-md px-3 py-2" style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--card))' }}>
-      <div className="w-24 h-16 flex items-center justify-center overflow-hidden rounded-md flex-shrink-0">
+    <div className="flex items-center gap-3 border rounded-md px-3 py-2" style={{ 
+      borderColor: 'hsl(var(--border))', 
+      background: 'hsl(var(--card))' 
+    }}>
+      <div className={`flex items-center justify-center overflow-hidden rounded-md flex-shrink-0 ${
+        type === 'image' ? 'w-32 h-32' : 'w-24 h-16'
+      }`}>
         {type === 'image' ? (
-          <img src={a.preview} alt={a.file.name} className="object-cover w-full h-full rounded-lg" onClick={() => onOpen(a.preview)} style={{ cursor: 'pointer', maxWidth: '100%' }} />
+          <img 
+            src={a.preview} 
+            alt={a.file.name} 
+            className="object-cover w-full h-full rounded-lg cursor-pointer" 
+            onClick={() => onOpen(a.preview)} 
+            style={{ 
+              transition: 'transform 0.2s ease',
+              maxWidth: '100%'
+            }}
+            onMouseEnter={(e) => e.target.style.transform = 'scale(1.02)'}
+            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+          />
         ) : type === 'pdf' ? (
-          <PdfIcon />
+          <div className="flex flex-col items-center justify-center p-2">
+            <PdfIcon size={32} />
+            <span className="text-xs mt-1 text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+              PDF
+            </span>
+          </div>
         ) : type === 'doc' ? (
-          <DocIcon />
+          <div className="flex flex-col items-center justify-center p-2">
+            <DocIcon size={32} />
+            <span className="text-xs mt-1 text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+              DOC
+            </span>
+          </div>
         ) : (
-          <GenericFileIcon />
+          <div className="flex flex-col items-center justify-center p-2">
+            <GenericFileIcon size={24} />
+            <span className="text-xs mt-1 text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+              FILE
+            </span>
+          </div>
         )}
       </div>
 
       <div className="flex-1 text-sm min-w-0">
-        <div className="truncate" title={a.file.name} style={{ fontWeight: 600 }}>{a.file.name}</div>
-        <div className="text-[12px] mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>{niceSize(a.file.size)}</div>
+        <div className="truncate" title={a.file.name} style={{ fontWeight: 600 }}>
+          {a.file.name}
+        </div>
+        <div className="text-[12px] mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>
+          {niceSize(a.file.size)}
+        </div>
+        {type === 'image' && (
+          <div className="text-[11px] mt-1 italic" style={{ color: 'hsl(var(--muted-foreground))' }}>
+            Click to preview
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
-        <button onClick={() => onOpen(a.preview || '')} className="p-1 rounded hover:bg-[hsl(var(--input))]" title="Preview" style={{ color: 'hsl(var(--muted-foreground))' }}>
+        <button 
+          onClick={() => onOpen(a.preview || '')} 
+          className="p-1 rounded hover:bg-[hsl(var(--input))]" 
+          title="Preview" 
+          style={{ color: 'hsl(var(--muted-foreground))' }}
+        >
           <ImageIcon size={16} />
         </button>
-        <button onClick={() => onRemove(a.id)} className="p-1 rounded hover:bg-[hsl(var(--input))]" title="Remove attachment" style={{ color: 'hsl(var(--muted-foreground))' }}>
+        <button 
+          onClick={() => onRemove(a.id)} 
+          className="p-1 rounded hover:bg-[hsl(var(--input))]" 
+          title="Remove attachment" 
+          style={{ color: 'hsl(var(--muted-foreground))' }}
+        >
           <Trash2 size={16} />
         </button>
       </div>
@@ -460,22 +510,57 @@ const ChatPage = () => {
                       <div className="max-w-[85%] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] px-4 py-2 rounded-2xl rounded-br-sm shadow-sm" style={{ wordBreak: 'break-word' }}>
                         <div style={{ whiteSpace: 'pre-wrap' }}>{m.text}</div>
                         {m.attachments && m.attachments.length > 0 && (
-                          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="mt-2 space-y-2">
                             {m.attachments.map((a) => (
-                              <div key={a.id} className="flex items-center gap-2 bg-white/6 p-2 rounded">
+                            <div key={a.id} className="flex items-center gap-2 p-2 rounded-md" style={{ 
+                                background: 'hsla(var(--primary-foreground), 0.1)' 
+                            }}>
                                 {a.preview ? (
-                                  <img onClick={() => openLightbox(a.preview)} src={a.preview} alt={a.name} className="w-36 h-24 object-cover rounded" style={{ maxWidth: '100%' }} />
+                                <div className="relative group">
+                                    <img 
+                                    onClick={() => openLightbox(a.preview)} 
+                                    src={a.preview} 
+                                    alt={a.name} 
+                                    className="w-40 h-28 object-cover rounded cursor-pointer"
+                                    style={{
+                                        transition: 'transform 0.2s ease',
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.transform = 'scale(1.03)'}
+                                    onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 rounded pointer-events-none"></div>
+                                </div>
                                 ) : a.type === 'application/pdf' || a.name?.toLowerCase?.().endsWith('.pdf') ? (
-                                  <PdfIcon />
+                                <div className="flex items-center gap-2 p-2 rounded-md" style={{ 
+                                    background: 'hsla(var(--input))' 
+                                }}>
+                                    <PdfIcon size={24} />
+                                    <div className="text-xs truncate" title={a.name} style={{ maxWidth: 120 }}>
+                                    {a.name}
+                                    </div>
+                                </div>
                                 ) : a.name?.toLowerCase?.().endsWith('.docx') || a.name?.toLowerCase?.().endsWith('.doc') ? (
-                                  <DocIcon />
+                                <div className="flex items-center gap-2 p-2 rounded-md" style={{ 
+                                    background: 'hsla(var(--input))' 
+                                }}>
+                                    <DocIcon size={24} />
+                                    <div className="text-xs truncate" title={a.name} style={{ maxWidth: 120 }}>
+                                    {a.name}
+                                    </div>
+                                </div>
                                 ) : (
-                                  <FileText />
+                                <div className="flex items-center gap-2 p-2 rounded-md" style={{ 
+                                    background: 'hsla(var(--input))' 
+                                }}>
+                                    <FileText size={16} />
+                                    <div className="text-xs truncate" title={a.name} style={{ maxWidth: 120 }}>
+                                    {a.name}
+                                    </div>
+                                </div>
                                 )}
-                                <div className="text-xs truncate" title={a.name} style={{ maxWidth: 120 }}>{a.name}</div>
-                              </div>
+                            </div>
                             ))}
-                          </div>
+                        </div>
                         )}
                         <div className="text-xs mt-1 text-opacity-80" style={{ color: 'hsl(var(--primary-foreground))' }}>{new Date(m.time).toLocaleTimeString()}</div>
                       </div>
@@ -492,24 +577,53 @@ const ChatPage = () => {
 
                         <div className={`max-w-[85%] px-4 py-2 rounded-2xl ${activeConvId === 'ai-chat' ? 'border' : 'bg-[hsl(var(--card))] border'}`} style={{ borderColor: activeConvId === 'ai-chat' ? 'rgba(124,58,237,0.12)' : 'hsl(var(--border))', color: 'hsl(var(--card-foreground))', wordBreak: 'break-word', boxShadow: activeConvId === 'ai-chat' ? '0 8px 30px rgba(99,102,241,0.06)' : undefined }}>
                           <div style={{ whiteSpace: 'pre-wrap' }}>{m.text}</div>
-                          {m.attachments && m.attachments.length > 0 && (
-                            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {m.attachments.map((a) => (
-                                <div key={a.id} className="flex items-center gap-2 bg-white/2 p-2 rounded">
-                                  {a.preview ? (
-                                    <img onClick={() => openLightbox(a.preview)} src={a.preview} alt={a.name} className="w-36 h-24 object-cover rounded" style={{ maxWidth: '100%' }} />
-                                  ) : a.type === 'application/pdf' || a.name?.toLowerCase?.().endsWith('.pdf') ? (
-                                    <PdfIcon />
-                                  ) : a.name?.toLowerCase?.().endsWith('.docx') || a.name?.toLowerCase?.().endsWith('.doc') ? (
-                                    <DocIcon />
-                                  ) : (
-                                    <FileText />
-                                  )}
-                                  <div className="text-xs truncate" title={a.name} style={{ maxWidth: 120 }}>{a.name}</div>
+                            {m.attachments && m.attachments.length > 0 && (
+                            <div className="mt-2 space-y-2">
+                                {m.attachments.map((a) => (
+                                <div key={a.id} className="flex items-center gap-2 p-2 rounded-md" style={{ 
+                                    background: 'hsla(var(--input))' 
+                                }}>
+                                    {a.preview ? (
+                                    <div className="relative group">
+                                        <img 
+                                        onClick={() => openLightbox(a.preview)} 
+                                        src={a.preview} 
+                                        alt={a.name} 
+                                        className="w-40 h-28 object-cover rounded cursor-pointer"
+                                        style={{
+                                            transition: 'transform 0.2s ease',
+                                        }}
+                                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.03)'}
+                                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                                        />
+                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 rounded pointer-events-none"></div>
+                                    </div>
+                                    ) : a.type === 'application/pdf' || a.name?.toLowerCase?.().endsWith('.pdf') ? (
+                                    <div className="flex items-center gap-2">
+                                        <PdfIcon size={24} />
+                                        <div className="text-xs truncate" title={a.name} style={{ maxWidth: 120 }}>
+                                        {a.name}
+                                        </div>
+                                    </div>
+                                    ) : a.name?.toLowerCase?.().endsWith('.docx') || a.name?.toLowerCase?.().endsWith('.doc') ? (
+                                    <div className="flex items-center gap-2">
+                                        <DocIcon size={24} />
+                                        <div className="text-xs truncate" title={a.name} style={{ maxWidth: 120 }}>
+                                        {a.name}
+                                        </div>
+                                    </div>
+                                    ) : (
+                                    <div className="flex items-center gap-2">
+                                        <FileText size={16} />
+                                        <div className="text-xs truncate" title={a.name} style={{ maxWidth: 120 }}>
+                                        {a.name}
+                                        </div>
+                                    </div>
+                                    )}
                                 </div>
-                              ))}
+                                ))}
                             </div>
-                          )}
+                            )}
                           <div className="text-xs mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>{new Date(m.time).toLocaleTimeString()}</div>
                         </div>
                       </div>
@@ -577,7 +691,8 @@ const ChatPage = () => {
             </div>
 
             <div className="text-xs mt-2" style={{ color: 'hsl(var(--muted-foreground))' }}>
-              Tip: drag & drop files here or click the paperclip to choose. Tap images to open a zoomable preview.
+              Tip: drag & drop files here or click the paperclip to choose. Tap images to open a zoomable preview. 
+              <span className='text-red-500'> the chats are only for prototype testing for the time being</span>
             </div>
           </div>
         </main>
