@@ -27,7 +27,7 @@ const Avatar = React.forwardRef(({ className, radius = 'rounded-full', ...props 
     <AvatarPrimitive.Fallback
       ref={ref}
       className={cn(
-        ` text-2xl flex h-full w-full items-center justify-center ${radius} bg-muted hover:text-accent`,
+        ` flex h-full w-full items-center justify-center ${radius} bg-muted hover:text-accent`,
         className
       )}
       {...props}

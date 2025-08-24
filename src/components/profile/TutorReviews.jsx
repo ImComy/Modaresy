@@ -410,9 +410,19 @@ const TutorReviews = ({ tutorId, subjectProfile, onReviewUpdate }) => {
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4 mb-2">
                     <div className="flex-1">
-                      <span className="font-semibold text-sm text-primary">
-                        {review.User_ID?.name || t('anonymousUser')}
-                      </span>
+                            {(() => {
+                              const userObj = review.User_ID || review.User || review.user || null;
+                              const nameCandidates = [
+                                userObj?.name,
+                                userObj?.fullName,
+                                userObj?.username,
+                                userObj?.displayName,
+                              ];
+                              const displayName = nameCandidates.find(n => n && String(n).trim()) || t('anonymousUser');
+                              return (
+                                <span className="font-semibold text-sm text-primary">{displayName}</span>
+                              );
+                            })()}
                       <div className="mt-1 mb-2">
                         {typeof review.Rate === 'number' && isFinite(review.Rate) ? 
                           renderStars(review.Rate, 14) : 

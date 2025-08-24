@@ -1,12 +1,97 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import EditToggleButton from '@/components/ui/EditToggleButton';
 import TutorProfileHeader from '@/components/profile/TutorProfileHeader';
 import SubjectSelector from '@/components/profile/subjectSelector';
+import BlogSection from '@/components/profile/BlogSection';
 import useTutorProfile from '@/hooks/useTutorProfile';
 import useEditMode from '@/hooks/useEditMode';
 import { apiFetch } from '@/api/apiService';
+import { BookOpen, FileText } from 'lucide-react';
+
+const SegmentedControl = ({ options, value, onChange, ariaLabel = 'View Mode' }) => {
+  const containerRef = useRef(null);
+
+  const activeIndex = options.findIndex((o) => o.value === value);
+  const handleKeyDown = (e) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    let next = activeIndex;
+    if (e.key === 'ArrowRight') next = (activeIndex + 1) % options.length;
+    if (e.key === 'ArrowLeft') next = (activeIndex - 1 + options.length) % options.length;
+    if (e.key === 'Home') next = 0;
+    if (e.key === 'End') next = options.length - 1;
+    onChange(options[next].value);
+    const btn = containerRef.current?.querySelectorAll('[role="tab"]')[next];
+    btn && btn.focus();
+  };
+
+  const activeBg = `linear-gradient(90deg, hsl(var(--primary)), hsl(var(--secondary)))`;
+  const inactiveText = 'hsl(var(--muted-foreground))';
+  const activeText = 'hsl(var(--primary-foreground))';
+  const borderColor = 'hsl(var(--border))';
+
+  return (
+    <div className="w-full flex justify-center">
+      <div
+        ref={containerRef}
+        role="tablist"
+        aria-label={ariaLabel}
+        onKeyDown={handleKeyDown}
+        className="relative inline-flex rounded-full p-1"
+        style={{
+          background: 'hsl(var(--muted))',
+          padding: 6,
+          borderRadius: 9999,
+          boxShadow: '0 2px 10px rgba(2,6,23,0.03)',
+        }}
+      >
+        {options.map((opt, i) => {
+          const active = opt.value === value;
+          return (
+            <button
+              key={opt.value}
+              role="tab"
+              aria-selected={active}
+              tabIndex={active ? 0 : -1}
+              onClick={() => onChange(opt.value)}
+              className="relative z-10 flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer select-none focus:outline-none"
+              style={{
+                background: 'transparent',
+                color: active ? activeText : inactiveText,
+                border: active ? '1px solid transparent' : `1px solid ${borderColor}`,
+                minWidth: 120,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                fontWeight: 600,
+              }}
+            >
+              {active && (
+                <motion.span
+                  layoutId="segmented-pill"
+                  className="absolute inset-0 rounded-lg"
+                  style={{
+                    background: activeBg,
+                    zIndex: -1,
+                    boxShadow: '0 10px 30px rgba(2,6,23,0.08)',
+                  }}
+                  initial={false}
+                  transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+                />
+              )}
+
+              {opt.icon && <opt.icon size={16} style={{ color: 'inherit' }} />}
+              <span style={{ pointerEvents: 'none' }}>{opt.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = null }) => {
   const { t } = useTranslation();
@@ -113,6 +198,8 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
     onCancelCallback: () => reset()
   });
 
+  const [viewMode, setViewMode] = useState('subjects');
+
   const addSubject = (newSubject) => {
     const updatedSubjects = [...(editedData?.subjects || []), { ...newSubject, tempId: Date.now() }];
     updateField('subjects', updatedSubjects);
@@ -144,10 +231,15 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
     }
   };
 
+  const segOptions = [
+    { value: 'subjects', label: t('Subjects') || 'Subjects', icon: BookOpen },
+    { value: 'blog', label: t('Blog') || 'Blog', icon: FileText },
+  ];
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <span className="animate-spin h-8 w-8 rounded-full border-4 border-t-transparent border-primary"></span>
+        <span className="animate-spin h-8 w-8 rounded-full border-4 border-t-transparent" style={{ borderColor: 'hsl(var(--primary))' }}></span>
         <span className="ml-2">{t('loading')}...</span>
       </div>
     );
@@ -159,20 +251,23 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28 }}
       className="max-w-6xl mx-auto space-y-8 pb-12"
     >
       <form onSubmit={handleSubmit}>
-        {isOwner && (
-          <EditToggleButton
-            isEditing={isEditing}
-            isSaving={isSubmitting}
-            startEditing={startEditing}
-            cancelEditing={cancelEditing}
-            onSave={saveChanges} 
-          />
+        {/* Hide edit toggle when viewing blog */}
+        {isOwner && viewMode !== 'blog' && (
+          <div className="mb-4 flex justify-end">
+            <EditToggleButton
+              isEditing={isEditing}
+              isSaving={isSubmitting}
+              startEditing={startEditing}
+              cancelEditing={cancelEditing}
+              onSave={saveChanges}
+            />
+          </div>
         )}
 
         <TutorProfileHeader
@@ -185,16 +280,62 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
           isOwner={isOwner}
         />
 
-        <SubjectSelector
-          tutor={isEditing ? editedData : tutor}
-          subjects={isEditing && editedData?.subjects ? editedData.subjects : (subjects || [])}
-          isEditing={isEditing}
-          isOwner={isOwner}
-          onUpdateSubject={updateSubject}
-          onDeleteSubject={removeSubject}
-          onTutorChange={updateField}
-          onReviewUpdate={() => fetchTutorData(tutor._id)}
-        />
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            {/* Centered, animated segmented control */}
+            <div className="flex-1 flex justify-center mt-5">
+              <motion.div
+                initial={{ scale: 0.98, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.28, ease: 'easeOut' }}
+                className="inline-block"
+              >
+                <SegmentedControl
+                  options={segOptions}
+                  value={viewMode}
+                  onChange={(val) => setViewMode(val)}
+                  ariaLabel="Profile view mode"
+                />
+              </motion.div>
+            </div>
+          </div>
+
+          {/* Animated view container */}
+          <div>
+            <AnimatePresence mode="wait">
+              {viewMode === 'subjects' ? (
+                <motion.div
+                  key="subjects"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.28 }}
+                >
+                  <SubjectSelector
+                    tutor={isEditing ? editedData : tutor}
+                    subjects={isEditing && editedData?.subjects ? editedData.subjects : (subjects || [])}
+                    isEditing={isEditing}
+                    isOwner={isOwner}
+                    onUpdateSubject={updateSubject}
+                    onDeleteSubject={removeSubject}
+                    onTutorChange={updateField}
+                    onReviewUpdate={() => fetchTutorData(tutor._id)}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="blog"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.28 }}
+                >
+                  <BlogSection tutorId={tutor._id} isOwner={isOwner} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </form>
     </motion.div>
   );

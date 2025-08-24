@@ -414,6 +414,10 @@ updateProfile: async (profileId, updateData, teacherId) => {
           },
           {
             path: "reviews",
+            populate: {
+              path: "User_ID",
+              select: "name fullName username displayName img type"
+            }
           }
         ],
       })

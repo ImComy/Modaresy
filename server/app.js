@@ -2,6 +2,7 @@ import express from "express"
 import users from "./routes/users.js"
 import tutors from "./routes/tutors.js"
 import students from "./routes/students.js"
+import blogs from "./routes/blogs.js"
 import admins from "./routes/admins.js"
 import constants from "./routes/constants.js"
 import Subjects from "./routes/subjects.js"
@@ -29,7 +30,7 @@ const port = process.env.PORT || process.env.port || 3000;
 app.use(express.json());
 app.use(cookieParser());
 
-const CLIENT_URL = 'https://www.modaresy.me';
+const CLIENT_URL = 'http://localhost:5173';
 app.use(
   cors({
     origin: CLIENT_URL,
@@ -40,6 +41,7 @@ app.use(
 app.use('/users', users)
 app.use('/tutors', tutors)
 app.use('/students', students)
+app.use('/blogs', blogs)
 app.use('/admins', admins)
 app.use('/constants', constants)
 app.use('/subjects', Subjects)
