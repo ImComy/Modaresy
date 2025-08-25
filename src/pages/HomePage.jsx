@@ -1,9 +1,9 @@
-import { useRef } from 'react';
-import { motion } from 'framer-motion';
+// import { useRef } from 'react';
+// import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { mockTutors } from '@/data/enhanced';
-import { useTutorFilterSort } from '@/hooks/useTutorFilterSort';
-import TopTutors from '@/components/tutors/topTutors';
+// import { mockTutors } from '@/data/enhanced';
+// import { useTutorFilterSort } from '@/hooks/useTutorFilterSort';
+// import TopTutors from '@/components/tutors/topTutors';
 import HeroSection from '@/components/home/hero';
 import ExploreSection from '@/components/home/explore';
 import StatsSection from '@/components/home/stats';
@@ -13,27 +13,27 @@ import TutorBenefitsSection from '../components/home/tutor';
 import Mobile from '../components/home/phone';
 
 const HomePage = () => {
-  const { t } = useTranslation();
-  const {
-    searchTerm,
-    setSearchTerm,
-    filters,
-    setFilters,
-    handleFilterChange,
-    handleRateChange,
-    sortBy,
-    setSortBy,
-    sortedTutors,
-  } = useTutorFilterSort(mockTutors);
+  // const { t } = useTranslation();
+  // const {
+  //   searchTerm,
+  //   setSearchTerm,
+  //   filters,
+  //   setFilters,
+  //   handleFilterChange,
+  //   handleRateChange,
+  //   sortBy,
+  //   setSortBy,
+  //   sortedTutors,
+  // } = useTutorFilterSort(mockTutors);
 
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 15 },
-    visible: (i = 1) => ({
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.3, delay: i * 0.1 },
-    }),
-  };
+  // const fadeInUp = {
+  //   hidden: { opacity: 0, y: 15 },
+  //   visible: (i = 1) => ({
+  //     opacity: 1,
+  //     y: 0,
+  //     transition: { duration: 0.3, delay: i * 0.1 },
+  //   }),
+  // };
 
   const { i18n } = useTranslation();
   const isRTL = i18n.dir() === 'rtl'; 
@@ -51,10 +51,10 @@ const HomePage = () => {
       <ExploreSection />
       <div className="block md:hidden"><StatsSection /></div>
       
-      <section className=" container mx-auto px-4  roudned-lg">
+      {/* <section className=" container mx-auto px-4  roudned-lg">
         <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center mb-5">{t('TopTutors')}</motion.h2>
         <TopTutors tutors={mockTutors} />
-      </section>
+      </section> */}
       <section>
         <VisionSection />
       </section>

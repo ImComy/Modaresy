@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Heart from '@/components/ui/heart';
 
+// --- helpers ---
 const getDisplayName = (user) => {
   if (!user) return null;
   return (
@@ -54,6 +55,7 @@ const InvisibleFileInput = ({ label, Icon, accept }) => {
   );
 };
 
+// --- CommentsList ---
 const CommentsList = ({ post, onComment, me, refreshParent }) => {
   const [text, setText] = useState('');
   const [editing, setEditing] = useState(null);
@@ -110,7 +112,7 @@ const CommentsList = ({ post, onComment, me, refreshParent }) => {
 
   return (
     <div className="mt-3 pt-3" style={{ borderTop: '1px solid hsl(var(--border))' }}>
-      <div className="space-y-2 max-h-60 overflow-auto pr-2">
+      <div className="space-y-2 overflow-auto pr-2 max-h-40 sm:max-h-60">
         {(post.comments || []).map((c) => {
           const rawUser = c.user;
           const user = typeof rawUser === 'object' ? rawUser : null;
@@ -120,7 +122,7 @@ const CommentsList = ({ post, onComment, me, refreshParent }) => {
 
           return (
             <div key={c._id} className="flex items-start gap-3 text-sm">
-              <div>
+              <div className="w-9 flex-shrink-0">
                 <Avatar>
                   {avatarSrc ? (
                     <AvatarImage src={avatarSrc} alt={displayName} />
@@ -132,7 +134,7 @@ const CommentsList = ({ post, onComment, me, refreshParent }) => {
 
               <div className="flex-1">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="font-medium text-sm">{displayName}</div>
+                  <div className="font-medium text-sm truncate">{displayName}</div>
                   <div className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
                     {new Date(c.createdAt).toLocaleString?.() ?? ''}
                   </div>
@@ -181,12 +183,12 @@ const CommentsList = ({ post, onComment, me, refreshParent }) => {
                       </button>
                     </div>
                   ) : (
-                    <div>{c.text}</div>
+                    <div className="whitespace-pre-wrap">{c.text}</div>
                   )}
                 </div>
               </div>
 
-              <div className="flex flex-col items-end gap-2">
+              <div className="flex flex-col items-end gap-2 ml-2">
                 {isMine && editing !== c._id && deleting !== c._id && (
                   <>
                     <button
@@ -286,14 +288,15 @@ const CommentsList = ({ post, onComment, me, refreshParent }) => {
   );
 };
 
+// --- BlogSection ---
 const BlogSection = ({ tutorId, isOwner }) => {
   const { authState } = useAuth();
   const me = authState?.userId;
 
-  const LIMIT = 12; 
+  const LIMIT = 12;
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1); 
+  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -313,7 +316,6 @@ const BlogSection = ({ tutorId, isOwner }) => {
         } else {
           setPosts((prev) => [...prev, ...(fetched || [])]);
         }
-        // if backend returned fewer than LIMIT, we've reached the end
         if (!fetched || fetched.length < LIMIT) {
           setHasMore(false);
         } else {
@@ -330,7 +332,6 @@ const BlogSection = ({ tutorId, isOwner }) => {
     [tutorId]
   );
 
-  // initial load & reset when tutorId changes
   useEffect(() => {
     setPosts([]);
     setPage(1);
@@ -338,7 +339,6 @@ const BlogSection = ({ tutorId, isOwner }) => {
     if (tutorId) {
       fetchPosts(1);
     }
-    // cleanup observer on tutor change
     return () => {
       if (observerRef.current) {
         observerRef.current.disconnect();
@@ -347,13 +347,11 @@ const BlogSection = ({ tutorId, isOwner }) => {
     };
   }, [tutorId, fetchPosts]);
 
-  // fetch when page increments (except initial which is handled above)
   useEffect(() => {
     if (page === 1) return;
     fetchPosts(page);
   }, [page, fetchPosts]);
 
-  // IntersectionObserver to load more when sentinel appears
   useEffect(() => {
     if (!sentinelRef.current) return;
     if (observerRef.current) observerRef.current.disconnect();
@@ -365,7 +363,7 @@ const BlogSection = ({ tutorId, isOwner }) => {
           setPage((p) => p + 1);
         }
       },
-      { root: null, rootMargin: '200px', threshold: 0.1 }
+      { root: null, rootMargin: '300px', threshold: 0.1 }
     );
 
     observerRef.current.observe(sentinelRef.current);
@@ -399,7 +397,6 @@ const BlogSection = ({ tutorId, isOwner }) => {
         attachments: [],
         isTemp: true,
       };
-      // insert at top
       setPosts((p) => [tempPost, ...p]);
       setTitle('');
       setContent('');
@@ -413,7 +410,6 @@ const BlogSection = ({ tutorId, isOwner }) => {
       if (created && created._id) {
         setPosts((prev) => prev.map((pp) => (pp._id === tempId ? created : pp)));
       } else {
-        // fallback: refetch first page to ensure consistency
         fetchPosts(1);
       }
     } catch (err) {
@@ -431,7 +427,6 @@ const BlogSection = ({ tutorId, isOwner }) => {
       await apiFetch(`/blogs/${postId}`, { method: 'DELETE' });
     } catch (err) {
       console.error('delete error', err);
-      // re-sync if something went wrong
       fetchPosts(1);
     }
   };
@@ -458,7 +453,6 @@ const BlogSection = ({ tutorId, isOwner }) => {
       }
     } catch (err) {
       console.error('like error', err);
-      // re-sync in case of error
       fetchPosts(1);
     }
   };
@@ -497,18 +491,9 @@ const BlogSection = ({ tutorId, isOwner }) => {
     <div className="space-y-5">
       {/* Composer */}
       {isOwner && (
-        <div
-          className="w-full rounded-2xl shadow-sm transition-shadow"
-          style={{
-            background: 'hsl(var(--card))',
-            color: 'hsl(var(--card-foreground))',
-            border: '1px solid hsl(var(--border))',
-            padding: 14,
-            boxShadow: '0 6px 18px rgba(2,6,23,0.04)',
-          }}
-        >
-          <div className="flex gap-3">
-            <div className="w-12">
+        <div className="w-full rounded-2xl shadow-sm transition-shadow p-4" style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="w-12 flex-shrink-0">
               <Avatar>
                 {getAvatarSrc(authState?.userData) ? (
                   <AvatarImage src={getAvatarSrc(authState?.userData)} alt={getDisplayName(authState?.userData) || 'Me'} />
@@ -519,7 +504,6 @@ const BlogSection = ({ tutorId, isOwner }) => {
             </div>
 
             <div className="flex-1">
-              {/* Title input with label + helper */}
               <label className="block text-sm font-medium mb-1" style={{ color: 'hsl(var(--muted-foreground))' }}>
                 Title (optional)
               </label>
@@ -533,7 +517,6 @@ const BlogSection = ({ tutorId, isOwner }) => {
                   background: 'hsl(var(--input))',
                   border: '1px solid hsl(var(--border))',
                   color: 'hsl(var(--card-foreground))',
-                  boxShadow: title ? '0 4px 18px rgba(2,6,23,0.04)' : 'none',
                 }}
                 onKeyDown={(e) => {
                   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -542,9 +525,6 @@ const BlogSection = ({ tutorId, isOwner }) => {
                   }
                 }}
               />
-              <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginBottom: 8 }}>
-                Keep titles short — they help students scan your updates quickly.
-              </div>
 
               <textarea
                 value={content}
@@ -565,13 +545,13 @@ const BlogSection = ({ tutorId, isOwner }) => {
                 }}
               />
 
-              <div className="mt-3 flex items-center justify-between">
+              <div className="mt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <InvisibleFileInput label="Photo" Icon={ImageIcon} accept="image/*" />
                   <InvisibleFileInput label="Document" Icon={FileText} accept=".pdf,.doc,.docx,.txt" />
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 justify-end">
                   <button
                     type="button"
                     onClick={() => {
@@ -614,25 +594,11 @@ const BlogSection = ({ tutorId, isOwner }) => {
       {/* Posts */}
       <div className="space-y-4">
         {loading && posts.length === 0 ? (
-          <div
-            className="text-center py-10 rounded"
-            style={{
-              background: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border))',
-              color: 'hsl(var(--muted-foreground))',
-            }}
-          >
+          <div className="text-center py-10 rounded" style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}>
             Loading posts...
           </div>
         ) : posts.length === 0 ? (
-          <div
-            className="text-center py-10 rounded"
-            style={{
-              background: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border))',
-              color: 'hsl(var(--muted-foreground))',
-            }}
-          >
+          <div className="text-center py-10 rounded" style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}>
             No posts yet.
           </div>
         ) : (
@@ -645,39 +611,30 @@ const BlogSection = ({ tutorId, isOwner }) => {
               <article
                 key={post._id}
                 className="rounded-2xl p-4 transition-shadow hover:shadow-lg"
-                style={{
-                  background: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  color: 'hsl(var(--card-foreground))',
-                  boxShadow: '0 6px 20px rgba(2,6,23,0.04)',
-                }}
+                style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--card-foreground))', boxShadow: '0 6px 20px rgba(2,6,23,0.04)' }}
               >
-                <div className="flex justify-between items-start gap-3">
-                  <div className="flex gap-3 items-start">
-                    <div>
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+                  <div className="flex gap-3 items-start flex-1">
+                    <div className="w-10 flex-shrink-0">
                       <Avatar>
                         {authorAvatar ? <AvatarImage src={authorAvatar} alt={authorName} /> : <AvatarFallback>{getInitials(authorName)}</AvatarFallback>}
                       </Avatar>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <div className="font-semibold">{post.title || authorName}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="font-semibold truncate">{post.title || authorName}</div>
                         <div className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
                           • {new Date(post.createdAt).toLocaleString()}
                         </div>
                       </div>
-                      <div className="mt-2 text-sm" style={{ color: 'hsl(var(--card-foreground))' }}>
+                      <div className="mt-2 text-sm break-words" style={{ color: 'hsl(var(--card-foreground))' }}>
                         {post.content}
                       </div>
 
                       {post.attachments && post.attachments.length > 0 && (
-                        <div className="mt-3 grid grid-cols-2 gap-2">
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {post.attachments.map((a, idx) => (
-                            <div
-                              key={idx}
-                              className="rounded overflow-hidden border"
-                              style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--input))' }}
-                            >
+                            <div key={idx} className="rounded overflow-hidden border" style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--input))' }}>
                               <div className="w-full h-28 flex items-center justify-center text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
                                 Attachment preview
                               </div>
@@ -688,51 +645,24 @@ const BlogSection = ({ tutorId, isOwner }) => {
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2 mt-2 sm:mt-0">
                     {isOwner && (
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(post._id)}
-                        title="Delete"
-                        aria-label="Delete post"
-                        style={{
-                          color: 'hsl(var(--destructive))',
-                          background: 'transparent',
-                          border: 'none',
-                          padding: 8,
-                          borderRadius: 8,
-                        }}
-                      >
+                      <button type="button" onClick={() => handleDelete(post._id)} title="Delete" aria-label="Delete post" className="p-2 rounded-md" style={{ color: 'hsl(var(--destructive))', background: 'transparent', border: 'none' }}>
                         <Trash2 size={18} />
                       </button>
                     )}
-                    <button
-                      type="button"
-                      className="p-1 rounded"
-                      title="More"
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'hsl(var(--muted-foreground))',
-                      }}
-                    >
+                    <button type="button" className="p-2 rounded-md" title="More" style={{ background: 'transparent', border: 'none', color: 'hsl(var(--muted-foreground))' }}>
                       <MoreHorizontal size={18} />
                     </button>
                   </div>
                 </div>
 
                 {/* action row */}
-                <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: 'hsl(var(--border))' }}>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <Heart
-                        isLiked={(post.likes || []).map(l => String(l)).includes(String(me))}
-                        onToggle={() => handleLike(post._id)}
-                        size={18}
-                      />
-                      <button className="text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                        {(post.likes || []).length ? ` ${(post.likes || []).length}` : ''}
-                      </button>
+                <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between border-t pt-3" style={{ borderColor: 'hsl(var(--border))' }}>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center">
+                      <Heart isLiked={likedByMe} onToggle={() => handleLike(post._id)} size={18} />
+                      <button className="text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>{(post.likes || []).length ? ` ${(post.likes || []).length}` : ''}</button>
                     </div>
 
                     <div className="flex items-center gap-2 px-3 py-1 rounded-md text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>
@@ -741,16 +671,10 @@ const BlogSection = ({ tutorId, isOwner }) => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="flex items-center gap-1 text-sm px-3 py-1 rounded-md"
-                      onClick={() => { /* UI-only share action */ }}
-                      style={{ color: 'hsl(var(--muted-foreground))' }}
-                      title="Share"
-                    >
+                  <div className="flex items-center gap-2 mt-3 sm:mt-0">
+                    <button type="button" className="flex items-center gap-1 text-sm px-3 py-1 rounded-md" onClick={() => { /* UI-only share action */ }} style={{ color: 'hsl(var(--muted-foreground))' }} title="Share">
                       <Share2 size={16} />
-                      Share
+                      <span className="hidden sm:inline">Share</span>
                     </button>
                   </div>
                 </div>
@@ -767,15 +691,11 @@ const BlogSection = ({ tutorId, isOwner }) => {
 
       {/* small loading indicator while fetching more */}
       {loading && posts.length > 0 && (
-        <div className="text-center py-6" style={{ color: 'hsl(var(--muted-foreground))' }}>
-          Loading more...
-        </div>
+        <div className="text-center py-6" style={{ color: 'hsl(var(--muted-foreground))' }}>Loading more...</div>
       )}
       {/* end message when no more posts */}
       {!hasMore && posts.length > 0 && (
-        <div className="text-center py-6" style={{ color: 'hsl(var(--muted-foreground))' }}>
-          You've reached the end.
-        </div>
+        <div className="text-center py-6" style={{ color: 'hsl(var(--muted-foreground))' }}>You've reached the end.</div>
       )}
     </div>
   );

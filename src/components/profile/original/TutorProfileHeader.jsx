@@ -19,7 +19,7 @@ import {
   FaEnvelope,
   FaGlobe,
 } from 'react-icons/fa';
-import ReportButton from '@/components/report';
+// import ReportButton from '@/components/report';
 import { useWishlistLogic } from '@/hooks/useWishlistActions';
 import renderStars from '@/components/ui/renderStars';
 
@@ -50,11 +50,11 @@ const TutorProfileHeaderDisplay = ({ tutor, isOwner }) => {
       <Card className="shadow-xl bg-gradient-to-br from-primary/5 to-primary/10 border-0">
         {/* Banner Image */}
         <div className="relative h-48 md:h-64 rounded-t-lg overflow-hidden">
-          {!isOwner && (
+          {/* {!isOwner && (
             <div className="absolute top-4 right-4 z-20">
               <ReportButton tutorId={tutor._id} />
             </div>
-          )}
+          )} */}
           <img
             src={tutor.bannerimg || 'https://placehold.co/600x200?text=Tutor+Banner'}
             alt={tutor.name}

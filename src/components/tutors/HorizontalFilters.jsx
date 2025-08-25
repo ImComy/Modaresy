@@ -67,16 +67,16 @@ const HorizontalFilters = (props) => {
   useEffect(() => setSortIndex(SORT_OPTIONS.findIndex(opt => opt.value === sortBy)), [sortBy]);
 
   const updateFilter = (key, value) => {
-  console.debug('[HorizontalFilters] updateFilter', { key, value });
-  if (handleFilterChange) handleFilterChange(key, value);
-  else if (setFilters) setFilters(prev => ({ ...prev, [key]: value }));
+    console.debug('[HorizontalFilters] updateFilter', { key, value });
+    if (handleFilterChange) handleFilterChange(key, value);
+    else if (setFilters) setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const makeComboValueFromFilters = (f = {}) => {
-  const system = f.educationSystem || 'all';
-  const sector = f.sector || 'all';
-  const language = f.language || 'all';
-  return `${system}||${sector}||${language}`;
+    const system = f.educationSystem || 'all';
+    const sector = f.sector || 'all';
+    const language = f.language || 'all';
+    return `${system}||${sector}||${language}`;
   };
 
   const [selectedComboValue, setSelectedComboValue] = useState('all');
@@ -100,6 +100,77 @@ const HorizontalFilters = (props) => {
 
     setSelectedComboValue(educationCombos.find(c => c.value === 'all')?.value || 'all');
   }, [filters, educationCombos]);
+
+  // --- NEW: apply presets from localStorage on first load ---
+  const appliedFromLocalStorageRef = useRef(false);
+  useEffect(() => {
+    if (appliedFromLocalStorageRef.current) return;
+
+    try {
+      const storageUserPrefs = localStorage.getItem('userPreferences');
+      const storedSystem = localStorage.getItem('selectedEducationSystem');
+      const storedLanguage = localStorage.getItem('selectedLanguage');
+      const storedGrade = localStorage.getItem('selectedGrade');
+      const storedSector = localStorage.getItem('selectedSector');
+
+      let prefs = {};
+      if (storageUserPrefs) {
+        try {
+          const parsed = JSON.parse(storageUserPrefs);
+          // support both snake_case and camelCase keys
+          prefs.educationSystem = parsed.education_system || parsed.educationSystem || undefined;
+          prefs.language = parsed.language || parsed.lang || undefined;
+          prefs.grade = parsed.grade || parsed.selectedGrade || undefined;
+          prefs.sector = parsed.sector || parsed.selectedSector || undefined;
+        } catch (e) {
+          // ignore malformed JSON
+        }
+      }
+
+      // fallback to individual keys if not present inside userPreferences
+      if (!prefs.educationSystem && storedSystem) prefs.educationSystem = storedSystem;
+      if (!prefs.language && storedLanguage) prefs.language = storedLanguage;
+      if (!prefs.grade && storedGrade) prefs.grade = storedGrade;
+      if (!prefs.sector && storedSector) prefs.sector = storedSector;
+
+      // if nothing to apply, skip
+      if (!prefs.educationSystem && !prefs.language && !prefs.grade && !prefs.sector) return;
+
+      // mark applied so we don't reapply
+      appliedFromLocalStorageRef.current = true;
+
+      // If combos are available try to use the exact combo value
+      const comboValue = makeComboValueFromFilters({
+        educationSystem: prefs.educationSystem || 'all',
+        sector: prefs.sector || 'all',
+        language: prefs.language || 'all',
+      });
+
+      if (educationCombos && educationCombos.length > 0 && educationCombos.some(c => c.value === comboValue)) {
+        // use the existing handler so derived state/side-effects are kept consistent
+        handleComboChange(comboValue);
+      } else if (prefs.educationSystem) {
+        // apply education system / language / sector directly
+        setSelectedComboValue((educationCombos.find(c => String(c.value).startsWith(`${prefs.educationSystem}||`))?.value) || (educationCombos.find(c => c.value === 'all')?.value) || 'all');
+        updateFilter('educationSystem', prefs.educationSystem);
+        updateFilter('sector', prefs.sector || 'all');
+        updateFilter('language', prefs.language || 'all');
+        setLocalFilters(prev => ({ ...prev, educationSystem: prefs.educationSystem, sector: prefs.sector || 'all', language: prefs.language || 'all' }));
+      }
+
+      // apply grade (after combo so it doesn't get overwritten)
+      if (prefs.grade) {
+        // honor existing handler so related clears run
+        handleInputChange('grade', prefs.grade);
+      }
+
+      // final trigger to let parent refresh if necessary
+      triggerFilterUpdate?.();
+    } catch (e) {
+      console.debug('[HorizontalFilters] failed to apply localStorage presets', e);
+    }
+  }, [educationCombos]);
+  // --- end new localStorage logic ---
 
   const prevFiltersRef = useRef(filters);
   const ignoreNextResetRef = useRef(false);

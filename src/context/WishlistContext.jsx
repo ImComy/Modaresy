@@ -1,7 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { studentService } from '@/api/student';
-import { mockTutors } from '@/data/enhanced';
 import { apiFetch } from '@/api/apiService';
 
 const WishlistContext = createContext();
@@ -49,10 +48,6 @@ export const WishlistProvider = ({ children }) => {
           ]);
 
           let tutor = tutorData?.tutor || tutorData || null;
-          if (!tutor) {
-            tutor = mockTutors.find(t => String(t._id || t.id) === String(id)) || null;
-          }
-
           if (!tutor) return null;
 
           if (tutor._id && !tutor.id) tutor.id = String(tutor._id);
@@ -100,7 +95,8 @@ export const WishlistProvider = ({ children }) => {
 
           return tutor;
         } catch (err) {
-          return mockTutors.find(t => String(t._id || t.id) === String(id)) || null;
+          console.error(`Failed to fetch tutor ${id}:`, err);
+          return null;
         }
       });
 

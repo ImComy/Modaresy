@@ -1,5 +1,12 @@
 {
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "redirects": [
+    {
+      "source": ":path*",
+      "destination": "https://www.modaresy.me/:path*",
+      "permanent": true
+    }
   ]
 }
