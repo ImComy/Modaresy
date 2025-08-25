@@ -6,6 +6,7 @@ import blogs from "./routes/blogs.js"
 import admins from "./routes/admins.js"
 import constants from "./routes/constants.js"
 import Subjects from "./routes/subjects.js"
+import Storage from "./routes/storage.js"
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -44,9 +45,11 @@ app.use('/blogs', blogs)
 app.use('/admins', admins)
 app.use('/constants', constants)
 app.use('/subjects', Subjects)
+app.use('/storage', Storage)
+
 initializeUserStatsCache();
 
-const distPath = path.join(__dirname, '../dist');
+const distPath = path.join(__dirname, './dist');
 if (process.env.NODE_ENV === 'production' || process.env.SERVE_CLIENT === 'true') {
   app.use(express.static(distPath));
   app.get('*', (req, res) => res.sendFile(path.join(distPath, 'index.html')));
