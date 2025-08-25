@@ -1,4 +1,3 @@
-// TutorProfileHeader.jsx
 import React from 'react';
 import TutorProfileHeaderDisplay from './original/TutorProfileHeader';
 import TutorProfileHeaderEdit from './editing/TutorProfileHeader';
@@ -11,7 +10,8 @@ const TutorProfileHeader = ({
   onDeleteSubject, 
   isEditing,
   isOwner,
-  isSubjectMutating
+  isSubjectMutating,
+  pendingFilesRef
 }) => {
   if (!tutor) return null;
 
@@ -23,6 +23,7 @@ const TutorProfileHeader = ({
       onUpdateSubject={onUpdateSubject}    
       onDeleteSubject={onDeleteSubject}
       isSubjectMutating={isSubjectMutating}
+      pendingFilesRef={pendingFilesRef}
     />
   ) : (
     <TutorProfileHeaderDisplay 

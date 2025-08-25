@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { getAvatarSrc, getBannerUrl } from '@/api/imageService';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -7,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { MapPin, BookOpen, MessageSquare, Heart, Award, GraduationCap, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { API_BASE } from '@/api/apiService';
 import {
   FaFacebookF,
   FaInstagram,
@@ -56,7 +58,9 @@ const TutorProfileHeaderDisplay = ({ tutor, isOwner }) => {
             </div>
           )} */}
           <img
-            src={tutor.bannerimg || 'https://placehold.co/600x200?text=Tutor+Banner'}
+            src={
+              getBannerUrl(tutor) || 'https://placehold.co/600x200?text=Tutor+Banner'
+            }
             alt={tutor.name}
             className="w-full h-full object-cover"
             onError={(e) => {
@@ -99,7 +103,7 @@ const ProfileSection = ({ tutor, isInWishlist, handleWishlistToggle, averageRati
       <div className="w-[170px] h-40 border-2 border-primary rounded-md shadow-lg">
         <Avatar className="w-full h-full rounded-sm">
           <AvatarImage
-            src={tutor.img}
+            src={getAvatarSrc(tutor) || ''}
             alt={tutor.name}
             onError={(e) => {
               e.currentTarget.onerror = null;

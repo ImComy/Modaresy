@@ -12,6 +12,8 @@ import {
   Edit3,
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { API_BASE } from '@/api/apiService';
+import { getAvatarSrc as resolveAvatar, getImageUrl } from '@/api/imageService';
 import Heart from '@/components/ui/heart';
 
 // --- helpers ---
@@ -26,10 +28,7 @@ const getDisplayName = (user) => {
     null
   );
 };
-const getAvatarSrc = (user) => {
-  if (!user) return null;
-  return user.img || user.avatar || user.profileImage || user.picture || null;
-};
+const getAvatarSrc = (user) => resolveAvatar(user);
 const getInitials = (name) => {
   if (!name) return 'A';
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -56,7 +55,7 @@ const InvisibleFileInput = ({ label, Icon, accept }) => {
 };
 
 // --- CommentsList ---
-const CommentsList = ({ post, onComment, me, refreshParent }) => {
+const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
   const [text, setText] = useState('');
   const [editing, setEditing] = useState(null);
   const [editText, setEditText] = useState('');
@@ -98,7 +97,9 @@ const CommentsList = ({ post, onComment, me, refreshParent }) => {
   const handleConfirmDelete = async (commentId) => {
     try {
       setBusy(true);
-      await apiFetch(`/blogs/${post._id}/comment/${commentId}`, { method: 'DELETE' });
+  console.log('Deleting comment', post._id, commentId);
+  const res = await apiFetch(`/blogs/${post._id}/comment/${commentId}`, { method: 'DELETE' });
+  console.log('delete comment response', res);
       refreshParent && refreshParent();
       window.dispatchEvent(new CustomEvent('refetchPosts'));
       setDeleting(null);
@@ -115,10 +116,12 @@ const CommentsList = ({ post, onComment, me, refreshParent }) => {
       <div className="space-y-2 overflow-auto pr-2 max-h-40 sm:max-h-60">
         {(post.comments || []).map((c) => {
           const rawUser = c.user;
-          const user = typeof rawUser === 'object' ? rawUser : null;
-          const displayName = getDisplayName(user) || (typeof rawUser === 'string' ? rawUser : 'Anonymous');
-          const avatarSrc = getAvatarSrc(user);
-          const isMine = me && user && String(user._id) === String(me);
+          const user = typeof rawUser === 'object' ? rawUser : null
+          const isRawUserMe = typeof rawUser === 'string' && String(rawUser) === String(me);
+          const resolvedUser = user || (isRawUserMe ? myUser : null);
+          const displayName = getDisplayName(resolvedUser) || (typeof rawUser === 'string' ? rawUser : 'Anonymous');
+          const avatarSrc = getAvatarSrc(resolvedUser);
+          const isMine = me && ((user && String(user._id) === String(me)) || isRawUserMe);
 
           return (
             <div key={c._id} className="flex items-start gap-3 text-sm">
@@ -679,7 +682,7 @@ const BlogSection = ({ tutorId, isOwner }) => {
                   </div>
                 </div>
 
-                <CommentsList post={post} onComment={handleComment} me={me} refreshParent={() => fetchPosts(1)} />
+                <CommentsList post={post} onComment={handleComment} me={me} myUser={authState?.userData} refreshParent={() => fetchPosts(1)} />
               </article>
             );
           })

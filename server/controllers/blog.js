@@ -82,8 +82,9 @@ export async function addComment(req, res) {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     const { postId } = req.params;
     const { text } = req.body;
+    console.log('addComment: request', { postId, user: req.user && req.user._id, text: text ? String(text).slice(0, 50) : '' });
     const comment = await blogService.addComment(postId, req.user._id, text);
-    return res.status(201).json({ comment });
+  return res.status(201).json({ comment });
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }
@@ -93,6 +94,7 @@ export async function deleteComment(req, res) {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     const { postId, commentId } = req.params;
+    console.log('deleteComment: request', { postId, commentId, user: req.user && req.user._id });
     await blogService.deleteComment(postId, commentId, req.user._id);
     return res.status(200).json({ message: 'Comment deleted' });
   } catch (err) {

@@ -5,6 +5,8 @@ export async function createPost(teacherId, { title, content }) {
   if (!title || !content) throw new Error('title and content are required');
   const post = new Blog({ teacher: teacherId, title, content });
   await post.save();
+  await post.populate('teacher', '-password');
+  await post.populate({ path: 'comments.user', select: 'name profile_picture img type' });
   return post;
 }
 
@@ -34,17 +36,17 @@ export async function getPostsByTeacher(teacherId, { page = 1, limit = 12 } = {}
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
-  .populate('teacher', '-password')
-  .populate({ path: 'comments.user', select: 'name img type' })
-  .lean();
-  const total = await Blog.countDocuments({ teacher: teacherId });
+    .populate('teacher', '-password')
+    .populate({ path: 'comments.user', select: 'name profile_picture img type' })
+    .lean();
+    const total = await Blog.countDocuments({ teacher: teacherId });
   return { posts, total };
 }
 
 export async function getPostById(postId) {
   const post = await Blog.findById(postId)
     .populate('teacher', '-password')
-    .populate({ path: 'comments.user', select: 'name img type' })
+    .populate({ path: 'comments.user', select: 'name profile_picture img type' })
     .lean();
   return post;
 }
@@ -79,23 +81,35 @@ export async function addComment(postId, userId, text) {
   post.comments = post.comments || [];
   post.comments.push(comment);
   await post.save();
-  // return the newly added comment (last one)
+  await post.populate({ path: 'comments.user', select: 'name profile_picture img type' });
   return post.comments[post.comments.length - 1];
 }
 
 export async function deleteComment(postId, commentId, userId) {
   const post = await Blog.findById(postId);
   if (!post) throw new Error('Post not found');
+
   const comment = post.comments.id(commentId);
   if (!comment) throw new Error('Comment not found');
-  // allow deletion if the requester is the comment owner or the teacher owning the post
-  if (comment.user.toString() !== userId.toString() && post.teacher.toString() !== userId.toString()) {
+
+  const commentUserId = comment.user && comment.user._id ? String(comment.user._id) : String(comment.user);
+  const postTeacherId = post.teacher && post.teacher._id ? String(post.teacher._id) : String(post.teacher);
+  const requesterId = String(userId);
+
+  if (commentUserId !== requesterId && postTeacherId !== requesterId) {
     throw new Error('Not authorized to delete comment');
   }
-  comment.remove();
+
+  const before = post.comments.length;
+  post.comments = (post.comments || []).filter((c) => String(c._id) !== String(commentId));
+  if (post.comments.length === before) {
+    throw new Error('Comment not found or already removed');
+  }
+
   await post.save();
   return true;
 }
+
 
 export async function editComment(postId, commentId, userId, text) {
   if (!text) throw new Error('Comment text required');
@@ -103,7 +117,6 @@ export async function editComment(postId, commentId, userId, text) {
   if (!post) throw new Error('Post not found');
   const comment = post.comments.id(commentId);
   if (!comment) throw new Error('Comment not found');
-  // only the original commenter can edit their comment
   if (comment.user.toString() !== userId.toString()) {
     throw new Error('Not authorized to edit comment');
   }

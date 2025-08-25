@@ -10,6 +10,19 @@ const TeacherSchema = new Schema({
   },
   address: { type: String, required: false },
   about_me: { type: String, required: false },
+
+  profile_picture: {
+    filename: { type: String, required: false },
+    originalname: { type: String, required: false },
+    path: { type: String, required: false },
+    url: { type: String, required: false }
+  },
+  banner: {
+    filename: { type: String, required: false },
+    originalname: { type: String, required: false },
+    path: { type: String, required: false },
+    url: { type: String, required: false }
+  },
   
   subjects: [{
     type: mongoose.Types.ObjectId,

@@ -7,7 +7,7 @@ import SubjectSelector from '@/components/profile/subjectSelector';
 import BlogSection from '@/components/profile/BlogSection';
 import useTutorProfile from '@/hooks/useTutorProfile';
 import useEditMode from '@/hooks/useEditMode';
-import { apiFetch } from '@/api/apiService';
+import { apiFetch, API_BASE } from '@/api/apiService';
 import { BookOpen, FileText } from 'lucide-react';
 
 const SegmentedControl = ({ options, value, onChange, ariaLabel = 'View Mode' }) => {
@@ -180,6 +180,72 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
 
         const tutorProfileData = { ...updatedData };
         delete tutorProfileData.subjects;
+
+        const uploadToStorage = async (file, shape) => {
+          if (!file) return null;
+          const form = new FormData();
+          if (shape === 'profile') form.append('profile_picture', file);
+          else form.append('banner', file);
+          const token = localStorage.getItem('token');
+          const url = `${API_BASE}/storage/tutor/${tutor._id}/${shape === 'profile' ? 'pfp' : 'banner'}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: form,
+          });
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(txt || 'Upload failed');
+          }
+          const parsed = await res.json();
+          return parsed.profile_picture || parsed.banner || null;
+        };
+
+        const pending = (pendingFilesRef && pendingFilesRef.current) ? pendingFilesRef.current : {};
+        console.debug('Saving tutor - pending files from header ref:', pending);
+        try {
+          // profile picture delete
+          if (pending.pendingPfpDelete) {
+            promises.push(apiFetch(`/storage/tutor/${tutor._id}/pfp`, { method: 'DELETE' }));
+            tutorProfileData.profile_picture = null;
+            tutorProfileData.img = '';
+          }
+
+          // profile picture upload
+          if (pending.pendingPfpFile) {
+            console.debug('Uploading pendingPfpFile...', pending.pendingPfpFile);
+            const returned = await uploadToStorage(pending.pendingPfpFile, 'profile');
+            console.debug('uploadToStorage returned (pfp):', returned);
+            if (returned) {
+              const url = returned.url || returned.path || '';
+              tutorProfileData.profile_picture = returned;
+              tutorProfileData.img = url && url.startsWith('/') ? `${API_BASE}${url}` : url;
+            }
+          }
+
+          // banner delete
+          if (pending.pendingBannerDelete) {
+            promises.push(apiFetch(`/storage/tutor/${tutor._id}/banner`, { method: 'DELETE' }));
+            tutorProfileData.banner = null;
+            tutorProfileData.bannerimg = '';
+          }
+
+          // banner upload
+          if (pending.pendingBannerFile) {
+            console.debug('Uploading pendingBannerFile...', pending.pendingBannerFile);
+            const returned = await uploadToStorage(pending.pendingBannerFile, 'banner');
+            console.debug('uploadToStorage returned (banner):', returned);
+            if (returned) {
+              const url = returned.url || returned.path || '';
+              tutorProfileData.banner = returned;
+              tutorProfileData.bannerimg = url && url.startsWith('/') ? `${API_BASE}${url}` : url;
+            }
+          }
+        } catch (imgErr) {
+          console.error('Image upload/delete error:', imgErr);
+          throw imgErr;
+        }
+
         promises.push(apiFetch('/tutors/updateProfile', {
           method: 'PUT',
           body: JSON.stringify({ updated_information: tutorProfileData })
@@ -188,6 +254,13 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
         await Promise.all(promises);
 
         await fetchTutorData(tutor._id);
+        // clear any pending file references after successful save
+        if (pendingFilesRef && pendingFilesRef.current) {
+          pendingFilesRef.current.pendingPfpFile = null;
+          pendingFilesRef.current.pendingBannerFile = null;
+          pendingFilesRef.current.pendingPfpDelete = false;
+          pendingFilesRef.current.pendingBannerDelete = false;
+        }
         return { success: true };
 
       } catch (error) {
@@ -198,6 +271,7 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
     onCancelCallback: () => reset()
   });
 
+  const pendingFilesRef = useRef({ pendingPfpFile: null, pendingBannerFile: null, pendingPfpDelete: false, pendingBannerDelete: false });
   const [viewMode, setViewMode] = useState('subjects');
 
   const addSubject = (newSubject) => {
@@ -278,6 +352,7 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
           onDeleteSubject={removeSubject}
           isEditing={isEditing}
           isOwner={isOwner}
+          pendingFilesRef={pendingFilesRef}
         />
 
         <div className="space-y-6">

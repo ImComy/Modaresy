@@ -1,3 +1,4 @@
+import { getAvatarSrc } from '@/api/imageService';
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -36,9 +37,9 @@ import { cn } from '@/lib/utils';
 import { useWishlist } from '@/context/WishlistContext';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
+import { apiFetch, API_BASE } from '@/api/apiService';
 // import NotificationDropdown from '@/components/ui/notification';
 
-// Navbar component provides the main navigation bar with authentication-aware features
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
   const { t, i18n } = useTranslation();
@@ -49,19 +50,46 @@ const Navbar = () => {
   const { wishlistIds = [] } = useWishlist();
   const location = useLocation();
   const isRTL = i18n.dir() === 'rtl';
+  const [avatarSrc, setAvatarSrc] = useState(() => getAvatarSrc(userData) || null);
 
-  // Debug auth state to diagnose user role issues
   useEffect(() => {
-    console.log('Auth State:', { isLoggedIn, userRole, userId, userData });
-  }, [isLoggedIn, userRole, userId, userData]);
+    const fromAuth = getAvatarSrc(userData);
+    if (fromAuth) {
+      setAvatarSrc(fromAuth);
+      return;
+    }
 
-  // Language change handler with local storage persistence
+    let cancelled = false;
+    const fetchTeacher = async () => {
+      if (!userId || userRole !== 'Teacher') return;
+      try {
+        const res = await apiFetch(`/teachers/${userId}`);
+        const candidate = (res && (res.teacher || res.user || res.data)) || null;
+        const src = getAvatarSrc(candidate);
+        if (!cancelled && src) setAvatarSrc(src);
+      } catch (e) {
+        try {
+          const res2 = await apiFetch(`/users/${userId}`);
+          const candidate2 = (res2 && (res2.user || res2.data || res2)) || null;
+          const src2 = getAvatarSrc(candidate2);
+          if (!cancelled && src2) setAvatarSrc(src2);
+        } catch (e2) {
+          // ignore - no avatar available
+        }
+      }
+    };
+
+    fetchTeacher();
+    return () => {
+      cancelled = true;
+    };
+  }, [userData, userId, userRole]);
+
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
     localStorage.setItem('modaresy-lang', lng);
   };
 
-  // Logout handler that clears session and redirects to home
   const handleLogout = () => {
     logout();
     navigate('/');
@@ -289,11 +317,11 @@ const Navbar = () => {
                   onClick={() => console.log('Avatar clicked, userRole:', userRole)}
                 >
                   <Avatar className="h-9 w-9">
-                    <AvatarImage
-                      src={userData?.avatar || (userRole === 'Teacher' ? '/teacher-avatar.jpg' : '/student-avatar.jpg')}
-                      alt="User Avatar"
-                    />
-                    <AvatarFallback>{userData?.name?.charAt(0) || (userRole === 'Teacher' ? 'T' : 'S')}</AvatarFallback>
+                    {avatarSrc ? (
+                      <AvatarImage src={avatarSrc} alt={userData?.name || 'User'} />
+                    ) : (
+                      <AvatarFallback>{(userData?.name || (userRole === 'Teacher' ? 'T' : 'S'))?.charAt(0)}</AvatarFallback>
+                    )}
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
