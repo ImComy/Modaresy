@@ -221,14 +221,9 @@ getSubjectsForTutor: async (req, res) => {
   const tutorId = req.params.tutorId;
 
   try {
-    if (!req.user) {
-      return res.status(401).json({ success: false, error: "Unauthorized" });
-    }
-
-    const result = await SubjectService.getSubjectsForTutor(
-      tutorId,
-      req.user._id
-    );
+  // Allow public access: requesterId is optional
+  const requesterId = req.user ? req.user._id : null;
+  const result = await SubjectService.getSubjectsForTutor(tutorId, requesterId);
 
     res.json({ success: true, data: result });
   } catch (err) {
