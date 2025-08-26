@@ -45,11 +45,11 @@ app.use('/blogs', blogs)
 app.use('/admins', admins)
 app.use('/constants', constants)
 app.use('/subjects', Subjects)
-app.use('/storage', Storage)
-
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/storage', storage);
 initializeUserStatsCache();
 
-const distPath = path.join(__dirname, './dist');
+const distPath = path.join(__dirname, '../dist');
 if (process.env.NODE_ENV === 'production' || process.env.SERVE_CLIENT === 'true') {
   app.use(express.static(distPath));
   app.get('*', (req, res) => res.sendFile(path.join(distPath, 'index.html')));
