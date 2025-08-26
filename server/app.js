@@ -6,7 +6,7 @@ import blogs from "./routes/blogs.js"
 import admins from "./routes/admins.js"
 import constants from "./routes/constants.js"
 import Subjects from "./routes/subjects.js"
-import Storage from "./routes/storage.js"
+import storage from "./routes/storage.js";
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import cors from 'cors';
