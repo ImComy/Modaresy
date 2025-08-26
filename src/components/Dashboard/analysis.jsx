@@ -12,6 +12,7 @@ import BasicLineChart from '@/components/graph';
 import StudentsPieChartSwitcher from '@/components/switcherPieChart';
 import ActivityLogs from './logs';
 import SettingsCompletionCard from './CompletionCard';
+import StudentSaaSDashboard from './saas'
 
 const AnalysisSection = () => {
   const { t, i18n } = useTranslation();
@@ -162,25 +163,35 @@ const AnalysisSection = () => {
   //       </div>
   //     </div>
   //   </motion.div>
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-6"
-    >
-      <div className="bg-gradient-to-br from-muted/10 to-muted/30 border border-border/50 rounded-xl shadow-lg p-10 max-w-xl w-full">
-        <div className="flex flex-col items-center space-y-4">
-          <Wrench className="h-12 w-12 text-primary" />
-          <h2 className="text-2xl md:text-3xl font-bold text-primary">
-            {t('comingSoon.title', 'Coming Soon')}
-          </h2>
-          <p className="text-muted-foreground text-base leading-relaxed">
-            {t('comingSoon.description', 'This section is still under development. We’re working hard to bring you powerful analytics and insights.')}
-          </p>
-          <Loader2 className="h-6 w-6 text-muted-foreground animate-spin mt-4" />
-        </div>
-      </div>
-    </motion.div>
+
+
+
+
+
+    // <motion.div
+    //   initial={{ opacity: 0, y: 20 }}
+    //   animate={{ opacity: 1, y: 0 }}
+    //   transition={{ duration: 0.5 }}
+    //   className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-6"
+    // >
+    //   <div className="bg-gradient-to-br from-muted/10 to-muted/30 border border-border/50 rounded-xl shadow-lg p-10 max-w-xl w-full">
+    //     <div className="flex flex-col items-center space-y-4">
+    //       <Wrench className="h-12 w-12 text-primary" />
+    //       <h2 className="text-2xl md:text-3xl font-bold text-primary">
+    //         {t('comingSoon.title', 'Coming Soon')}
+    //       </h2>
+    //       <p className="text-muted-foreground text-base leading-relaxed">
+    //         {t('comingSoon.description', 'This section is still under development. We’re working hard to bring you powerful analytics and insights.')}
+    //       </p>
+    //       <Loader2 className="h-6 w-6 text-muted-foreground animate-spin mt-4" />
+    //     </div>
+    //   </div>
+    // </motion.div>
+
+
+
+    <StudentSaaSDashboard />
+
   );
 };
 
