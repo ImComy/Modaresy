@@ -10,6 +10,7 @@ import { useWishlistLogic } from '../../hooks/useWishlistActions';
 import { useAuth } from '@/context/AuthContext';
 import renderStars from '@/components/ui/renderStars';
 import { cn } from '@/lib/utils';
+import { getImageUrl, getAvatarSrc, getBannerUrl } from '@/api/imageService';
 import clsx from 'clsx';
 
 const TutorCard = ({ tutor }) => {
@@ -90,14 +91,14 @@ const TutorCard = ({ tutor }) => {
           {/* Banner */}
           <div className="relative w-full h-32 rounded-t-xl">
             <img
-              src={tutor?.bannerimg || 'https://placehold.co/Tutor'}
+              src={getBannerUrl(tutor) || getImageUrl(tutor?.bannerimg) || 'https://placehold.co/Tutor'}
               alt="Banner"
               className="w-full h-full object-cover rounded-t-xl"
             />
             <div className="absolute left-1/2 transform -translate-x-1/2 top-full -mt-14">
               <div className="h-24 w-24 border-2 border-primary rounded-md bg-background z-50">
                 <Avatar className="h-full w-full rounded-sm">
-                  <AvatarImage src={tutor?.img} alt={tutor?.name} />
+                  <AvatarImage src={getAvatarSrc(tutor) || getImageUrl(tutor?.img) || ''} alt={tutor?.name} />
                   <AvatarFallback className="rounded-sm">
                     {tutor?.name?.split(' ')?.map(n => n[0])?.join('') || 'T'}
                   </AvatarFallback>

@@ -197,7 +197,7 @@ export async function filterTutors(filters) {
   }
 }
 
-export async function recommendTutorsForStudent(student, { q, page = 1, limit = 12 } = {}) {
+export async function recommendTutorsForStudent(student, { q, page = 1, limit = 30 } = {}) {
   try {
     const studentEdu = student.education_system;
     const studentGrade = student.grade;

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { useWishlistLogic } from '@/hooks/useWishlistActions';
+import { getImageUrl, getAvatarSrc, getBannerUrl } from '@/api/imageService';
 
 const TutorCard = ({ tutor, filters }) => {
   const { t } = useTranslation();
@@ -93,8 +94,8 @@ const TutorCard = ({ tutor, filters }) => {
         <Card className="p-3 h-full rounded-xl bg-muted/50 border border-muted text-sm flex flex-col gap-3 hover:shadow transition-shadow">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Avatar className="h-20 w-20 border-2 border-primary flex-shrink-0 rounded-md">
-                <AvatarImage src={tutor?.img} alt={tutor?.name} radius="rounded-sm" />
+                <Avatar className="h-20 w-20 border-2 border-primary flex-shrink-0 rounded-md">
+                  <AvatarImage src={getAvatarSrc(tutor) || getImageUrl(tutor?.img) || ''} alt={tutor?.name} radius="rounded-sm" />
                 <AvatarFallback radius="rounded-sm">
                   {tutor?.name?.split(' ')?.map((n) => n[0])?.join('')}
                 </AvatarFallback>

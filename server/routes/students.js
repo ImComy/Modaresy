@@ -28,6 +28,10 @@ router.use(verifyToken)
 
 router.get('/getProfile', verifyToken, getProfile);
 router.put("/updateProfile", updateProfile)
+router.post("/addToWishlist", getWishlist, addToWishlist)
+router.delete("/removeFromWishlist", getWishlist, removeFromWishlist)
+router.post("/createWishlist", hasWishlist, createWishlist);
+router.get("/wishlist", getWishlist, getWishlistIds);
 
 router.use((req, res, next) => {
   if (!req.user || req.user.type !== 'Student') {
@@ -38,10 +42,6 @@ router.use((req, res, next) => {
 
 router.post("/contactTutor", getTeacherbyId, contactTutor)
 router.post("/requestEnrollment", getTeacherbyId, requestEnrollment)
-router.post("/addToWishlist", getWishlist, addToWishlist)
-router.delete("/removeFromWishlist", getWishlist, removeFromWishlist)
-router.post("/createWishlist", hasWishlist, createWishlist);
-router.get("/wishlist", getWishlist, getWishlistIds);
 //router.post("/reportTutor", reportTutor)
 
 export default router;

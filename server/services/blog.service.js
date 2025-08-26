@@ -1,9 +1,9 @@
 import { Blog } from '../models/blog.js';
 import mongoose from 'mongoose';
 
-export async function createPost(teacherId, { title, content }) {
+export async function createPost(teacherId, { title, content, images = [] }) {
   if (!title || !content) throw new Error('title and content are required');
-  const post = new Blog({ teacher: teacherId, title, content });
+  const post = new Blog({ teacher: teacherId, title, content, images });
   await post.save();
   await post.populate('teacher', '-password');
   await post.populate({ path: 'comments.user', select: 'name profile_picture img type' });
@@ -17,6 +17,7 @@ export async function updatePost(postId, teacherId, updates) {
 
   if (updates.title !== undefined) post.title = updates.title;
   if (updates.content !== undefined) post.content = updates.content;
+  if (updates.images !== undefined) post.images = updates.images;
   post.updatedAt = new Date();
   await post.save();
   return post;

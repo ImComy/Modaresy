@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Quote } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getImageUrl } from '@/api/imageService';
 
 const ShortTutorCard = ({ tutor }) => {
   const { t } = useTranslation();
@@ -23,7 +24,7 @@ const ShortTutorCard = ({ tutor }) => {
       {/* Image side */}
       <div className="w-full sm:w-1/2 aspect-[4/3]">
         <img
-          src={tutor.img}
+          src={getImageUrl(tutor.img) || tutor.img}
           alt={tutor.name}
           className="w-full h-full object-cover object-center transition-transform duration-500 ease-in-out group-hover:scale-105"
         />

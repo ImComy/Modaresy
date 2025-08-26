@@ -262,9 +262,7 @@ export async function recommendTutorsController(req, res) {
         const user = req.user;
         if (!user) return res.status(401).json({ message: 'Unauthorized' });
 
-    const userType = (user.type || '').toLowerCase();
-    if (userType !== 'student') return res.status(403).json({ message: 'Only students can get recommendations' });
-
+        const userType = (user.type || '').toLowerCase();
         const q = req.query.q || '';
         const page = parseInt(req.query.page || '1', 10);
         const limit = parseInt(req.query.limit || '12', 10);

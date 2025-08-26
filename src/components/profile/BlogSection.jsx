@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Share2,
   Edit3,
+  X,
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { API_BASE } from '@/api/apiService';
@@ -36,7 +37,7 @@ const getInitials = (name) => {
   return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
 };
 
-const InvisibleFileInput = ({ label, Icon, accept }) => {
+const InvisibleFileInput = ({ label, Icon, accept, multiple = false, onChange }) => {
   const inputId = `file-${label.replace(/\s+/g, '-')}-${Math.floor(Math.random() * 10000)}`;
   return (
     <>
@@ -49,8 +50,37 @@ const InvisibleFileInput = ({ label, Icon, accept }) => {
         <Icon size={16} />
         <span className="text-xs">{label}</span>
       </label>
-      <input id={inputId} type="file" accept={accept} className="hidden" onChange={() => { /* UI-only */ }} />
+      <input id={inputId} type="file" accept={accept} multiple={multiple} className="hidden" onChange={onChange} />
     </>
+  );
+};
+
+// --- ImagePreview Component ---
+const ImagePreview = ({ files, onRemove }) => {
+  if (!files || files.length === 0) return null;
+
+  return (
+    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+      {files.map((file, index) => (
+        <div key={index} className="relative group rounded-md overflow-hidden border" style={{ borderColor: 'hsl(var(--border))' }}>
+          <img 
+            src={typeof file === 'object' ? URL.createObjectURL(file) : getImageUrl(file)} 
+            alt={`Preview ${index}`}
+            className="w-full h-32 object-cover"
+          />
+          {onRemove && (
+            <button
+              type="button"
+              onClick={() => onRemove(index)}
+              className="absolute top-1 right-1 p-1 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ color: 'white' }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
   );
 };
 
@@ -304,6 +334,7 @@ const BlogSection = ({ tutorId, isOwner }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState([]);
 
   const sentinelRef = useRef(null);
   const observerRef = useRef(null);
@@ -379,9 +410,13 @@ const BlogSection = ({ tutorId, isOwner }) => {
     };
   }, [loading, hasMore, posts.length]);
 
+  const handleRemoveImage = (index) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleCreate = async (e) => {
     e?.preventDefault?.();
-    if (!title.trim() && !content.trim()) return;
+    if (!title.trim() && !content.trim() && selectedFiles.length === 0) return;
     try {
       setSubmitting(true);
       const tempId = `temp-${Date.now()}`;
@@ -397,24 +432,66 @@ const BlogSection = ({ tutorId, isOwner }) => {
         },
         likes: [],
         comments: [],
-        attachments: [],
+        images: selectedFiles.map(file => ({
+          isTemp: true,
+          url: URL.createObjectURL(file),
+          originalname: file.name
+        })),
         isTemp: true,
       };
       setPosts((p) => [tempPost, ...p]);
       setTitle('');
       setContent('');
 
+      // upload selected images first (if any)
+      let uploadedImages = [];
+      try {
+        for (const f of selectedFiles) {
+          const fd = new FormData();
+          fd.append('profile_picture', f);
+          const uploadRes = await fetch(`${API_BASE}/storage/uploadImage`, {
+            method: 'POST',
+            body: fd,
+            credentials: 'include',
+            headers: {
+              Authorization: authState?.token ? `Bearer ${authState.token}` : undefined,
+            },
+          });
+          if (!uploadRes.ok) {
+            console.error('image upload failed', await uploadRes.text());
+            continue;
+          }
+          const uploaded = await uploadRes.json();
+          uploadedImages.push(uploaded);
+        }
+      } catch (err) {
+        console.error('upload images error', err);
+      }
+
       const res = await apiFetch('/blogs', {
         method: 'POST',
-        body: JSON.stringify({ title: tempPost.title, content: tempPost.content }),
+        body: JSON.stringify({ 
+          title: tempPost.title, 
+          content: tempPost.content, 
+          images: uploadedImages 
+        }),
       });
 
       const created = res?.post || res?.blog || res?.data || null;
       if (created && created._id) {
+        // Clean up temporary image URLs
+        tempPost.images.forEach(img => {
+          if (img.isTemp && img.url.startsWith('blob:')) {
+            URL.revokeObjectURL(img.url);
+          }
+        });
+        
         setPosts((prev) => prev.map((pp) => (pp._id === tempId ? created : pp)));
       } else {
         fetchPosts(1);
       }
+      // clear selected files
+      setSelectedFiles([]);
     } catch (err) {
       console.error('create post error', err);
       setPosts((p) => p.filter((x) => !String(x._id).startsWith('temp-')));
@@ -548,10 +625,21 @@ const BlogSection = ({ tutorId, isOwner }) => {
                 }}
               />
 
+              {/* Image preview in composer */}
+              <ImagePreview files={selectedFiles} onRemove={handleRemoveImage} />
+
               <div className="mt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <InvisibleFileInput label="Photo" Icon={ImageIcon} accept="image/*" />
-                  <InvisibleFileInput label="Document" Icon={FileText} accept=".pdf,.doc,.docx,.txt" />
+                  <InvisibleFileInput
+                    label="Photo"
+                    Icon={ImageIcon}
+                    accept="image/*"
+                    multiple
+                    onChange={(ev) => {
+                      const files = Array.from(ev.target.files || []);
+                      setSelectedFiles(prev => [...prev, ...files]);
+                    }}
+                  />
                 </div>
 
                 <div className="flex items-center gap-2 justify-end">
@@ -560,6 +648,7 @@ const BlogSection = ({ tutorId, isOwner }) => {
                     onClick={() => {
                       setTitle('');
                       setContent('');
+                      setSelectedFiles([]);
                     }}
                     className="px-3 py-1 rounded-md"
                     style={{
@@ -574,7 +663,7 @@ const BlogSection = ({ tutorId, isOwner }) => {
                   <button
                     type="button"
                     onClick={handleCreate}
-                    disabled={submitting || (!title.trim() && !content.trim())}
+                    disabled={submitting || (!title.trim() && !content.trim() && selectedFiles.length === 0)}
                     className="px-4 py-1 rounded-md font-medium flex items-center gap-2 transition-transform active:scale-95"
                     style={{
                       background: submitting ? 'hsl(var(--muted))' : 'linear-gradient(90deg, hsl(var(--primary)), hsl(var(--secondary)))',
@@ -610,6 +699,7 @@ const BlogSection = ({ tutorId, isOwner }) => {
             const authorName = getDisplayName(author) || getDisplayName(post.teacher) || 'Tutor';
             const authorAvatar = getAvatarSrc(author) || getAvatarSrc(post.teacher) || null;
             const likedByMe = (post.likes || []).map((l) => String(l)).includes(String(me));
+            
             return (
               <article
                 key={post._id}
@@ -634,13 +724,16 @@ const BlogSection = ({ tutorId, isOwner }) => {
                         {post.content}
                       </div>
 
-                      {post.attachments && post.attachments.length > 0 && (
+                      {/* Image display in posts */}
+                      {post.images && post.images.length > 0 && (
                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {post.attachments.map((a, idx) => (
-                            <div key={idx} className="rounded overflow-hidden border" style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--input))' }}>
-                              <div className="w-full h-28 flex items-center justify-center text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                                Attachment preview
-                              </div>
+                          {post.images.map((img, idx) => (
+                            <div key={idx} className="rounded-md overflow-hidden border" style={{ borderColor: 'hsl(var(--border))' }}>
+                              <img
+                                src={img.isTemp ? img.url : getImageUrl(img.url || img.path || img)}
+                                alt={img.originalname || img.filename || `image-${idx}`}
+                                className="w-full h-48 object-cover"
+                              />
                             </div>
                           ))}
                         </div>
