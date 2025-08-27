@@ -60,7 +60,6 @@ const SegmentedControl = ({ options, value, onChange, ariaLabel = 'View Mode' })
               style={{
                 background: 'transparent',
                 color: active ? activeText : inactiveText,
-                border: active ? '1px solid transparent' : `1px solid ${borderColor}`,
                 minWidth: 120,
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -72,7 +71,7 @@ const SegmentedControl = ({ options, value, onChange, ariaLabel = 'View Mode' })
               {active && (
                 <motion.span
                   layoutId="segmented-pill"
-                  className="absolute inset-0 rounded-lg"
+                  className="absolute inset-0 rounded-3xl"
                   style={{
                     background: activeBg,
                     zIndex: -1,

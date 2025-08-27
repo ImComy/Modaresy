@@ -100,7 +100,7 @@ const ProfileSection = ({ tutor, isInWishlist, handleWishlistToggle, averageRati
     className="flex flex-col items-center text-center"
   >
     <div className="flex flex-col items-center gap-4 text-center -mt-20 md:mt-0 z-10">
-      <div className="w-[170px] h-40 border-2 border-primary rounded-md shadow-lg">
+      <div className="w-40 h-40 border-2 border-primary rounded-md shadow-lg">
         <Avatar className="w-full h-full rounded-sm">
           <AvatarImage
             src={getAvatarSrc(tutor) || ''}
@@ -153,44 +153,65 @@ const ProfileSection = ({ tutor, isInWishlist, handleWishlistToggle, averageRati
   </motion.div>
 );
 
-const SocialButtons = ({ isInWishlist, handleWishlistToggle, socialMedia, t }) => (
-  <div className="max-w-full space-y-2 w-full">
-    <Button className="w-full h-10 flex items-center justify-center gap-2 whitespace-nowrap bg-primary hover:bg-primary/90 transition-colors">
-      <MessageSquare size={18} />
-      {t('contactTutor')}
-    </Button>
+const SocialButtons = ({ isInWishlist, handleWishlistToggle, socialMedia, t }) => {
+  const processedSocialMedia = { ...socialMedia };
 
-    <Button
-      variant="outline"
-      className={cn(
-        "w-full h-10 flex items-center justify-center gap-2 whitespace-nowrap",
-        isInWishlist ? "text-accent border-accent hover:bg-accent/10" : "text-primary border-primary"
-      )}
-      onClick={handleWishlistToggle}
-    >
-      <Heart size={18} fill={isInWishlist ? "currentColor" : "none"} />
-      {isInWishlist ? t('removeFromWishlist') : t('addToWishlist')}
-    </Button>
+  if (processedSocialMedia.whatsapp) {
+    let whatsappNumber = processedSocialMedia.whatsapp.trim();
 
-    <div className="flex flex-wrap justify-center gap-3 pt-2">
-      {Object.entries(socialMedia || {}).map(([key, url]) => {
-        if (!url) return null;
-        const Icon = socialIcons[key];
-        return Icon ? (
-          <a
-            key={key}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary transition-colors"
-          >
-            <Icon size={20} />
-          </a>
-        ) : null;
-      })}
+    if (!whatsappNumber.startsWith('+20')) {
+      // Remove leading zeros/spaces before adding +20
+      whatsappNumber = whatsappNumber.replace(/^0+/, '');
+      whatsappNumber = `+20${whatsappNumber}`;
+    }
+
+    if (!whatsappNumber.startsWith('http')) {
+      whatsappNumber = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`;
+    }
+
+    processedSocialMedia.whatsapp = whatsappNumber;
+  }
+
+  return (
+    <div className="max-w-full space-y-2 w-full">
+      <Button className="w-full h-10 flex items-center justify-center gap-2 whitespace-nowrap bg-primary hover:bg-primary/90 transition-colors">
+        <MessageSquare size={18} />
+        {t('contactTutor')}
+      </Button>
+
+      <Button
+        variant="outline"
+        className={cn(
+          "w-full h-10 flex items-center justify-center gap-2 whitespace-nowrap",
+          isInWishlist ? "text-accent border-accent hover:bg-accent/10" : "text-primary border-primary"
+        )}
+        onClick={handleWishlistToggle}
+      >
+        <Heart size={18} fill={isInWishlist ? "currentColor" : "none"} />
+        {isInWishlist ? t('removeFromWishlist') : t('addToWishlist')}
+      </Button>
+
+      <div className="flex flex-wrap justify-center gap-3 pt-2">
+        {Object.entries(processedSocialMedia || {}).map(([key, url]) => {
+          if (!url) return null;
+          const Icon = socialIcons[key];
+          return Icon ? (
+            <a
+              key={key}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Icon size={20} />
+            </a>
+          ) : null;
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
 
 const DetailsSection = ({ tutor, t }) => (
   <motion.div

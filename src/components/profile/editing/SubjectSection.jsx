@@ -29,7 +29,7 @@ const AddSubjectCard = ({
     language: '',
     name: '',
     years_experience: 1
-  })
+  });
 
   const [editingIndex, setEditingIndex] = useState(null);
   const [availableGrades, setAvailableGrades] = useState([]);
@@ -48,7 +48,7 @@ const AddSubjectCard = ({
         years_experience: 1
       });
     } else {
-      const subject = formData.subjects[editingIndex]; // Changed to subjects
+      const subject = formData.subjects[editingIndex];
       if (subject) {
         setNewSubject({
           education_system: subject.education_system || '',
@@ -67,10 +67,10 @@ const AddSubjectCard = ({
     if (newSubject.education_system && constants?.EducationStructure) {
       const grades = constants.EducationStructure[newSubject.education_system]?.grades || [];
       setAvailableGrades(grades);
-      
+
       const languages = constants.EducationStructure[newSubject.education_system]?.languages || ['Arabic'];
       setAvailableLanguages(languages);
-      
+
       // Only reset if not in edit mode
       if (editingIndex === null) {
         setNewSubject(prev => ({ 
@@ -81,6 +81,9 @@ const AddSubjectCard = ({
           name: ''
         }));
       }
+    } else {
+      setAvailableGrades([]);
+      setAvailableLanguages([]);
     }
   }, [newSubject.education_system, constants, editingIndex]);
 
@@ -88,11 +91,13 @@ const AddSubjectCard = ({
     if (newSubject.grade && newSubject.education_system && constants?.EducationStructure) {
       const sectors = constants.EducationStructure[newSubject.education_system]?.sectors[newSubject.grade] || [];
       setAvailableSectors(sectors);
-      
+
       // Only reset if not in edit mode
       if (editingIndex === null) {
         setNewSubject(prev => ({ ...prev, sector: '', name: '' }));
       }
+    } else {
+      setAvailableSectors([]);
     }
   }, [newSubject.grade, newSubject.education_system, constants, editingIndex]);
 
@@ -100,7 +105,7 @@ const AddSubjectCard = ({
     if (newSubject.education_system && newSubject.grade && newSubject.sector && newSubject.language) {
       const systemSubjects = constants?.SubjectsBySystem?.[newSubject.education_system] || {};
       let subjects = [];
-      
+
       try {
         subjects = newSubject.grade === 'Secondary 1' 
           ? systemSubjects['Secondary 1'] || []
@@ -109,7 +114,7 @@ const AddSubjectCard = ({
         console.error('Error fetching subjects:', error);
         subjects = [];
       }
-      
+
       setAvailableSubjects(subjects);
     } else {
       setAvailableSubjects([]);
@@ -138,7 +143,7 @@ const AddSubjectCard = ({
     };
 
     onAddSubject(subjectData);
-    
+
     setNewSubject({
       education_system: '',
       grade: '',
@@ -190,26 +195,24 @@ const AddSubjectCard = ({
           <div className="flex items-center gap-2">
             <GraduationCap size={18} className="text-primary" />
             <span className="font-medium">
-              {subject.name || t('unnamedSubject')} {/* Direct access */}
+              {subject.name || t('unnamedSubject')}
             </span>
           </div>
           <div className="flex gap-1">
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleEditSubject(index)}
-              >
-                <Edit size={16} className="text-primary" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(index)}
-              >
-                <Trash size={16} className="text-destructive" />
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleEditSubject(index)}
+            >
+              <Edit size={16} className="text-primary" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDelete(index)}
+            >
+              <Trash size={16} className="text-destructive" />
+            </Button>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm">
@@ -237,6 +240,12 @@ const AddSubjectCard = ({
       </motion.div>
     );
   };
+
+  // Disabled helpers
+  const isGradeDisabled = !newSubject.education_system;
+  const isLanguageDisabled = !newSubject.education_system;
+  const isSectorDisabled = !newSubject.grade;
+  const isSubjectDisabled = !newSubject.sector;
 
   return (
     <div className={cn(
@@ -269,109 +278,107 @@ const AddSubjectCard = ({
           </Select>
         </div>
 
-        {/* Grade Select */}
-        {newSubject.education_system && (
-          <div className="space-y-1">
-            <Label className="text-xs">{t('grade')}</Label>
-            <Select
-              value={newSubject.grade}
-              onValueChange={(val) => setNewSubject(prev => ({ ...prev, grade: val }))}
-            >
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder={t('selectGrade')} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableGrades.map((grade) => (
-                  <SelectItem key={grade} value={grade}>
-                    {grade}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* Grade Select - always visible but disabled until system chosen */}
+        <div className="space-y-1">
+          <Label className="text-xs">{t('grade')}</Label>
+          <Select
+            value={newSubject.grade}
+            onValueChange={(val) => setNewSubject(prev => ({ ...prev, grade: val }))}
+            disabled={isGradeDisabled}
+          >
+            <SelectTrigger className="h-10" aria-disabled={isGradeDisabled} title={isGradeDisabled ? t('selectSystemFirst') : undefined}>
+              <SelectValue placeholder={isGradeDisabled ? t('selectSystemFirst') : t('selectGrade')} />
+            </SelectTrigger>
+            <SelectContent>
+              {availableGrades.map((grade) => (
+                <SelectItem key={grade} value={grade}>
+                  {grade}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Sector Select */}
-        {newSubject.grade && (
-          <div className="space-y-1">
-            <Label className="text-xs">{t('sector')}</Label>
-            <Select
-              value={newSubject.sector}
-              onValueChange={(val) => setNewSubject(prev => ({ ...prev, sector: val }))}
-            >
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder={t('selectSector')} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableSectors.map((sector) => (
-                  <SelectItem key={sector} value={sector}>
-                    {sector}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* Sector Select - always visible but disabled until grade chosen */}
+        <div className="space-y-1">
+          <Label className="text-xs">{t('sector')}</Label>
+          <Select
+            value={newSubject.sector}
+            onValueChange={(val) => setNewSubject(prev => ({ ...prev, sector: val }))}
+            disabled={isSectorDisabled}
+          >
+            <SelectTrigger className="h-10" aria-disabled={isSectorDisabled} title={isSectorDisabled ? t('selectGradeFirst') : undefined}>
+              <SelectValue placeholder={isSectorDisabled ? t('selectGradeFirst') : t('selectSector')} />
+            </SelectTrigger>
+            <SelectContent>
+              {availableSectors.map((sector) => (
+                <SelectItem key={sector} value={sector}>
+                  {sector}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Language Select */}
-        {newSubject.education_system && (
-          <div className="space-y-1">
-            <Label className="text-xs">{t('language')}</Label>
-            <Select
-              value={newSubject.language}
-              onValueChange={(val) => setNewSubject(prev => ({ ...prev, language: val }))}
-            >
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder={t('selectLanguage')} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableLanguages.map((lang) => (
-                  <SelectItem key={lang} value={lang}>
-                    {lang}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* Language Select - always visible but disabled until system chosen */}
+        <div className="space-y-1">
+          <Label className="text-xs">{t('language')}</Label>
+          <Select
+            value={newSubject.language}
+            onValueChange={(val) => setNewSubject(prev => ({ ...prev, language: val }))}
+            disabled={isLanguageDisabled}
+          >
+            <SelectTrigger className="h-10" aria-disabled={isLanguageDisabled} title={isLanguageDisabled ? t('selectSystemFirst') : undefined}>
+              <SelectValue placeholder={isLanguageDisabled ? t('selectSystemFirst') : t('selectLanguage')} />
+            </SelectTrigger>
+            <SelectContent>
+              {availableLanguages.map((lang) => (
+                <SelectItem key={lang} value={lang}>
+                  {lang}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Subject Select */}
-        {newSubject.sector && (
-          <div className="space-y-1">
-            <Label className="text-xs">{t('subject')}</Label>
-            <Select
-              value={newSubject.name}
-              onValueChange={(val) => setNewSubject(prev => ({ ...prev, name: val }))}
-            >
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder={
-                  availableSubjects.length === 0 ? t('noSubjectsAvailable') : t('selectSubject')
-                }>
-                  {newSubject.name}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {availableSubjects.map((subject) => (
-                  <SelectItem key={subject} value={subject}>
-                    {subject}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* Subject Select - always visible but disabled until sector chosen */}
+        <div className="space-y-1">
+          <Label className="text-xs">{t('subject')}</Label>
+          <Select
+            value={newSubject.name}
+            onValueChange={(val) => setNewSubject(prev => ({ ...prev, name: val }))}
+            disabled={isSubjectDisabled || availableSubjects.length === 0}
+          >
+            <SelectTrigger className="h-10" aria-disabled={isSubjectDisabled || availableSubjects.length === 0} title={isSubjectDisabled ? t('selectSectorFirst') : (availableSubjects.length === 0 ? t('noSubjectsAvailable') : undefined)}>
+              <SelectValue placeholder={
+                isSubjectDisabled ? t('selectSectorFirst') :
+                availableSubjects.length === 0 ? t('noSubjectsAvailable') :
+                t('selectSubject')
+              }>
+                {newSubject.name}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {availableSubjects.map((subject) => (
+                <SelectItem key={subject} value={subject}>
+                  {subject}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         {/* Years Experience Input */}
         <div className="space-y-1">
           <Label className="text-xs">{t('yearsExperience')}</Label>
           <Input
             type="number"
-            min="1"
+            min="0"
             max="50"
             value={newSubject.years_experience}
             onChange={(e) => setNewSubject(prev => ({ 
               ...prev, 
-              years_experience: Math.max(1, parseInt(e.target.value) || 1)
+              years_experience: Math.max(0, parseInt(e.target.value) || 0)
             }))}
             className="h-10"
           />
@@ -411,11 +418,11 @@ const AddSubjectCard = ({
       </div>
 
       {/* Current Subjects List */}
-      {formData.subjects?.length > 0 && ( // Changed to subjects
+      {formData.subjects?.length > 0 && (
         <div className="mt-6">
           <h3 className="font-semibold mb-3">{t('yourSubjects')}</h3>
           <div className="flex flex-col gap-3">
-            {formData.subjects.map((subject, index) => ( // Changed to subjects
+            {formData.subjects.map((subject, index) => (
               renderSubjectDetails(subject, index)
             ))}
           </div>

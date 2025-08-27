@@ -64,7 +64,7 @@ const TutorProfileHeaderEdit = ({
     return {
       name: tutorData?.name || '',
       img: getImageUrl(tutorData?.profile_picture?.url) || tutorData?.img || '',
-      bannerimg: tutorData?.banner?.url || tutorData?.bannerimg || tutorData?.banner || '',
+      bannerimg: getImageUrl(tutorData?.banner?.url) || tutorData?.bannerimg || tutorData?.banner || '',
       previewPfpUrl: '',   
       previewBannerUrl: '', 
       pendingPfpFile: null,
@@ -445,7 +445,7 @@ useEffect(() => {
 }, [formData.previewPfpUrl, formData.pendingPfpFile, formData.img, lastObjectUrl]);
 
   return (
-    <div className="relative w-[170px] h-40 border-2 border-primary rounded-md shadow-lg">
+    <div className="relative w-40 h-40 border-2 border-primary rounded-md shadow-lg">
       <label className="absolute -bottom-3 -right-3 z-20 bg-primary/90 text-white px-3 py-1 rounded-lg cursor-pointer hover:bg-primary transition-colors shadow-md hover:shadow-lg text-xs">
         {t('changeAvatar')}
         <Input
