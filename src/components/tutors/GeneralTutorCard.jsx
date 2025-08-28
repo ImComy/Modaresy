@@ -146,6 +146,11 @@ const TutorCard = ({ tutor }) => {
                 return (
                   <div
                     key={key}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setOpenTypes((prev) => ({ ...prev, [key]: !isOpen }));
+                    }}
                     className={clsx(
                       'relative transition-all rounded-xl',
                       isOpen

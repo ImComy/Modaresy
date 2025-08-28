@@ -16,6 +16,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { API_BASE } from '@/api/apiService';
 import { getAvatarSrc as resolveAvatar, getImageUrl } from '@/api/imageService';
 import Heart from '@/components/ui/heart';
+import Loader from '@/components/ui/loader';
 
 // --- helpers ---
 const getDisplayName = (user) => {
@@ -686,9 +687,12 @@ const BlogSection = ({ tutorId, isOwner }) => {
       {/* Posts */}
       <div className="space-y-4">
         {loading && posts.length === 0 ? (
-          <div className="text-center py-10 rounded" style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}>
-            Loading posts...
-          </div>
+          <>
+
+            <div className="flex justify-center items-center gap-4 text-center py-10 rounded" style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}>
+              <Loader showLoadingText={false} size={40}/> Loading posts...
+            </div>
+          </>
         ) : posts.length === 0 ? (
           <div className="text-center py-10 rounded" style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}>
             No posts yet.

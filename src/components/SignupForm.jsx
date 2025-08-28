@@ -325,7 +325,7 @@ const SignupForm = ({
             </div>
           )}
 
-          {/* Teacher Specific Fields */}
+          {/* Teacher Specific Fields
           {formData.user_type === 'Teacher' && (
             <div className="space-y-5">
               <PfpUploadWithCrop 
@@ -339,7 +339,7 @@ const SignupForm = ({
                 required 
               />
             </div>
-          )}
+          )} */}
 
           {/* Terms and Conditions */}
           <motion.div

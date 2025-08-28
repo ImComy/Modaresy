@@ -9,6 +9,7 @@ import useTutorProfile from '@/hooks/useTutorProfile';
 import useEditMode from '@/hooks/useEditMode';
 import { apiFetch, API_BASE } from '@/api/apiService';
 import { BookOpen, FileText } from 'lucide-react';
+import Loader from '@/components/ui/loader';
 
 const SegmentedControl = ({ options, value, onChange, ariaLabel = 'View Mode' }) => {
   const containerRef = useRef(null);
@@ -312,8 +313,7 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <span className="animate-spin h-8 w-8 rounded-full border-4 border-t-transparent" style={{ borderColor: 'hsl(var(--primary))' }}></span>
-        <span className="ml-2">{t('loading')}...</span>
+        <Loader />
       </div>
     );
   }

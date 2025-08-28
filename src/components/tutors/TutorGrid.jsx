@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import TutorCard from './TutorCard';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, UserX, Loader } from 'lucide-react';
+import { AlertTriangle, UserX } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import Loader from '@/components/ui/loader';
 
 const ErrorBanner = ({ message }) => (
   <Card className="max-w-md mx-auto mt-10 border-red-500/40 bg-red-50 dark:bg-red-950">
@@ -21,6 +22,23 @@ const ErrorBanner = ({ message }) => (
 
 const TutorGrid = ({ tutors, filters, loading = false, error = null }) => {
   const { t } = useTranslation();
+  const [showContent, setShowContent] = useState(false);
+  const [prevTutors, setPrevTutors] = useState(tutors);
+
+  // Use effect to manage the transition between loading states
+  useEffect(() => {
+    if (!loading && tutors) {
+      // When loading is complete and we have tutors, show content
+      setShowContent(true);
+      setPrevTutors(tutors);
+    } else if (loading) {
+      // When loading starts, hide content after a small delay
+      const timer = setTimeout(() => {
+        setShowContent(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, tutors]);
 
   const isMissingRequiredFilters = useMemo(() => {
     return !filters || filters.subject === 'none' || filters.grade === 'none';
@@ -44,12 +62,12 @@ const TutorGrid = ({ tutors, filters, loading = false, error = null }) => {
     );
   }, [tutors, filters.subject, filters.grade, filters.language, filters.education_system]);
 
-  if (loading) {
+  // Show loading state
+  if (loading && !showContent) {
     return (
       <div className="flex justify-center items-center py-20">
         <div className="flex flex-col items-center gap-3">
-          <Loader className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">{t('loadingTutors', 'Loading tutors...')}</p>
+          <Loader className="w-8 h-8 animate-spin text-primary" loadingText="Loading Tutors..."/>
         </div>
       </div>
     );

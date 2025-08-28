@@ -82,7 +82,7 @@ const Filters = () => {
         <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center mt-20">
           {t('RecommendedTutors')}
         </motion.h2>
-  <GeneralTutorGrid tutors={sortedTutors} />
+        <GeneralTutorGrid tutors={sortedTutors} />
       </section>
     </div>
   );

@@ -3,6 +3,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import SignupPromptDialog from '@/components/SignupPromptDialog';
 import { getConstants } from '@/api/constantsFetch';
+import Loader from '@/components/ui/loader';
 
 const Layout = ({ children }) => {
   const [isSignupPromptOpen, setIsSignupPromptOpen] = useState(false);
@@ -89,7 +90,7 @@ const Layout = ({ children }) => {
       <div className="flex flex-col min-h-screen">
         <Navbar />
         <main className="flex-grow container mx-auto px-4 py-8 flex items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
+          <Loader />
         </main>
         <Footer />
       </div>

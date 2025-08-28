@@ -6,6 +6,7 @@ import { getConstants } from '@/api/constantsFetch';
 import { useFormLogic } from '@/handlers/form';
 // import { ScrollableTimeline } from '@/components/ui/timeline'; // Timeline removed
 import SignupForm from '@/components/SignupForm';
+import Loader from '@/components/ui/loader';
 
 const initialFormData = {
   name: '',
@@ -109,10 +110,7 @@ const SignupPage = () => {
 
   if (!constants) return (
     <div className="flex justify-center items-center h-screen">
-      <div className="animate-pulse flex flex-col items-center">
-        <div className="h-12 w-12 bg-primary rounded-full mb-4"></div>
-        <p className="text-muted-foreground">{t('loading')}</p>
-      </div>
+      <Loader />
     </div>
   );
 
