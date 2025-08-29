@@ -46,7 +46,7 @@ const MapResizer = ({ isExpanded }) => {
   return null;
 };
 
-const TutorLocationMap = ({ tutor, className = '' }) => {
+const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -293,4 +293,4 @@ const TutorLocationMap = ({ tutor, className = '' }) => {
   );
 };
 
-export default TutorLocationMap;
+export default TutorLocationMapDisplay;

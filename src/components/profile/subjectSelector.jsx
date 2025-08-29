@@ -14,7 +14,7 @@ import TutorVideoManager from '@/components/profile/TutorVideoManager';
 import TutorCourseInfo from '@/components/profile/TutorCourseInfo';
 import TutorScheduleManager from '@/components/profile/TutorScheduleManager';
 import TutorReviews from '@/components/profile/TutorReviews';
-import TutorLocationMap from './original/map';
+import TutorLocationMap from './map';
 
 const SubjectSelector = ({
   tutor,
@@ -344,7 +344,12 @@ const SubjectSelector = ({
 
         {/* Floating Stats Component */}
         <Card className="md:w-full sm:w-fit  bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/70 dark:to-indigo-950/70 border-blue-200/50 dark:border-blue-800/30 shadow-lg">
-          <TutorLocationMap tutor={tutor} />
+          <TutorLocationMap
+            tutor={tutor}
+            isEditing={isEditing}
+            onChange={onTutorChange}
+            isOwner={isOwner}
+          />
         </Card>
       </div>
 

@@ -101,6 +101,21 @@ export async function updateProfile(req, res) {
       }
     }
 
+    // Persist location coordinates if provided
+    if (updated_information.location_coordinates && typeof updated_information.location_coordinates === 'object') {
+      const loc = updated_information.location_coordinates;
+      const lat = loc.latitude ?? loc.lat ?? null;
+      const lon = loc.longitude ?? loc.lng ?? loc.lon ?? null;
+      const parsedLat = lat != null ? Number(lat) : null;
+      const parsedLon = lon != null ? Number(lon) : null;
+      if (!Number.isNaN(parsedLat) && !Number.isNaN(parsedLon)) {
+        teacher.location_coordinates = {
+          latitude: parsedLat,
+          longitude: parsedLon
+        };
+      }
+    }
+
     await teacher.save();
 
     const updatedUser = await Teacher.findById(req.user._id)
