@@ -1,4 +1,6 @@
-import { Teacher, Enrollment } from '../models/teacher.js';
+import { Teacher, Enrollment, EnrollmentRequest } from '../models/teacher.js';
+import { Subject } from '../models/subject.js';
+import { PersonalAvailability } from '../models/misc.js';
 
 export async function getTeacherbyId(req, res, next) {
     try {
@@ -20,87 +22,80 @@ export function isTeacher(req, res, next) {
     res.status(403).json({ error: "Teacher access required" });
 }
 
-export async function getEnrollmentRequest(req, res, next) {
-    try {
-        const { enrollmentRequestId } = req.body;
-        if (!enrollmentRequestId) return res.status(400).json({ error: "Request ID required" });
-        
-        const request = await Enrollment.findById(enrollmentRequestId);
-        if (!request) return res.status(404).json({ error: "Enrollment not found" });
-        
-        req.enrollment = request;
-        next();
-    } catch (err) {
-        res.status(500).json({ error: "Error fetching enrollment" });
-    }
-}
 
 export async function enrollStudent(student, teacher) {
-    try {
-        const enrollment = new Enrollment({
-            studentId: student._id,
-            tutorId: teacher._id,
-            status: 'accepted',
-        });
-
-        await enrollment.save();
-        await Teacher.findByIdAndUpdate(teacher._id, {
-            $push: { enrollments: enrollment._id }
-        });
-
-        return { message: "Enrollment successful" };
-    } catch (err) {
-        return { error: "Error enrolling student" };
+  try {
+    if (!student || !teacher) {
+      return { error: 'student and teacher are required' };
     }
+
+    const enrollment = new Enrollment({
+      studentId: student._id,
+      tutorId: teacher._id,
+      status: 'accepted',
+    });
+
+    await enrollment.save();
+
+    await Teacher.findByIdAndUpdate(teacher._id, {
+      $push: { enrollments: enrollment._id },
+    });
+
+    return { message: 'Enrollment successful', enrollmentId: enrollment._id };
+  } catch (err) {
+    console.error('enrollStudent error:', err);
+    return { error: 'Error enrolling student' };
+  }
 }
 
 export async function createNewTutor(req, res) {
-    try {
-        console.log('createNewTutor called');
-        const { 
-            name,
-            email,
-            password,
-            address,
-            about_me,
-        } = req.body;
+  try {
+    console.log('createNewTutor called');
+    const { name, email, password, address, about_me } = req.body || {};
 
-        console.log('Received tutor data:', { name, email, address });
+    console.log('Received tutor data:', { name, email, address });
 
-        const requiredFields = ['name', 'email', 'password', 'address', 'about_me', 'experience_years', 
-                              'education_system', 'sectors', 'languages', 'grades'];
-        const missingFields = requiredFields.filter(field => !req.body[field]);
+    const requiredFields = ['name', 'email', 'password'];
+    const missingFields = requiredFields.filter((field) => !req.body?.[field]);
 
-        if (missingFields.length > 0) {
-            console.log(`Missing required fields: ${missingFields.join(', ')}`);
-            return res.status(400).json({ error: "All fields are required", missingFields });
-        }
-
-        const existingTutor = await Teacher.findOne({ email });
-        if (existingTutor) {
-            console.log('Error: Email already exists');
-            return res.status(400).json({ error: "Email already exists" });
-        }
-
-        const newTutor = new Teacher({
-            name,
-            email,
-            password,
-            address,
-            about_me,
-            availability: defaultAvailability._id
-        });
-
-        await newTutor.save();
-        console.log(`New tutor created with ID: ${newTutor._id}`);
-        const defaultAvailability = new PersonalAvailability({});
-        await defaultAvailability.save();
-        newTutor.availability = defaultAvailability._id;
-        return res.status(201).json({ message: "Tutor created successfully", tutor: newTutor });
-    } catch (err) {
-        console.error('Error in createNewTutor:', err);
-        return res.status(500).json({ error: "Internal server error: " + err.message });
+    if (missingFields.length > 0) {
+      console.log(`Missing required fields: ${missingFields.join(', ')}`);
+      if (res) return res.status(400).json({ error: 'Missing required fields', missingFields });
+      throw new Error('Missing required fields: ' + missingFields.join(', '));
     }
+
+    const existingTutor = await Teacher.findOne({ email });
+    if (existingTutor) {
+      console.log('Error: Email already exists');
+      if (res) return res.status(400).json({ error: 'Email already exists' });
+      return { error: 'Email already exists' };
+    }
+
+    const defaultAvailability = new PersonalAvailability({});
+    await defaultAvailability.save();
+
+    const newTutor = new Teacher({
+      name,
+      email,
+      password,
+      address,
+      about_me,
+      availability: defaultAvailability._id,
+    });
+
+    await newTutor.save();
+
+    console.log(`New tutor created with ID: ${newTutor._id}`);
+
+    if (res) {
+      return res.status(201).json({ message: 'Tutor created successfully', tutor: newTutor });
+    }
+    return { message: 'Tutor created successfully', tutor: newTutor };
+  } catch (err) {
+    console.error('Error in createNewTutor:', err);
+    if (res) return res.status(500).json({ error: 'Internal server error: ' + err.message });
+    throw err;
+  }
 }
 
 export async function filterTutors(filters) {
@@ -122,7 +117,7 @@ export async function filterTutors(filters) {
     const teacherMatch = {};
     if (governate) teacherMatch.governate = governate;
     if (district) teacherMatch.district = district;
-    if (minRating != null && !Number.isNaN(minRating)) teacherMatch.rating = { $gte: minRating };
+    if (minRating != null && !Number.isNaN(minRating)) teacherMatch.rating = { $gte: Number(minRating) };
     if (Object.keys(teacherMatch).length) pipeline.push({ $match: teacherMatch });
 
     pipeline.push({
@@ -155,21 +150,23 @@ export async function filterTutors(filters) {
     if (minPrice != null || maxPrice != null) {
       const priceClauses = [];
       if (minPrice != null) {
-        priceClauses.push({ 'subject_profiles.private_pricing.price': { $gte: minPrice } });
-        priceClauses.push({ 'subject_profiles.group_pricing.price': { $gte: minPrice } });
+        priceClauses.push({ 'subject_profiles.private_pricing.price': { $gte: Number(minPrice) } });
+        priceClauses.push({ 'subject_profiles.group_pricing.price': { $gte: Number(minPrice) } });
       }
       if (maxPrice != null) {
-        priceClauses.push({ 'subject_profiles.private_pricing.price': { $lte: maxPrice } });
-        priceClauses.push({ 'subject_profiles.group_pricing.price': { $lte: maxPrice } });
+        priceClauses.push({ 'subject_profiles.private_pricing.price': { $lte: Number(maxPrice) } });
+        priceClauses.push({ 'subject_profiles.group_pricing.price': { $lte: Number(maxPrice) } });
       }
-      if (priceClauses.length) profileMatch.$and = profileMatch.$and || [];
-      if (priceClauses.length) profileMatch.$and.push({ $or: priceClauses });
+      if (priceClauses.length) {
+        profileMatch.$and = profileMatch.$and || [];
+        profileMatch.$and.push({ $or: priceClauses });
+      }
     }
 
     if (Object.keys(profileMatch).length) pipeline.push({ $match: profileMatch });
 
     if (minRating != null && !Number.isNaN(minRating)) {
-      pipeline.push({ $match: { 'subject_profiles.rating': { $gte: minRating } } });
+      pipeline.push({ $match: { 'subject_profiles.rating': { $gte: Number(minRating) } } });
     }
 
     pipeline.push({
@@ -188,11 +185,27 @@ export async function filterTutors(filters) {
       }
     });
 
+    pipeline.push({
+      $addFields: {
+        coordinates: {
+          $cond: [
+            { $ifNull: ['$location_coordinates', false] },
+            {
+              latitude: '$location_coordinates.latitude',
+              longitude: '$location_coordinates.longitude'
+            },
+            null
+          ]
+        }
+      }
+    });
+
     pipeline.push({ $project: { password: 0, __v: 0, 'subject_profiles.__v': 0 } });
 
     const results = await Teacher.aggregate(pipeline).exec();
     return results;
   } catch (err) {
+    console.error('filterTutors error:', err);
     throw new Error(`Filter error: ${err.message}`);
   }
 }
@@ -205,6 +218,7 @@ export async function recommendTutorsForStudent(student, { q, page = 1, limit = 
     const governate = student.governate;
 
     const pipeline = [];
+
     pipeline.push({
       $lookup: {
         from: 'subjectprofiles',
@@ -214,6 +228,7 @@ export async function recommendTutorsForStudent(student, { q, page = 1, limit = 
       }
     });
     pipeline.push({ $unwind: { path: '$subject_profiles', preserveNullAndEmptyArrays: true } });
+
     pipeline.push({
       $lookup: {
         from: 'subjects',
@@ -247,6 +262,21 @@ export async function recommendTutorsForStudent(student, { q, page = 1, limit = 
     if (governate) pipeline.push({ $addFields: { locationBoost: { $cond: [ { $eq: ['$governate', governate] }, 1, 0 ] } } });
     pipeline.push({ $addFields: { finalScore: { $add: [ '$score', { $ifNull: ['$locationBoost', 0] }, '$rating' ] } } });
 
+    pipeline.push({
+      $addFields: {
+        coordinates: {
+          $cond: [
+            { $ifNull: ['$location_coordinates', false] },
+            {
+              latitude: '$location_coordinates.latitude',
+              longitude: '$location_coordinates.longitude'
+            },
+            null
+          ]
+        }
+      }
+    });
+
     pipeline.push({ $sort: { finalScore: -1, rating: -1 } });
 
     const skip = Math.max(0, (page - 1) * limit);
@@ -256,6 +286,8 @@ export async function recommendTutorsForStudent(student, { q, page = 1, limit = 
     const total = await Teacher.countDocuments();
     return { tutors, total };
   } catch (err) {
+    console.error('recommendTutorsForStudent error:', err);
     throw new Error('recommend error: ' + err.message);
   }
 }
+

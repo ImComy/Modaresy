@@ -10,7 +10,6 @@ import { useNavigate } from 'react-router-dom';
 import { GeneralTutorGrid } from '../components/tutors/GeneralTutorGrid';
 import MapSearchPage from '@/components/map';
 
-// Segmented Control Component
 const ViewSegmentedControl = ({ value, onChange, ariaLabel = 'View Mode' }) => {
   const containerRef = useRef(null);
   const { t } = useTranslation();
@@ -40,7 +39,7 @@ const ViewSegmentedControl = ({ value, onChange, ariaLabel = 'View Mode' }) => {
   const activeText = 'hsl(var(--primary-foreground))';
 
   return (
-    <div className="w-full flex justify-center mb-6">
+    <div className="w-full flex justify-center md:justify-end mt-0 md:-mt-24">
       <div
         ref={containerRef}
         role="tablist"
@@ -102,7 +101,7 @@ const ViewSegmentedControl = ({ value, onChange, ariaLabel = 'View Mode' }) => {
 const Filters = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'map'
+  const [viewMode, setViewMode] = useState('grid'); 
 
   const {
     searchTerm,
@@ -144,19 +143,6 @@ const Filters = () => {
           {t('findYourTutor')}
         </motion.h2>
 
-        {/* View Mode Toggle */}
-        <motion.div
-          initial={{ scale: 0.98, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.28, ease: 'easeOut' }}
-        >
-          <ViewSegmentedControl
-            value={viewMode}
-            onChange={setViewMode}
-            ariaLabel="View mode selection"
-          />
-        </motion.div>
-
         <HorizontalFilters
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
@@ -179,11 +165,27 @@ const Filters = () => {
           loadingConstants={loadingConstants}
         />
 
+        {/* View Mode Toggle */}
+        <motion.div
+          initial={{ scale: 0.98, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.28, ease: 'easeOut' }}
+        >
+          <ViewSegmentedControl
+            value={viewMode}
+            onChange={setViewMode}
+            ariaLabel="View mode selection"
+          />
+        </motion.div>
+
         {/* Conditionally render Grid or Map view */}
         {viewMode === 'grid' ? (
           <TutorGrid tutors={sortedTutors} filters={filters} loading={loadingTutors} />
         ) : (
-          <MapSearchPage tutors={sortedTutors} />
+          <>
+          {console.log(sortedTutors)}
+          <MapSearchPage tutors={sortedTutors} filters={filters} loading={loadingTutors} />
+          </>
         )}
       </section>
 

@@ -1,13 +1,13 @@
 import express from "express";
 import { verifyToken } from '../services/authentication.service.js';
-import { isTeacher, getTeacherbyId, getEnrollmentRequest } from '../services/tutor.service.js';
+import { isTeacher, getTeacherbyId} from '../services/tutor.service.js';
 import { 
   getProfile, 
   updateProfile, 
   getTutors, 
   getTutor, 
-  acceptEnrollment, 
-  rejectEnrollment, 
+  // acceptEnrollment, 
+  // rejectEnrollment, 
   populateAvailability,
   filterTutorsController
 } from '../controllers/tutor.js';
@@ -33,7 +33,7 @@ router.get("/filter", filterTutorsController);
 router.get('/recommend', verifyToken, recommendTutorsController);
 
 // Enrollment actions
-router.post("/acceptEnrollment", verifyToken, isTeacher, getStudentById, getEnrollmentRequest, acceptEnrollment);
-router.delete("/rejectEnrollment", verifyToken, isTeacher, getStudentById, getEnrollmentRequest, rejectEnrollment);
+// router.post("/acceptEnrollment", verifyToken, isTeacher, getStudentById, getEnrollmentRequest, acceptEnrollment);
+// router.delete("/rejectEnrollment", verifyToken, isTeacher, getStudentById, getEnrollmentRequest, rejectEnrollment);
 
 export default router;
