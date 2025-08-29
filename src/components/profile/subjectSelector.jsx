@@ -163,7 +163,7 @@ const SubjectSelector = ({
 
   return (
     <div className="space-y-6 mt-6">
-      <Card>
+      <Card className="">
         <CardHeader className="p-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 rounded-md bg-[color:hsl(var(--primary))/0.08] text-[color:hsl(var(--primary))]">
@@ -323,61 +323,19 @@ const SubjectSelector = ({
             </AnimatePresence>
           </div>
         </CardHeader>
+      </Card>
 
-        <CardContent className="p-4">
-          {selectedSubject && (
-            <>
-              <div className="hidden lg:block">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <div className="lg:col-span-2 space-y-6">
-                    <SubjectPricingInfo
-                      subject={selectedSubject}
-                      tutor={tutor}
-                      isEditing={isEditing}
-                      onFieldChange={handleNestedChange}
-                      onTutorChange={onTutorChange}
-                    />
-                    <TutorVideoManager
-                      videos={selectedSubject?.youtube || []}
-                      isEditing={isEditing}
-                      isOwner={isOwner}
-                      onVideosChange={(newVideos) =>
-                        handleNestedChange('youtube', newVideos)
-                      }
-                    />
-                    {!isEditing && (
-                      <TutorReviews
-                        tutorId={tutor._id}
-                        subjectProfile={selectedSubject}
-                        onReviewUpdate={onReviewUpdate}
-                      />
-                    )}
-                  </div>
-
-                  <div className="space-y-6">
-                    <TutorCourseInfo
-                      subject={selectedSubject}
-                      tutor={tutor}
-                      isEditing={isEditing}
-                      onFieldChange={handleNestedChange}
-                      onTutorChange={onTutorChange}
-                    />
-                    <TutorScheduleManager
-                      tutor={tutor}
-                      subject={selectedSubject}
-                      isEditing={isEditing}
-                      onFieldChange={handleNestedChange}
-                      onTutorChange={onTutorChange}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="lg:hidden space-y-6">
+      {selectedSubject && (
+        <div className="space-y-8 mt-8">
+          <div className="hidden lg:block">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
                 <SubjectPricingInfo
                   subject={selectedSubject}
-                  onFieldChange={handleNestedChange}
+                  tutor={tutor}
                   isEditing={isEditing}
+                  onFieldChange={handleNestedChange}
+                  onTutorChange={onTutorChange}
                 />
                 <TutorVideoManager
                   videos={selectedSubject?.youtube || []}
@@ -387,6 +345,16 @@ const SubjectSelector = ({
                     handleNestedChange('youtube', newVideos)
                   }
                 />
+                {!isEditing && (
+                  <TutorReviews
+                    tutorId={tutor._id}
+                    subjectProfile={selectedSubject}
+                    onReviewUpdate={onReviewUpdate}
+                  />
+                )}
+              </div>
+
+              <div className="space-y-6">
                 <TutorCourseInfo
                   subject={selectedSubject}
                   tutor={tutor}
@@ -401,18 +369,48 @@ const SubjectSelector = ({
                   onFieldChange={handleNestedChange}
                   onTutorChange={onTutorChange}
                 />
-                {!isEditing && (
-                  <TutorReviews
-                    tutorId={tutor._id}
-                    subjectProfile={selectedSubject}
-                    onReviewUpdate={onReviewUpdate}
-                  />
-                )}
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </div>
+          </div>
+
+          <div className="lg:hidden space-y-6">
+            <SubjectPricingInfo
+              subject={selectedSubject}
+              onFieldChange={handleNestedChange}
+              isEditing={isEditing}
+            />
+            <TutorVideoManager
+              videos={selectedSubject?.youtube || []}
+              isEditing={isEditing}
+              isOwner={isOwner}
+              onVideosChange={(newVideos) =>
+                handleNestedChange('youtube', newVideos)
+              }
+            />
+            <TutorCourseInfo
+              subject={selectedSubject}
+              tutor={tutor}
+              isEditing={isEditing}
+              onFieldChange={handleNestedChange}
+              onTutorChange={onTutorChange}
+            />
+            <TutorScheduleManager
+              tutor={tutor}
+              subject={selectedSubject}
+              isEditing={isEditing}
+              onFieldChange={handleNestedChange}
+              onTutorChange={onTutorChange}
+            />
+            {!isEditing && (
+              <TutorReviews
+                tutorId={tutor._id}
+                subjectProfile={selectedSubject}
+                onReviewUpdate={onReviewUpdate}
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
