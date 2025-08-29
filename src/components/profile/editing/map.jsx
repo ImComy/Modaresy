@@ -4,8 +4,7 @@ import { motion } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { MapPin, Navigation, User, Save, RotateCcw } from 'lucide-react';
-import {initializeFormData} from '@/data/formData';
+import { User, RotateCcw } from 'lucide-react';
 
 // Fix for default icons in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
