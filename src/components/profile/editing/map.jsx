@@ -133,7 +133,7 @@ const TutorLocationMapEdit = ({ tutor, onChange, className = '' }) => {
 
   // Create custom icons
   const tutorIcon = useMemo(() => createCustomIcon('#ef4444'), []);
-  const selectedIcon = useMemo(() => createCustomIcon('#10b981'), []);
+  const selectedIcon = useMemo(() => createCustomIcon('#22c55e'), []);
 
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg ${className}`}>

@@ -123,7 +123,7 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
 
   // Create custom icons
   const tutorIcon = useMemo(() => createCustomIcon('#ef4444'), []);
-  const userIcon = useMemo(() => createCustomIcon('#3b82f6', true), []);
+  const userIcon = useMemo(() => createCustomIcon('#22c55e', true), []);
 
   return (
     <div className={`relative ${className}`}>
