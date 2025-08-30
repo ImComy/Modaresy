@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Star, MapPin, BookOpen, DollarSign, AlertTriangle, UserX } from 'lucide-react';
+import { Star, MapPin, BookOpen, DollarSign, AlertTriangle, UserX, User, Navigation } from 'lucide-react';
 import Loader from '@/components/ui/loader';
 import { useTranslation } from 'react-i18next';
 
@@ -27,6 +27,18 @@ const createCustomIcon = (color) => {
 
 const lightIcon = createCustomIcon('#2563eb');
 const darkIcon = createCustomIcon('#3b82f6');
+const userLocationIcon = createCustomIcon('#22c55e'); // Green for user location
+
+// Component to handle map instance
+const MapInstanceHandler = ({ mapInstanceRef }) => {
+  const map = useMap();
+  
+  useEffect(() => {
+    mapInstanceRef.current = map;
+  }, [map, mapInstanceRef]);
+  
+  return null;
+};
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371; 
@@ -128,6 +140,8 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
   const [tutorsWithDistance, setTutorsWithDistance] = useState([]);
   const [showContent, setShowContent] = useState(false);
   const [prevTutors, setPrevTutors] = useState(tutors);
+  const [locationError, setLocationError] = useState(null);
+  const mapInstanceRef = useRef(null);
 
   useEffect(() => {
     if (!loading && tutors) {
@@ -168,19 +182,49 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
     setTheme(isDark ? 'dark' : 'light');
   }, []);
 
-  useEffect(() => {
+  // Get user's current location
+  const getUserLocation = useCallback(() => {
+    setLocationError(null);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           setUserLocation([latitude, longitude]);
+          
+          // If we have a map instance, pan to the user's location
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.setView([latitude, longitude], 13);
+          }
         },
         (error) => {
-          console.error("Error getting location:", error);
+          console.error("Error getting user location:", error);
+          let errorMessage = t('locationAccessDenied');
+          
+          if (error.code === error.PERMISSION_DENIED) {
+            errorMessage = t('locationPermissionDenied');
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            errorMessage = t('locationUnavailable');
+          } else if (error.code === error.TIMEOUT) {
+            errorMessage = t('locationTimeout');
+          }
+          
+          setLocationError(errorMessage);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
         }
       );
+    } else {
+      setLocationError(t('geolocationNotSupported'));
     }
-  }, []);
+  }, [t]);
+
+  useEffect(() => {
+    // Try to get user location when component mounts
+    getUserLocation();
+  }, [getUserLocation]);
 
   useEffect(() => {
     const tutorsWithDistances = filteredTutors
@@ -312,6 +356,7 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
     <>
       <div className="relative h-[calc(100vh-4rem)] w-full">
         <MapContainer center={userLocation} zoom={10} scrollWheelZoom={true} className="h-full w-full z-0">
+          <MapInstanceHandler mapInstanceRef={mapInstanceRef} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -320,7 +365,7 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
           {/* Add marker for user's location */}
           <Marker 
             position={userLocation} 
-            icon={createCustomIcon('#22c55e')} // Green color for user location
+            icon={userLocationIcon}
           >
             <Popup>Your Location</Popup>
           </Marker>
@@ -394,6 +439,24 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
             </Marker>
           ))}
         </MapContainer>
+
+        {/* Show My Location button */}
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={getUserLocation}
+          className="absolute top-4 right-4 bg-white dark:bg-gray-800 p-2 rounded-full shadow-md flex items-center justify-center"
+          aria-label="Show my location"
+        >
+          <User className="w-4 h-4" />
+        </motion.button>
+
+        {/* Error message */}
+        {locationError && (
+          <div className="absolute bottom-4 left-4 right-4 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-2 rounded-md text-xs z-[500]">
+            {locationError}
+          </div>
+        )}
 
         <AnimatePresence>
           {selectedTutor && (

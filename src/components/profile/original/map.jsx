@@ -1,5 +1,5 @@
 // components/profile/TutorLocationMap.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
@@ -44,13 +44,25 @@ const MapResizer = ({ isExpanded }) => {
   return null;
 };
 
+// Component to handle panning to user location
+const LocationHandler = ({ userLocation, mapInstanceRef }) => {
+  const map = useMap();
+  
+  useEffect(() => {
+    // Update the ref when the map instance changes
+    mapInstanceRef.current = map;
+  }, [map, mapInstanceRef]);
+  
+  return null;
+};
+
 const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
-  const [mapInstance, setMapInstance] = useState(null);
+  const mapInstanceRef = useRef(null); // Use ref instead of state
 
   // Default coordinates (Cairo, Egypt)
   const defaultCoordinates = [30.0444, 31.2357];
@@ -76,8 +88,8 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
           setUserLocation(newLocation);
           
           // If we have a map instance, pan to the user's location
-          if (mapInstance) {
-            mapInstance.setView([newLocation.lat, newLocation.lng], 13);
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.setView([newLocation.lat, newLocation.lng], 13);
           }
         },
         (error) => {
@@ -139,7 +151,7 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
       {/* Normal mode map */}
       {!isExpanded && (
         <motion.div
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg h-64 relative" // Added relative here
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg h-64 relative"
           whileHover={{ scale: 1.02 }}
           onHoverStart={() => setIsHovered(true)}
           onHoverEnd={() => setIsHovered(false)}
@@ -148,8 +160,8 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
             center={tutorCoordinates}
             zoom={13}
             className="w-full h-full rounded-xl"
-            whenCreated={(map) => setMapInstance(map)}
           >
+            <LocationHandler userLocation={userLocation} mapInstanceRef={mapInstanceRef} />
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -235,9 +247,9 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
                 center={tutorCoordinates}
                 zoom={13}
                 className="w-full h-full"
-                whenCreated={(map) => setMapInstance(map)}
               >
                 <MapResizer isExpanded={isExpanded} />
+                <LocationHandler userLocation={userLocation} mapInstanceRef={mapInstanceRef} />
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -264,7 +276,7 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={toggleExpand}
-                className="absolute top-4 right-4 bg-white dark:bg-gray-800 p-2 rounded-full shadow-md flex items-center justify-center z-[1000]"
+                className="absolute top-4 right-4 bg-white dark:bg-gray-800 p-2 rounded-full shadow-md flex items-center justify-center"
                 aria-label={t('minimizeMap')}
               >
                 <X className="w-5 h-5" />
@@ -275,7 +287,7 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={openInMaps}
-                className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-md flex items-center gap-2 z-[1000]"
+                className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-md flex items-center gap-2"
               >
                 <Navigation className="w-4 h-4" />
                 <span className="text-sm font-medium">{t('openInGoogleMaps')}</span>
@@ -286,7 +298,7 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={getUserLocation}
-                className="absolute bottom-4 left-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-md flex items-center gap-2 z-[1000]"
+                className="absolute bottom-4 left-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-md flex items-center gap-2"
               >
                 <User className="w-4 h-4" />
                 <span className="text-sm font-medium">{t('showMyLocation')}</span>
