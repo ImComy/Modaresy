@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { MapPin, Expand, Minimize, Navigation, User, X } from 'lucide-react';
@@ -16,10 +16,8 @@ L.Icon.Default.mergeOptions({
 });
 
 // Custom icon creation function
-const createCustomIcon = (color, isUser = false) => {
-  const svgString = isUser 
-    ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="10" r="3" /><path d="M12 21c-3.5 0-6-3-6-6 0-1.5 1-3 3-3h6c2 0 3 1.5 3 3 0 3-2.5 6-6 6z"/></svg>`
-    : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>`;
+const createCustomIcon = (color) => {
+  const svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>`;
   
   // Create a data URL from the SVG string
   const svgDataUrl = `data:image/svg+xml;base64,${btoa(svgString)}`;
@@ -95,6 +93,12 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
           }
           
           setLocationError(errorMessage);
+          
+          // Set default location if there's an error
+          setUserLocation({
+            lat: defaultCoordinates[0],
+            lng: defaultCoordinates[1]
+          });
         },
         {
           enableHighAccuracy: true,
@@ -104,6 +108,11 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
       );
     } else {
       setLocationError(t('geolocationNotSupported'));
+      // Set default location if geolocation is not supported
+      setUserLocation({
+        lat: defaultCoordinates[0],
+        lng: defaultCoordinates[1]
+      });
     }
   };
 
@@ -122,15 +131,15 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
   };
 
   // Create custom icons
-  const tutorIcon = useMemo(() => createCustomIcon('#ef4444'), []);
-  const userIcon = useMemo(() => createCustomIcon('#22c55e', true), []);
+  const tutorIcon = useMemo(() => createCustomIcon('#ef4444'), []); // Red for tutor
+  const userIcon = useMemo(() => createCustomIcon('#22c55e'), []); // Green for user
 
   return (
     <div className={`relative ${className}`}>
       {/* Normal mode map */}
       {!isExpanded && (
         <motion.div
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg h-64"
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg h-64 relative" // Added relative here
           whileHover={{ scale: 1.02 }}
           onHoverStart={() => setIsHovered(true)}
           onHoverEnd={() => setIsHovered(false)}
@@ -163,7 +172,7 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
           </MapContainer>
           
           {/* Controls */}
-          <div className="absolute top-4 right-4 flex gap-2 z-[1000]">
+          <div className="absolute top-4 right-4 flex gap-2">
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -234,7 +243,7 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 
-                {/* Tutor marker - ADDED BACK TO EXPANDED VIEW */}
+                {/* Tutor marker */}
                 <Marker position={tutorCoordinates} icon={tutorIcon}>
                   <Popup>{t('tutorLocation', { name: tutor?.name || 'Tutor' })}</Popup>
                 </Marker>
@@ -284,7 +293,11 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
               </motion.button>
               
               {/* Error message */}
-              {locationError && console.log(locationError)}
+              {locationError && (
+                <div className="absolute bottom-2 left-2 right-2 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-2 rounded-md text-xs">
+                  {locationError}
+                </div>
+              )}
             </motion.div>
           </>
         )}

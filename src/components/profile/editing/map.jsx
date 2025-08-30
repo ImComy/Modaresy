@@ -50,7 +50,6 @@ const TutorLocationMapEdit = ({ tutor, onChange, className = '' }) => {
   // Default coordinates (Cairo, Egypt)
   const defaultCoordinates = [30.0444, 31.2357];
 
-  // Get coordinates from tutor data or use defaults
   const coordinates = useMemo(() => {
     if (tutor?.location_coordinates?.latitude && tutor?.location_coordinates?.longitude) {
       return {
@@ -66,24 +65,24 @@ const TutorLocationMapEdit = ({ tutor, onChange, className = '' }) => {
 
   const [position, setPosition] = useState(coordinates);
 
-  // Update position when tutor data changes
   useEffect(() => {
     setPosition(coordinates);
   }, [coordinates]);
 
-  // Propagate position changes to parent
   useEffect(() => {
     if (!position) return;
     
-    // Use the same onChange pattern as TutorProfileHeader
     onChange('location_coordinates', {
       latitude: position.lat,
       longitude: position.lng,
     });
   }, [position, onChange]);
 
-  // Get user's current location
-  const getUserLocation = () => {
+  useEffect(() => {
+    getAndSetUserLocation(false); 
+  }, []);
+
+  const getAndSetUserLocation = (updatePosition = true) => {
     setLocationError(null);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -93,7 +92,9 @@ const TutorLocationMapEdit = ({ tutor, onChange, className = '' }) => {
             lng: position.coords.longitude
           };
           setUserLocation(newLocation);
-          setPosition(newLocation);
+          if (updatePosition) {
+            setPosition(newLocation);
+          }
         },
         (error) => {
           console.error("Error getting user location:", error);
@@ -108,6 +109,13 @@ const TutorLocationMapEdit = ({ tutor, onChange, className = '' }) => {
           }
           
           setLocationError(errorMessage);
+          
+          if (updatePosition) {
+            setPosition({
+              lat: defaultCoordinates[0],
+              lng: defaultCoordinates[1]
+            });
+          }
         },
         {
           enableHighAccuracy: true,
@@ -117,7 +125,17 @@ const TutorLocationMapEdit = ({ tutor, onChange, className = '' }) => {
       );
     } else {
       setLocationError(t('geolocationNotSupported'));
+      if (updatePosition) {
+        setPosition({
+          lat: defaultCoordinates[0],
+          lng: defaultCoordinates[1]
+        });
+      }
     }
+  };
+
+  const getUserLocation = () => {
+    getAndSetUserLocation(true);
   };
 
   const handleSaveLocation = () => {
@@ -132,17 +150,30 @@ const TutorLocationMapEdit = ({ tutor, onChange, className = '' }) => {
   };
 
   // Create custom icons
-  const tutorIcon = useMemo(() => createCustomIcon('#ef4444'), []);
-  const selectedIcon = useMemo(() => createCustomIcon('#22c55e'), []);
+  const tutorIcon = useMemo(() => createCustomIcon('#ef4444'), []); // Red for tutor
+  const selectedIcon = useMemo(() => createCustomIcon('#22c55e'), []); // Green for selected location
+  const userIcon = useMemo(() => createCustomIcon('#3b82f6'), []); // Blue for user location
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg ${className}`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg z-0 ${className}`}>
       
-      <div className="relative h-64">
+      <div className="relative h-64 z-0">
+        {/* Ensure Leaflet map panes sit below site chrome (nav, buttons) */}
+        <style>{`
+          .leaflet-container { z-index: 0 !important; }
+          .leaflet-pane { z-index: 0 !important; }
+          .leaflet-tile-pane { z-index: 0 !important; }
+          .leaflet-overlay-pane { z-index: 0 !important; }
+          .leaflet-shadow-pane { z-index: 0 !important; }
+          .leaflet-marker-pane { z-index: 0 !important; }
+          /* Keep leaflet controls below site chrome */
+          .leaflet-control-container { z-index: 0 !important; }
+        `}</style>
         <MapContainer
           center={position || defaultCoordinates}
           zoom={13}
-          className="w-full h-full"
+          className="w-full h-full z-0 leaflet-map"
+          style={{ zIndex: 0 }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -154,12 +185,17 @@ const TutorLocationMapEdit = ({ tutor, onChange, className = '' }) => {
             <Marker position={position} icon={selectedIcon} />
           )}
           
+          {/* User location marker (if available) */}
+          {userLocation && (
+            <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon} />
+          )}
+          
           {/* Location selection handler */}
           <LocationMarker position={position} setPosition={setPosition} />
         </MapContainer>
         
         {/* Controls */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2 z-[1000]">
+  <div className="absolute top-4 right-4 flex flex-col gap-2 z-0">
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -180,6 +216,13 @@ const TutorLocationMapEdit = ({ tutor, onChange, className = '' }) => {
             <RotateCcw className="w-4 h-4" />
           </motion.button>
         </div>
+
+        {/* Error message */}
+        {locationError && (
+          <div className="absolute bottom-2 left-2 right-2 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-2 rounded-md text-xs z-20">
+            {locationError}
+          </div>
+        )}
       </div>
     </div>
   );

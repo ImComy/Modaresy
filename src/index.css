@@ -104,6 +104,14 @@
     @apply bg-card/70 backdrop-blur-xl border border-border/15 shadow-lg;
 }
 
+/* Leaflet stacking fix: ensure maps don't float above site chrome (nav, modals, buttons) */
+.leaflet-container { z-index: 0 !important; }
+.leaflet-pane { z-index: 0 !important; }
+.leaflet-tile-pane { z-index: 0 !important; }
+.leaflet-overlay-pane { z-index: 0 !important; }
+.leaflet-marker-pane { z-index: 0 !important; }
+.leaflet-control-container { z-index: 10 !important; }
+
 /* Signup Prompt Overlay/Content Styling */
 .light .signup-prompt-overlay { @apply bg-white/70 backdrop-blur-md; }
 .dark .signup-prompt-overlay { @apply bg-black/70 backdrop-blur-md; }
