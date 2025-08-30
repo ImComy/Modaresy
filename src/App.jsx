@@ -24,6 +24,7 @@ import NotFoundPage from './pages/notfound';
 import ForgotPasswordPage from './pages/forgot-password';
 import AdminPage from './pages/AdminPage';
 import ChatPage from './pages/chat';
+import ModaresyCommunityPage from './pages/community'
 
 const ProtectedRoute = ({ element, requireAuth = false, allowedRoles = null, unsignedOnly = false }) => {
   const { authState } = useAuth();
@@ -132,6 +133,7 @@ function RoutesWrapper() {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/Filters" element={<Filters />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/community" element={<ModaresyCommunityPage />} />
 
         <Route path="/login" element={<ProtectedRoute element={<LoginPage />} unsignedOnly />} />
         <Route path="/signup" element={<ProtectedRoute element={<SignupPage />} unsignedOnly />} />

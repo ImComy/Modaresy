@@ -30,7 +30,8 @@ import {
   Home,
   // Info,
   Search,
-  MessageSquare, 
+  MessageSquare,
+  Users
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { cn } from '@/lib/utils';
@@ -99,9 +100,10 @@ const Navbar = () => {
   // Navigation items for the main menu
   const navItems = [
     { label: t('home'), path: '/', icon: <Home size={16} /> },
-    // { label: t('aboutUs'), path: '/about', icon: <Info size={16} /> }, // About page commented out
-    { label: t('chat') || 'Chat', path: '/chat', icon: <MessageSquare size={16} /> }, // Chat added
     { label: t('PickYourTeacher'), path: '/filters', icon: <Search size={16} /> },
+    // { label: t('aboutUs'), path: '/about', icon: <Info size={16} /> }, // About page commented out
+    { label: t('chat') || 'Chat', path: '/chat', icon: <MessageSquare size={16} /> }, 
+    { label: t('community') || 'Community', path: '/community', icon: <Users size={16} /> },
   ];
 
   // Determine profile path based on user role
