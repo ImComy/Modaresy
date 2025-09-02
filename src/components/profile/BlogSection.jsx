@@ -760,13 +760,22 @@ const BlogSection = ({ tutorId, isOwner }) => {
                 {/* action row */}
                 <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between border-t pt-3" style={{ borderColor: 'hsl(var(--border))' }}>
                   <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center">
-                      <Heart isLiked={likedByMe} onToggle={() => handleLike(post._id)} size={18} />
-                      <button className="text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>{(post.likes || []).length ? ` ${(post.likes || []).length}` : ''}</button>
+                    <div className="flex items-center justify-center text-sm gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleLike(post._id)}
+                        aria-pressed={likedByMe}
+                        title="Like"
+                        className="rounded hover:bg-[hsl(var(--input))] mt-1"
+                        style={{ background: 'transparent', border: 'none', color: likedByMe ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
+                      >
+                        <Heart isLiked={likedByMe} size={18} ariaLabel="Like post" />
+                      </button>
+                      <span className="text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>{(post.likes || []).length ? ` ${(post.likes || []).length}` : ''} Likes</span>
                     </div>
 
                     <div className="flex items-center gap-2 px-3 py-1 rounded-md text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                      <MessageSquare size={16} />
+                      <MessageSquare size={18} />
                       <span>{(post.comments || []).length} comments</span>
                     </div>
                   </div>

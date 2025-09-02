@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function Heart({ isLiked = false, onToggle = () => {}, size = 20, ariaLabel = 'Like' }) {
+export default function Heart({ isLiked = false, size = 20, ariaLabel = 'Like' }) {
   const [animate, setAnimate] = useState(false);
 
   useEffect(() => {
@@ -11,45 +11,16 @@ export default function Heart({ isLiked = false, onToggle = () => {}, size = 20,
     }
   }, [isLiked]);
 
-  const handleClick = (e) => {
-    e.preventDefault();
-    setAnimate(true);
-    setTimeout(() => setAnimate(false), 260);
-    // delegate actual toggling/syncing to parent
-    onToggle && onToggle();
-  };
-
   const primaryColor = 'hsl(var(--primary))'; 
-  const primaryForeground = 'hsl(var(--primary-foreground))';
   const mutedColor = 'hsl(var(--muted-foreground))';
-  const btnBg = 'transparent';
   const hoverBg = 'hsl(var(--input))';
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      aria-pressed={!!isLiked}
+    <span
+      role="img"
       aria-label={ariaLabel}
       title={ariaLabel}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: size + 12,
-        height: size + 12,
-        padding: 6,
-        borderRadius: 9999,
-        background: btnBg,
-        border: 'none',
-        cursor: 'pointer',
-        transition: 'background 160ms ease, transform 160ms ease',
-      }}
-      onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-      onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-      onFocus={(e) => e.currentTarget.style.boxShadow = `0 0 0 4px rgba(0,0,0,0.04), 0 0 0 6px rgba(0,0,0,0.02)` }
-      onBlur={(e) => e.currentTarget.style.boxShadow = 'none'}
+      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
     >
       <svg
         width={size}
@@ -81,10 +52,9 @@ export default function Heart({ isLiked = false, onToggle = () => {}, size = 20,
       </svg>
 
       <style>{`
-        /* hover background using CSS variable so it respects theme */
-        button:hover { background: ${hoverBg}; }
-        button:active { transform: scale(0.96); }
+        /* keep visual hover available for parent buttons */
+        span:hover { background: ${hoverBg}; }
       `}</style>
-    </button>
+    </span>
   );
 }

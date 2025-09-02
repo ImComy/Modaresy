@@ -1,40 +1,72 @@
 <!doctype html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <!-- === Title / Description (bilingual) === -->
+    <title>Modaresy • مدرسي</title>
+    <meta name="description" content="مدرسي (Modaresy / Modarsy) منصة بتوصّل الطلبة بالمدرسين في مصر. مش مركز دروس ولا خدمة تعليمية، لكن مساحة دعاية بتخلي المدرسين يوصلوا للطلبة بسهولة، والطلبة يكتشفوا أقرب المدرسين ليهم بدل ما يسألوا قرايبهم. اكتشف مدرسك المناسب في ثواني." />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://modaresy.me/" />
+
+    <!-- Robots -->
+    <meta name="robots" content="index,follow,max-snippet:200,max-image-preview:large" />
+
+    <!-- Keywords (English + Arabic + typos) -->
+    <meta name="keywords" content="Modaresy, Modarsy, مدرسي, Private Tutors Egypt, Online Tutors Egypt, Private Lessons Egypt, دروس خصوصية مصر, مدرس خصوصي, مدرس أونلاين, منصة تعليم, Thanaweya Amma Tutors, ثانويه عامه, IGCSE Tutors Egypt, مدرسين IGCSE, International Schools Egypt, Math Tutor Egypt, English Tutor Egypt, Physics Tutor Egypt, Biology Tutor Egypt, French Tutor Egypt, تعلم أونلاين, تعليم عن بعد, Best Tutors Egypt, Top Tutors Cairo, Private Arabic Lessons, Private Science Lessons, مدرسين لغة انجليزية, مدرسين فيزياء, مدرسين كيمياء, Teacher Platform Egypt, Education Platform Egypt" />
+
+    <!-- Favicons -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <meta name="theme-color" content="#0f172a" />
 
-    <!-- SEO Meta Tags -->
-    <title>Modaresy</title>
-    <meta name="description" content="Modaresy connects students with top-rated tutors for all school subjects in Egypt. Book lessons, explore video content, and learn from the best." />
-    <meta name="keywords" content="Modaresy, Tutors, Online Learning, Egypt Education, Thanaweya Amma, IGCSE, Private Lessons, Group Lessons, Video Courses" />
-    <meta name="author" content="Modaresy Team" />
-    <meta name="generator" content="Vite + React + Hostinger Horizons" />
-
-    <!-- Open Graph / Facebook -->
-    <meta property="og:title" content="Modaresy | Find Top Tutors and Learn with Confidence" />
-    <meta property="og:description" content="Book lessons with top tutors, explore video courses, and boost your grades with Modaresy." />
-    <meta property="og:image" content="/og-image.png" />
-    <meta property="og:url" content="https://modaresy.vercel.app/" />
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Modaresy — مدرسي" />
+    <meta property="og:title" content="Modaresy | Trusted Tutors in Egypt — مدرسي" />
+    <meta property="og:description" content="مدرسي • منصة تعريف ودعاية للمدرسين في مصر. خلّي الطلبة يلاقوا أقرب مدرس ليهم بسهولة — دروس خصوصية، مجموعات، أو أونلاين." />
+    <meta property="og:image" content="https://modaresy.me/icon.svg" />
+    <meta property="og:url" content="https://modaresy.me/" />
 
-    <!-- Twitter Card -->
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Modaresy | Find Top Tutors and Learn with Confidence" />
-    <meta name="twitter:description" content="Discover the best tutors in Egypt and learn smarter with Modaresy’s platform." />
-    <meta name="twitter:image" content="/og-image.png" />
+    <meta name="twitter:title" content="Modaresy | Find Tutors — مدرسي" />
+    <meta name="twitter:description" content="Modaresy — مش مركز دروس، لكن منصة بتشهر المدرسين وتعرّف الطلبة عليهم. دور على مدرسك المناسب بسرعة في مصر." />
+    <meta name="twitter:image" content="https://modaresy.me/icon.svg" />
 
-    <!-- Preload main font or other critical assets if needed -->
-    <!-- Example: <link rel="preload" href="/fonts/your-font.woff2" as="font" type="font/woff2" crossorigin="anonymous" /> -->
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": "Modaresy",
+      "alternateName": ["مدرسي", "Modarsy"],
+      "url": "https://modaresy.me/",
+      "logo": "https://modaresy.me/icon.svg",
+      "description": "مدرسي (Modaresy) منصة دعاية وتعريف بالمدرسين في مصر — بتخلي الطالب يكتشف أقرب مدرس ليه بسهولة بدل ما يعتمد على الترشيحات التقليدية.",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "EG"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "availableLanguage": ["English", "Arabic"],
+        "email": "support@modaresy.me"
+      },
+      "sameAs": [
+        "https://www.facebook.com/profile.php?id=61578144642612",
+        "https://www.instagram.com/modaresy_"
+      ]
+    }
+    </script>
 
-    <!-- Stylesheets or additional head content can go here -->
-
+    <!-- Styles -->
+    <link rel="stylesheet" href="/dist/styles.css" />
   </head>
   <body>
     <div id="root"></div>

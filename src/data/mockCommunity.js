@@ -1,74 +1,4 @@
-
-export const grades = [
-  { value: 'Secondary 1', labelKey: 'secondary1' },
-  { value: 'Secondary 2', labelKey: 'secondary2' },
-  { value: 'Secondary 3', labelKey: 'secondary3' }
-];
-
-export const sectors = [
-  { value: 'General', labelKey: 'general' },
-  { value: 'Scientific', labelKey: 'scientific' },
-  { value: 'Literature', labelKey: 'literature' },
-  { value: 'Mathematics', labelKey: 'mathematics' },
-];
-
-export const languages = [
-  { value: 'Arabic', labelKey: 'arabic' },
-  { value: 'English', labelKey: 'english' },
-  { value: 'French', labelKey: 'french' },
-  { value: 'German', labelKey: 'german' },
-];
-
-export const locations = [
-  { value: 'Alexandria', label: 'Alexandria' },
-  { value: 'Assiut', label: 'Assiut' },
-  { value: 'Aswan', label: 'Aswan' }, 
-  { value: 'Beheira', label: 'Beheira' },
-  { value: 'Bani Suef', label: 'Bani Suef' },
-  { value: 'Cairo', label: 'Cairo' },
-  { value: 'Daqahliya', label: 'Daqahliya' },
-  { value: 'Damietta', label: 'Damietta' },
-  { value: 'Fayyoum', label: 'Fayyoum' },
-  { value: 'Gharbiya', label: 'Gharbiya' },
-  { value: 'Giza', label: 'Giza' },
-  { value: 'Helwan', label: 'Helwan' },
-  { value: 'Ismailia', label: 'Ismailia' },
-  { value: 'Kafr El Sheikh', label: 'Kafr El Sheikh' },
-  { value: 'Luxor', label: 'Luxor' },
-  { value: 'Marsa Matrouh', label: 'Marsa Matrouh' },
-  { value: 'Minya', label: 'Minya' },
-  { value: 'Monofiya', label: 'Monofiya' },
-  { value: 'New Valley', label: 'New Valley' },
-  { value: 'North Sinai', label: 'North Sinai' },
-  { value: 'Port Said', label: 'Port Said' },
-  { value: 'Qalioubiya', label: 'Qalioubiya' },
-  { value: 'Qena', label: 'Qena' },
-  { value: 'Red Sea', label: 'Red Sea' },
-  { value: 'Sharqiya', label: 'Sharqiya' },
-  { value: 'Sohag', label: 'Sohag' },
-  { value: 'South Sinai', label: 'South Sinai' },
-  { value: 'Suez', label: 'Suez' },
-  { value: 'Tanta', label: 'Tanta' },
-];
-
-export const subjects = [
-    'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Geology',
-    'Arabic', 'English', 'French', 'German', 'Italian', 'Spanish',
-    'History', 'Geography', 'Philosophy', 'Psychology',
-    'Computer Science', 'Art', 'Music'
-    // Add more subjects
-];
-
-export const educationSystems = [
-  { value: 'National', labelKey: 'educationNational' },
-  { value: 'international', labelKey: 'educationInternational' },
-  { value: 'igcse', labelKey: 'educationIGCSE' },
-  // Add more systems as needed
-];
-
-export const API_BASE_URL = import.meta.env.SERVER_URL;
-
-
+// src/constants.js
 export const MOCK_POSTS = [
   {
     id: "p1",
@@ -129,6 +59,18 @@ export const MOCK_POSTS = [
     comments: 2,
     saved: 3,
     views: 78,
+    attachments: [
+        { id: 1, url: "/pfp.png", name: "image1.jpg", type: "image/jpeg" },
+        { id: 2, url: "/document.pdf", name: "document.pdf", type: "application/pdf" },
+        { id: 3, url: "/image1.jpg", name: "image1.jpg", type: "image/jpeg" },
+        { id: 4, url: "/image1.jpg", name: "image1.jpg", type: "image/jpeg" },
+        { id: 5, url: "/image1.jpg", name: "image1.jpg", type: "image/jpeg" },
+        { id: 6, url: "/image1.jpg", name: "image1.jpg", type: "image/jpeg" },
+        { id: 7, url: "/image1.jpg", name: "image1.jpg", type: "image/jpeg" },
+        { id: 8, url: "/image1.jpg", name: "image1.jpg", type: "image/jpeg" },
+        { id: 9, url: "/image1.jpg", name: "image1.jpg", type: "image/jpeg" },
+        { id: 10, url: "/image1.jpg", name: "image1.jpg", type: "image/jpeg" },
+    ],
     commentsList: [
       {
         id: "c3",
@@ -187,7 +129,6 @@ export const MOCK_POSTS = [
   },
 ];
 
-// Dropdown options
 export const EDUCATION_COMBOS = [
   "Thanaweya Amma - Scientific - Arabic",
   "Thanaweya Amma - Literary - Arabic",
@@ -201,4 +142,36 @@ export const EDUCATION_COMBOS = [
   "French System - International - French",
   "German System - International - German",
   "Other - General - Bilingual",
+];
+
+export const SUBJECTS = [
+  "Mathematics",
+  "Biology",
+  "Physics",
+  "Chemistry",
+  "Arabic",
+  "English",
+  "French",
+  "History",
+  "Geography",
+  "Calculus",
+  "Linear Algebra",
+  "Other",
+];
+
+export const GRADES = [
+  "Grade 1",
+  "Grade 2",
+  "Grade 3",
+  "Grade 4",
+  "Grade 5",
+  "Grade 6",
+  "Grade 7",
+  "Grade 8",
+  "Grade 9",
+  "Grade 10",
+  "Grade 11",
+  "Grade 12",
+  "University",
+  "Other",
 ];
