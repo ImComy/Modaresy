@@ -178,7 +178,7 @@ export default function ModaresyCommunityPage() {
   return (
     <div className="min-h-screen p-4 sm:p-6 bg-gradient-to-br from-background to-muted/30 text-foreground">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <aside className="lg:col-span-1 order-2 lg:order-1">
+        <aside className="lg:col-span-1 order-1 lg:order-1">
           <FiltersSidebar 
             query={query} 
             setQuery={setQuery} 
@@ -197,7 +197,7 @@ export default function ModaresyCommunityPage() {
           />
         </aside>
 
-        <main className="lg:col-span-3 order-1 lg:order-2">
+        <main className="lg:col-span-3 order-2 lg:order-2">
           <motion.div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
             <div>
               <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Community Feed</h2>
