@@ -178,7 +178,7 @@ const SubjectSelector = ({
 
   return (
     <div className="space-y-6 mt-6">
-      <div className="flex flex-col-reverse lg:flex-row gap-6">
+      <div className="flex flex-col-reverse lg:flex-row gap-6 overflow-hidden">
         {/* Subject Selector Card */}
         <Card className=" md:w-fit flex justify-center items-center">
           <CardHeader className="p-4 flex items-center justify-between gap-4">
@@ -203,7 +203,7 @@ const SubjectSelector = ({
             </div>
 
             {/* Dropdown */}
-            <div className="w-96 max-w-full relative" onKeyDown={handleKeyDown}>
+            <div className="sm:w-fit md:w-96 max-w-full relative" onKeyDown={handleKeyDown}>
               <button
                 ref={toggleRef}
                 type="button"

@@ -160,7 +160,7 @@ export const AddPost = React.memo(({
               className="overflow-hidden"
             >
               {/* Attachments Section */}
-              <div className="mt-4">
+              <div className="mt-4 ">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-foreground">Attachments</span>
                   <RawButton

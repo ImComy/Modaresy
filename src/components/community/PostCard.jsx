@@ -88,22 +88,6 @@ export function PostCard({ post, onToggleLike, onAddComment, onToggleSave, onTog
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="font-semibold text-foreground/90">{post.author.name}</div>
-                  <div className={`text-xs rounded-full px-2.5 py-1 font-medium ${isTutor ? "bg-primary/15 text-primary" : "bg-secondary/15 text-secondary"}`}>
-                    {isTutor ? (
-                      <span className="flex items-center gap-1">
-                        <GraduationCap size={12} /> Tutor
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1">
-                        <BookOpen size={12} /> Student
-                      </span>
-                    )}
-                  </div>
-                  {post.author.verified && (
-                    <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200 text-xs py-0.5 px-1.5">
-                      Verified
-                    </Badge>
-                  )}
                   <div className="text-xs text-muted-foreground/80 ml-2 flex items-center gap-1" title={new Date(post.createdAt).toLocaleString()}>
                     <Clock size={12} /> <span>{timeAgo(post.createdAt)}</span>
                   </div>
@@ -195,7 +179,7 @@ export function PostCard({ post, onToggleLike, onAddComment, onToggleSave, onTog
               </div>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 -ml-10">
               <p className={`text-foreground/90 leading-relaxed break-words ${truncated ? "max-h-[6.5rem] overflow-hidden relative" : ""}`}>{contentToShow}</p>
 
               {truncated && (
@@ -218,14 +202,14 @@ export function PostCard({ post, onToggleLike, onAddComment, onToggleSave, onTog
               <PostAttachments attachments={post.attachments} />
             </div>
 
-            <div className="mt-4 flex flex-wrap">
+            <div className="mt-4 flex flex-wrap -ml-10">
               {post.tags.map((t) => (
                 <TagPill key={t} tag={t} />
               ))}
             </div>
 
             {/* Action buttons with integrated stats */}
-            <div className="mt-4 flex flex-wrap items-center gap-1 border-t border-border pt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-1 border-t border-border pt-4 -ml-10">
               <button 
                 onClick={handleLike} 
                 className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 transition-colors ${isLiked ? 'text-primary hover:bg-primary/10' : 'hover:bg-muted/50'}`}

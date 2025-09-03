@@ -298,29 +298,29 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
   );
 
   // Render when not logged in
-  if (!authState?.isLoggedIn) {
-    return (
-      <div className="max-w-full mx-auto bg-[color:color-mix(in srgb, hsl(var(--muted)) 40%, transparent)] border border-[color:hsl(var(--border)/0.6)] rounded-2xl shadow-md p-8 text-center space-y-5">
-        <div className="flex justify-center">
-          <div className="rounded-full p-4" style={{ background: 'color-mix(in srgb, hsl(var(--primary)) 8%, transparent)', color: 'hsl(var(--primary))' }}>
-            <LogIn size={28} />
-          </div>
-        </div>
-        <h2 className="text-2xl font-bold text-[color:hsl(var(--foreground))]">
-          {t('getPersonalizedTutors', 'Discover Your Ideal Tutor')}
-        </h2>
-        <p className="text-[color:hsl(var(--muted-foreground))] text-sm leading-relaxed">
-          {t('signInToSeeRecommendations', 'Sign in to receive personalized tutor recommendations based on your preferences.')}
-        </p>
-        <a
-          href="/login"
-          className="inline-flex items-center justify-center px-6 py-2 rounded-full text-[color:hsl(var(--primary-foreground))] bg-[color:hsl(var(--primary))] hover:brightness-90 transition font-medium"
-        >
-          {t('signIn', 'Sign in')}
-        </a>
-      </div>
-    );
-  }
+  // if (!authState?.isLoggedIn) {
+  //   return (
+  //     <div className="max-w-full mx-auto bg-[color:color-mix(in srgb, hsl(var(--muted)) 40%, transparent)] border border-[color:hsl(var(--border)/0.6)] rounded-2xl shadow-md p-8 text-center space-y-5">
+  //       <div className="flex justify-center">
+  //         <div className="rounded-full p-4" style={{ background: 'color-mix(in srgb, hsl(var(--primary)) 8%, transparent)', color: 'hsl(var(--primary))' }}>
+  //           <LogIn size={28} />
+  //         </div>
+  //       </div>
+  //       <h2 className="text-2xl font-bold text-[color:hsl(var(--foreground))]">
+  //         {t('getPersonalizedTutors', 'Discover Your Ideal Tutor')}
+  //       </h2>
+  //       <p className="text-[color:hsl(var(--muted-foreground))] text-sm leading-relaxed">
+  //         {t('signInToSeeRecommendations', 'Sign in to receive personalized tutor recommendations based on your preferences.')}
+  //       </p>
+  //       <a
+  //         href="/login"
+  //         className="inline-flex items-center justify-center px-6 py-2 rounded-full text-[color:hsl(var(--primary-foreground))] bg-[color:hsl(var(--primary))] hover:brightness-90 transition font-medium"
+  //       >
+  //         {t('signIn', 'Sign in')}
+  //       </a>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="max-w-full mx-auto">

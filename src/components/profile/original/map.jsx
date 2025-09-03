@@ -44,8 +44,8 @@ const MapResizer = ({ isExpanded }) => {
   return null;
 };
 
-// Component to handle panning to user location
-const LocationHandler = ({ userLocation, mapInstanceRef }) => {
+// Component to handle panning to user location (keeps a reference to map instance)
+const LocationHandler = ({ mapInstanceRef }) => {
   const map = useMap();
   
   useEffect(() => {
@@ -63,6 +63,7 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const mapInstanceRef = useRef(null); // Use ref instead of state
+  const wrapperRef = useRef(null);
 
   // Default coordinates (Cairo, Egypt)
   const defaultCoordinates = [30.0444, 31.2357];
@@ -75,8 +76,7 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
     return defaultCoordinates;
   }, [tutor]);
 
-  // Get user's current location
-  const getUserLocation = () => {
+  const getUserLocation = (pan = false) => {
     setLocationError(null);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -87,9 +87,13 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
           };
           setUserLocation(newLocation);
           
-          // If we have a map instance, pan to the user's location
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.setView([newLocation.lat, newLocation.lng], 13);
+          // Only pan if explicitly requested and map instance exists
+          if (pan && mapInstanceRef.current) {
+            try {
+              mapInstanceRef.current.setView([newLocation.lat, newLocation.lng], 13);
+            } catch (err) {
+              console.warn('Unable to pan map to user location:', err);
+            }
           }
         },
         (error) => {
@@ -106,7 +110,7 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
           
           setLocationError(errorMessage);
           
-          // Set default location if there's an error
+          // Set default location if there's an error (used only for marker fallback)
           setUserLocation({
             lat: defaultCoordinates[0],
             lng: defaultCoordinates[1]
@@ -129,9 +133,43 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
   };
 
   useEffect(() => {
-    // Try to get user location when component mounts
-    getUserLocation();
+    // Try to get user location on mount but DO NOT pan the map.
+    // This allows the user marker to appear (if they grant permission) while keeping the
+    // initial center on the tutor location.
+    getUserLocation(false);
   }, []);
+
+  // Ensure Leaflet recalculates map size when the container resizes
+  useEffect(() => {
+    const callInvalidate = () => {
+      try {
+        if (mapInstanceRef.current && typeof mapInstanceRef.current.invalidateSize === 'function') {
+          // Slight delay to allow layout to settle
+          setTimeout(() => mapInstanceRef.current.invalidateSize(), 80);
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    // Observe wrapper size changes
+    let ro;
+    try {
+      ro = new ResizeObserver(callInvalidate);
+      if (wrapperRef.current) ro.observe(wrapperRef.current);
+    } catch (e) {
+      // ResizeObserver may not be available in some environments
+    }
+
+    window.addEventListener('resize', callInvalidate);
+    // also call once after mount
+    callInvalidate();
+
+    return () => {
+      window.removeEventListener('resize', callInvalidate);
+      if (ro) ro.disconnect();
+    };
+  }, [mapInstanceRef]);
 
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
@@ -151,17 +189,19 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
       {/* Normal mode map */}
       {!isExpanded && (
         <motion.div
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg h-64 relative"
+          ref={wrapperRef}
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg h-64 min-h-[16rem] relative"
           whileHover={{ scale: 1.02 }}
           onHoverStart={() => setIsHovered(true)}
           onHoverEnd={() => setIsHovered(false)}
         >
           <MapContainer
-            center={tutorCoordinates}
+            center={tutorCoordinates} // initial center remains tutor's coordinates
             zoom={13}
             className="w-full h-full rounded-xl"
+            style={{ height: '16rem' }}
           >
-            <LocationHandler userLocation={userLocation} mapInstanceRef={mapInstanceRef} />
+            <LocationHandler mapInstanceRef={mapInstanceRef} />
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -208,7 +248,7 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              onClick={getUserLocation}
+              onClick={() => getUserLocation(true)} // pan to user only when explicitly requested
               className="bg-white dark:bg-gray-800 p-2 rounded-full shadow-md flex items-center justify-center"
               aria-label={t('showMyLocation')}
             >
@@ -241,6 +281,7 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
+              ref={wrapperRef}
               className="fixed inset-4 z-50 md:inset-20 lg:inset-40 bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-xl"
             >
               <MapContainer
@@ -249,7 +290,7 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
                 className="w-full h-full"
               >
                 <MapResizer isExpanded={isExpanded} />
-                <LocationHandler userLocation={userLocation} mapInstanceRef={mapInstanceRef} />
+                <LocationHandler mapInstanceRef={mapInstanceRef} />
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -290,18 +331,18 @@ const TutorLocationMapDisplay = ({ tutor, className = '' }) => {
                 className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-md flex items-center gap-2"
               >
                 <Navigation className="w-4 h-4" />
-                <span className="text-sm font-medium">{t('openInGoogleMaps')}</span>
+                <span className="sm:hidden md:inline-block text-sm font-medium">{t('openInGoogleMaps')}</span>
               </motion.button>
               
               {/* Show my location button in expanded view */}
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={getUserLocation}
+                onClick={() => getUserLocation(true)}
                 className="absolute bottom-4 left-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-md flex items-center gap-2"
               >
                 <User className="w-4 h-4" />
-                <span className="text-sm font-medium">{t('showMyLocation')}</span>
+                <span className="sm:hidden md:inline-block text-sm font-medium">{t('showMyLocation')}</span>
               </motion.button>
               
               {/* Error message */}

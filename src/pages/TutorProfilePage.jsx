@@ -34,7 +34,7 @@ const SegmentedControl = ({ options, value, onChange, ariaLabel = 'View Mode' })
   const borderColor = 'hsl(var(--border))';
 
   return (
-    <div className="w-full flex justify-center">
+    <div className="w-full flex justify-center overflow-hidden">
       <div
         ref={containerRef}
         role="tablist"
