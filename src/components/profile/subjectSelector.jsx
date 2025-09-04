@@ -1,7 +1,22 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+// SubjectSelector.jsx
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, BookOpen, Star, Clock, Users, Award } from 'lucide-react';
+import {
+  ChevronDown,
+  BookOpen,
+  Star,
+  Clock,
+  Users,
+  Award,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -15,6 +30,8 @@ import TutorCourseInfo from '@/components/profile/TutorCourseInfo';
 import TutorScheduleManager from '@/components/profile/TutorScheduleManager';
 import TutorReviews from '@/components/profile/TutorReviews';
 import TutorLocationMap from './map';
+
+const MENU_MAX_HEIGHT_PX = 18 * 16; // Tailwind max-h-72 => 18rem => ~288px
 
 const SubjectSelector = ({
   tutor,
@@ -35,6 +52,9 @@ const SubjectSelector = ({
 
   const toggleRef = useRef(null);
   const listRef = useRef(null);
+
+  // For portal positioning
+  const [portalStyle, setPortalStyle] = useState(null);
 
   useEffect(() => {
     if (!subjects || subjects.length === 0) {
@@ -80,6 +100,7 @@ const SubjectSelector = ({
     [subjects.length]
   );
 
+  // Close when clicking outside toggle or the list (works with portal listRef)
   useEffect(() => {
     const handler = (e) => {
       if (
@@ -120,6 +141,62 @@ const SubjectSelector = ({
     [isOpen, subjects.length, highlightIndex, selectIndex]
   );
 
+  // Position portal menu relative to the toggle button; flip if not enough space below
+  useEffect(() => {
+    if (!isOpen) {
+      setPortalStyle(null);
+      return;
+    }
+
+    function update() {
+      const btn = toggleRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const wantsBelow = spaceBelow >= Math.min(MENU_MAX_HEIGHT_PX, spaceBelow);
+
+      let top;
+      if (spaceBelow >= MENU_MAX_HEIGHT_PX) {
+        // plenty space below
+        top = rect.bottom;
+      } else if (spaceBelow >= 80) {
+        // some space below but less than menu - let it be below and scroll
+        top = rect.bottom;
+      } else if (spaceAbove >= MENU_MAX_HEIGHT_PX) {
+        // enough space above -> show above
+        top = rect.top - Math.min(MENU_MAX_HEIGHT_PX, spaceAbove);
+      } else {
+        // not enough space either side -> place below but constrained by viewport
+        top = Math.max(8, rect.bottom);
+      }
+
+      setPortalStyle({
+        top,
+        left: rect.left,
+        width: rect.width,
+        maxHeight: Math.min(MENU_MAX_HEIGHT_PX, Math.max(120, window.innerHeight - 80)),
+      });
+    }
+
+    // initial
+    update();
+
+    // update on scroll/resize
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    // also update when font/load may affect layout
+    const ro = new ResizeObserver(update);
+    if (toggleRef.current) ro.observe(toggleRef.current);
+
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+      ro.disconnect();
+    };
+  }, [isOpen]);
+
   const renderPreviewBadges = (sub) => {
     if (!sub) return null;
     const fields = ['education_system', 'grade', 'sector', 'language'];
@@ -141,17 +218,25 @@ const SubjectSelector = ({
 
   const subjectsCount = subjects?.length || 0;
 
-  // Calculate tutor stats for the floating component
+  // tutor stats computed as in original code
   const tutorStats = useMemo(() => {
-    const totalStudents = subjects.reduce((acc, subject) => acc + (subject.studentsCount || 0), 0);
-    const totalReviews = subjects.reduce((acc, subject) => acc + (subject.reviewsCount || 0), 0);
-    const avgRating = subjects.reduce((acc, subject) => acc + (subject.averageRating || 0), 0) / subjectsCount;
-    
+    const totalStudents = subjects.reduce(
+      (acc, subject) => acc + (subject.studentsCount || 0),
+      0
+    );
+    const totalReviews = subjects.reduce(
+      (acc, subject) => acc + (subject.reviewsCount || 0),
+      0
+    );
+    const avgRating =
+      (subjects.reduce((acc, subject) => acc + (subject.averageRating || 0), 0) /
+        (subjectsCount || 1)) || 0;
+
     return {
       totalStudents,
       totalReviews,
-      avgRating: avgRating || 0,
-      experience: tutor.experience || '2+ years'
+      avgRating,
+      experience: tutor?.experience || '2+ years',
     };
   }, [subjects, subjectsCount, tutor]);
 
@@ -167,10 +252,7 @@ const SubjectSelector = ({
           {t('noSubjectsHeader', 'No Subjects Added')}
         </h2>
         <p className="text-[color:hsl(var(--muted-foreground))] max-w-md mx-auto text-sm">
-          {t(
-            'noSubjectsDescription',
-            "This tutor hasn't added any subjects yet."
-          )}
+          {t('noSubjectsDescription', "This tutor hasn't added any subjects yet.")}
         </p>
       </div>
     );
@@ -178,9 +260,9 @@ const SubjectSelector = ({
 
   return (
     <div className="space-y-6 mt-6">
-      <div className="flex flex-col-reverse lg:flex-row gap-6 overflow-hidden">
+      <div className="flex flex-col-reverse lg:flex-row gap-6">
         {/* Subject Selector Card */}
-        <Card className=" md:w-fit flex justify-center items-center">
+        <Card className="md:w-fit flex justify-center items-center">
           <CardHeader className="p-4 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-md bg-[color:hsl(var(--primary))/0.08] text-[color:hsl(var(--primary))]">
@@ -194,10 +276,7 @@ const SubjectSelector = ({
                   </span>
                 </CardTitle>
                 <div className="text-sm text-[color:hsl(var(--muted-foreground))]">
-                  {t(
-                    'chooseSubjectTip',
-                    'Select a subject to view and edit details'
-                  )}
+                  {t('chooseSubjectTip', 'Select a subject to view and edit details')}
                 </div>
               </div>
             </div>
@@ -221,129 +300,125 @@ const SubjectSelector = ({
                   <div className="flex gap-2 mt-1 items-center flex-wrap">
                     {renderPreviewBadges(selectedSubject)}
                     {selectedSubject?.hourlyRate || selectedSubject?.price ? (
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] px-1.5 py-0.5"
-                      >
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
                         {selectedSubject.hourlyRate ?? selectedSubject.price}{' '}
                         {t('egp', 'EGP')}
                       </Badge>
                     ) : (
-                      <span className="text-xs text-[color:hsl(var(--muted-foreground))]">
-                        —
-                      </span>
+                      <span className="text-xs text-[color:hsl(var(--muted-foreground))]">—</span>
                     )}
                   </div>
                 </div>
                 <ChevronDown
-                  className={`w-4 h-4 text-[color:hsl(var(--muted-foreground))] transition-transform ${
-                    isOpen ? 'rotate-180' : ''
-                  }`}
+                  className={`w-4 h-4 text-[color:hsl(var(--muted-foreground))] transition-transform ${isOpen ? 'rotate-180' : ''}`}
                 />
               </button>
 
-              <AnimatePresence>
-                {isOpen && (
-                  <motion.ul
-                    ref={listRef}
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.18 }}
-                    role="listbox"
-                    aria-label={t('subjectList', 'Subjects list')}
-                    className="absolute left-0 right-0 z-50 mt-2 w-full rounded-xl border bg-[color:hsl(var(--popover))] shadow-xl overflow-y-auto max-h-72"
-                  >
-                    {subjects.map((subject, idx) => {
-                      const name =
-                        subject.name ||
-                        subject.subject_id?.name ||
-                        t('unknownSubject', 'Unknown subject');
-                      const isSelected = idx === selectedSubjectIndex;
-                      const isHighlighted = idx === highlightIndex;
-                      return (
-                        <li
-                          key={subject._id || subject.tempId || `${idx}`}
-                          role="option"
-                          aria-selected={isSelected}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => selectIndex(idx)}
-                            onMouseEnter={() => setHighlightIndex(idx)}
-                            onMouseLeave={() => setHighlightIndex(-1)}
-                            className={`w-full text-left px-4 py-3 flex flex-col gap-2 transition-colors ${
-                              isSelected
-                                ? 'bg-[color:hsl(var(--primary))/0.08] text-[color:hsl(var(--primary))]'
-                                : ''
-                            } ${
-                              isHighlighted && !isSelected
-                                ? 'bg-[color:hsl(var(--muted))/0.06]'
-                                : ''
-                            }`}
+              {/* Portal dropdown: rendered into document.body to escape clipping/overflow */}
+              {isOpen && portalStyle &&
+                createPortal(
+                  <AnimatePresence>
+                    <motion.ul
+                      ref={listRef}
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.18 }}
+                      role="listbox"
+                      aria-label={t('subjectList', 'Subjects list')}
+                      style={{
+                        position: 'fixed',
+                        top: `${portalStyle.top}px`,
+                        left: `${portalStyle.left}px`,
+                        width: portalStyle.width,
+                        zIndex: 9999,
+                        maxHeight: portalStyle.maxHeight,
+                        overflowY: 'auto',
+                      }}
+                      className="rounded-xl border bg-[color:hsl(var(--popover))] shadow-xl overflow-y-auto"
+                    >
+                      {subjects.map((subject, idx) => {
+                        const name =
+                          subject.name ||
+                          subject.subject_id?.name ||
+                          t('unknownSubject', 'Unknown subject');
+                        const isSelected = idx === selectedSubjectIndex;
+                        const isHighlighted = idx === highlightIndex;
+                        return (
+                          <li
+                            key={subject._id || subject.tempId || `${idx}`}
+                            role="option"
+                            aria-selected={isSelected}
                           >
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="flex-shrink-0 w-9 h-9 rounded-md bg-[color:hsl(var(--muted))/0.06] flex items-center justify-center text-[color:hsl(var(--muted-foreground))]">
-                                  <BookOpen className="w-4 h-4" />
+                            <button
+                              type="button"
+                              onClick={() => selectIndex(idx)}
+                              onMouseEnter={() => setHighlightIndex(idx)}
+                              onMouseLeave={() => setHighlightIndex(-1)}
+                              className={`w-full text-left px-4 py-3 flex flex-col gap-2 transition-colors ${
+                                isSelected
+                                  ? 'bg-[color:hsl(var(--primary))/0.08] text-[color:hsl(var(--primary))]'
+                                  : ''
+                              } ${
+                                isHighlighted && !isSelected
+                                  ? 'bg-[color:hsl(var(--muted))/0.06]'
+                                  : ''
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="flex-shrink-0 w-9 h-9 rounded-md bg-[color:hsl(var(--muted))/0.06] flex items-center justify-center text-[color:hsl(var(--muted-foreground))]">
+                                    <BookOpen className="w-4 h-4" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="font-medium text-sm truncate">
+                                      {name}
+                                    </div>
+                                    <div className="text-xs text-[color:hsl(var(--muted-foreground))] truncate">
+                                      {subject.subject_id?.grade || subject.grade || '—'} • {subject.subject_id?.education_system || subject.education_system || '—'}
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="min-w-0">
-                                  <div className="font-medium text-sm truncate">
-                                    {name}
-                                  </div>
-                                  <div className="text-xs text-[color:hsl(var(--muted-foreground))] truncate">
-                                    {subject.subject_id?.grade ||
-                                      subject.grade ||
-                                      '—'}{' '}
-                                    •{' '}
-                                    {subject.subject_id?.education_system ||
-                                      subject.education_system ||
-                                      '—'}
-                                  </div>
+
+                                <div className="flex items-center gap-2">
+                                  {subject.hourlyRate || subject.price ? (
+                                    <div className="text-sm font-semibold text-[color:hsl(var(--foreground))]">
+                                      {subject.hourlyRate ?? subject.price} {t('egp', 'EGP')}
+                                    </div>
+                                  ) : (
+                                    <div className="text-xs text-[color:hsl(var(--muted-foreground))]">—</div>
+                                  )}
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-2">
-                                {subject.hourlyRate || subject.price ? (
-                                  <div className="text-sm font-semibold text-[color:hsl(var(--foreground))]">
-                                    {subject.hourlyRate ?? subject.price}{' '}
-                                    {t('egp', 'EGP')}
-                                  </div>
-                                ) : (
-                                  <div className="text-xs text-[color:hsl(var(--muted-foreground))]">
-                                    —
-                                  </div>
+                              <div className="flex gap-2 mt-1 flex-wrap">
+                                {['education_system', 'grade', 'sector', 'language'].map(
+                                  (f) =>
+                                    subject?.[f] || subject?.subject_id?.[f] ? (
+                                      <Badge
+                                        key={f}
+                                        variant="secondary"
+                                        className="text-[10px] px-1.5 py-0.5 truncate max-w-[96px]"
+                                      >
+                                        {subject[f] || subject.subject_id?.[f]}
+                                      </Badge>
+                                    ) : null
                                 )}
                               </div>
-                            </div>
-
-                            <div className="flex gap-2 mt-1 flex-wrap">
-                              {['education_system', 'grade', 'sector', 'language'].map(
-                                (f) =>
-                                  subject?.[f] || subject?.subject_id?.[f] ? (
-                                    <Badge
-                                      key={f}
-                                      variant="secondary"
-                                      className="text-[10px] px-1.5 py-0.5 truncate max-w-[96px]"
-                                    >
-                                      {subject[f] || subject.subject_id?.[f]}
-                                    </Badge>
-                                  ) : null
-                              )}
-                            </div>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </motion.ul>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </motion.ul>
+                  </AnimatePresence>,
+                  document.body
                 )}
-              </AnimatePresence>
             </div>
           </CardHeader>
         </Card>
 
         {/* Floating Stats Component */}
-        <Card className="md:w-full sm:w-fit  bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/70 dark:to-indigo-950/70 border-blue-200/50 dark:border-blue-800/30 shadow-lg">
+        <Card className="md:w-full sm:w-fit bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/70 dark:to-indigo-950/70 border-blue-200/50 dark:border-blue-800/30 shadow-lg">
           <TutorLocationMap
             tutor={tutor}
             isEditing={isEditing}
@@ -369,9 +444,7 @@ const SubjectSelector = ({
                   videos={selectedSubject?.youtube || []}
                   isEditing={isEditing}
                   isOwner={isOwner}
-                  onVideosChange={(newVideos) =>
-                    handleNestedChange('youtube', newVideos)
-                  }
+                  onVideosChange={(newVideos) => handleNestedChange('youtube', newVideos)}
                 />
                 {!isEditing && (
                   <TutorReviews
@@ -411,9 +484,7 @@ const SubjectSelector = ({
               videos={selectedSubject?.youtube || []}
               isEditing={isEditing}
               isOwner={isOwner}
-              onVideosChange={(newVideos) =>
-                handleNestedChange('youtube', newVideos)
-              }
+              onVideosChange={(newVideos) => handleNestedChange('youtube', newVideos)}
             />
             <TutorCourseInfo
               subject={selectedSubject}
