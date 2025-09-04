@@ -138,7 +138,7 @@ const Filters = () => {
 
   return (
     <div className="flex flex-col gap-20 ">
-      <section className="space-y-6 container mx-auto px-4">
+      <section className="space-y-6 container mx-auto px-4 ">
         <motion.h2 variants={fadeInUp} initial="hidden" animate="visible" custom={1} className="text-2xl md:text-3xl font-bold text-center">
           {t('findYourTutor')}
         </motion.h2>

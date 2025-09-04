@@ -85,11 +85,19 @@ const TutorProfileHeaderEdit = ({
 
   useEffect(() => {
     if (tutor) {
-      if (lastObjectUrl.current) {
-        try { URL.revokeObjectURL(lastObjectUrl.current); } catch {};
-        lastObjectUrl.current = null;
-      }
-      setFormData(initializeFormData(tutor));
+      setFormData((prev) => {
+        const base = initializeFormData(tutor);
+        if (!prev) return base;
+        return {
+          ...base,
+          previewPfpUrl: prev.previewPfpUrl || base.previewPfpUrl,
+          previewBannerUrl: prev.previewBannerUrl || base.previewBannerUrl,
+          pendingPfpFile: prev.pendingPfpFile || base.pendingPfpFile,
+          pendingBannerFile: prev.pendingBannerFile || base.pendingBannerFile,
+          pendingPfpDelete: prev.pendingPfpDelete || base.pendingPfpDelete,
+          pendingBannerDelete: prev.pendingBannerDelete || base.pendingBannerDelete,
+        };
+      });
     }
   }, [tutor]);
 
@@ -168,7 +176,6 @@ const TutorProfileHeaderEdit = ({
       else body.append('banner', file);
 
       const token = localStorage.getItem('token');
-      console.log('uploadFile -> endpoint', endpoint, 'shape', shape, 'file', file);
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -183,7 +190,6 @@ const TutorProfileHeaderEdit = ({
       }
 
       const parsed = await res.json();
-      console.log('uploadFile -> parsed response', parsed);
       const returned = parsed.profile_picture || parsed.banner;
       let url = returned?.url || returned?.path || '';
       if (url && url.startsWith('/')) url = `${API_BASE}${url}`;
@@ -216,16 +222,18 @@ const TutorProfileHeaderEdit = ({
     lastObjectUrl.current = previewUrl;
 
     if (shape === 'profile') {
-      handleFieldChange('previewPfpUrl', previewUrl, { propagate: false });
-      handleFieldChange('pendingPfpFile', croppedFile, { propagate: false });
-      handleFieldChange('pendingPfpDelete', false, { propagate: false });
-      handleFieldChange('img', previewUrl, { propagate: false });
+      handleFieldChange('previewPfpUrl', previewUrl);
+      handleFieldChange('pendingPfpFile', croppedFile);
+      handleFieldChange('pendingPfpDelete', false);
+      handleFieldChange('img', previewUrl);
+      console.log('handleCrop updated profile preview/pending', { previewUrl, pendingFileName: croppedFile?.name });
     } else {
-      handleFieldChange('previewBannerUrl', previewUrl, { propagate: false });
-      handleFieldChange('pendingBannerFile', croppedFile, { propagate: false });
-      handleFieldChange('pendingBannerDelete', false, { propagate: false });
+      handleFieldChange('previewBannerUrl', previewUrl);
+      handleFieldChange('pendingBannerFile', croppedFile);
+      handleFieldChange('pendingBannerDelete', false);
 
-      handleFieldChange('bannerimg', previewUrl, { propagate: false });
+      handleFieldChange('bannerimg', previewUrl);
+      console.log('handleCrop updated banner preview/pending', { previewUrl, pendingFileName: croppedFile?.name });
     }
 
     setCropOverlay({ open: false, image: null, shape: 'banner' });

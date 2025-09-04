@@ -202,7 +202,6 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
         };
 
         const pending = (pendingFilesRef && pendingFilesRef.current) ? pendingFilesRef.current : {};
-        console.debug('Saving tutor - pending files from header ref:', pending);
         try {
           // profile picture delete
           if (pending.pendingPfpDelete) {
@@ -246,22 +245,29 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
           throw imgErr;
         }
 
+        if (typeof tutorProfileData.img === 'string' && (tutorProfileData.img.startsWith('blob:') || tutorProfileData.img.startsWith('data:'))) {
+          tutorProfileData.img = '';
+        }
+        if (typeof tutorProfileData.bannerimg === 'string' && (tutorProfileData.bannerimg.startsWith('blob:') || tutorProfileData.bannerimg.startsWith('data:'))) {
+          tutorProfileData.bannerimg = '';
+        }
+
         promises.push(apiFetch('/tutors/updateProfile', {
           method: 'PUT',
           body: JSON.stringify({ updated_information: tutorProfileData })
         }));
 
         await Promise.all(promises);
-
         await fetchTutorData(tutor._id);
-        // clear any pending file references after successful save
+
         if (pendingFilesRef && pendingFilesRef.current) {
           pendingFilesRef.current.pendingPfpFile = null;
           pendingFilesRef.current.pendingBannerFile = null;
           pendingFilesRef.current.pendingPfpDelete = false;
           pendingFilesRef.current.pendingBannerDelete = false;
         }
-        return { success: true };
+
+        return tutorProfileData;
 
       } catch (error) {
         console.error('Error updating tutor profile:', error);

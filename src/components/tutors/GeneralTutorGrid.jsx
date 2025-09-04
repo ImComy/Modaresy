@@ -3,14 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import GeneralTutorCard from './GeneralTutorCard';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
-import {
-  LogIn,
-  Search,
-  ChevronUp,
-  ChevronDown,
-  AlertTriangle,
-  UserX,
-} from 'lucide-react';
+import { LogIn, Search, ChevronUp, ChevronDown, AlertTriangle, UserX } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import debounce from 'lodash/debounce';
@@ -22,9 +15,6 @@ const LOAD_MORE_COUNT = 8;
 const MAX_SUGGESTIONS = 10;
 const DEBOUNCE_DELAY = 300;
 
-/**
- * ErrorBanner — small, theme-aware error display
- */
 const ErrorBanner = ({ message }) => (
   <Card className="max-w-md mx-auto mt-6 border-[1px] rounded-lg" style={{ borderColor: 'hsl(var(--destructive) / 0.35)', background: 'color-mix(in srgb, hsl(var(--destructive)) 6%, transparent)' }}>
     <CardContent className="flex items-center gap-4 py-4 text-[color:hsl(var(--destructive))]">
@@ -39,29 +29,28 @@ const ErrorBanner = ({ message }) => (
   </Card>
 );
 
-/**
- * GeneralTutorGrid — enhanced
- */
 export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
   const { t } = useTranslation();
   const { authState } = useAuth();
-
   const [fetchError, setFetchError] = useState(null);
   const [visibleCount, setVisibleCount] = useState(INITIAL_TUTORS_COUNT);
-  const [inputValue, setInputValue] = useState('');        // immediate input value
-  const [searchQuery, setSearchQuery] = useState('');      // debounced search query used for filtering/fetching
+  const [inputValue, setInputValue] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [nameFilter, setNameFilter] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [recommended, setRecommended] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMoreServer, setHasMoreServer] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loadingInitial, setLoadingInitial] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const searchRef = useRef(null);
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
+  const abortControllerRef = useRef(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  // load filters from localStorage (safe)
+  // load filters from localStorage
   const filters = useMemo(() => {
     try {
       return {
@@ -87,20 +76,21 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
     }
   }, []);
 
-  // source of tutors depends on auth state
+  // data source depends on auth
   const sourceTutors = authState?.isLoggedIn ? recommended : tutors;
 
-  // SCORE and filter tutors
+  // scoring: compute a score for sorting only — do not filter tutors out because of search text
   const scoredTutors = useMemo(() => {
     const qLower = (searchQuery || '').toLowerCase();
     return (sourceTutors || []).map((tutor) => {
-      const avgRating = (tutor.avgRating ?? tutor.rating ?? 0);
+      const avgRating = (tutor.avgRating ?? tutor.rating ?? 0) || 0;
       let score = 0;
 
       const hasSubject = !!filters.subject && (
         (tutor.subjects || []).some(s => ((s.subject || s.name) === filters.subject)) ||
         (tutor.subject_profiles || []).some(p => ((p.subject_doc?.name || p.subject) === filters.subject))
       );
+
       const hasGrade = !!filters.grade && (
         (tutor.subjects || []).some(s => s.grade === filters.grade) ||
         (tutor.subject_profiles || []).some(p => p.subject_doc?.grade === filters.grade)
@@ -111,7 +101,6 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
       const inPrice = rate >= (filters.rateRange?.[0] ?? 0) && rate <= (filters.rateRange?.[1] ?? 100000);
       const locPref = !filters.location || filters.location === 'all' || tutor.governate === filters.location || tutor.location === filters.location;
       const secPref = !filters.sector || filters.sector === 'all' || tutor.sector === filters.sector;
-      const nameMatch = !qLower || (tutor.name || '').toLowerCase().includes(qLower);
 
       if (hasSubject) score += 3;
       if (hasGrade) score += 2;
@@ -120,26 +109,32 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
       if (locPref) score += 1;
       if (secPref) score += 1;
 
-      return { ...tutor, score: nameMatch ? score : -1 };
+      const nameMatch = qLower && (tutor.name || '').toLowerCase().includes(qLower);
+      if (nameMatch) score += 5;
+
+      return { ...tutor, score };
     });
   }, [sourceTutors, filters, searchQuery]);
 
-  // SORT
   const sortedTutors = useMemo(() => {
-    return [...(scoredTutors || [])]
-      .filter(t => t.score >= 0)
-      .sort((a, b) => {
-        if (a.isTopRated && !b.isTopRated) return -1;
-        if (!a.isTopRated && b.isTopRated) return 1;
-        if ((b.score ?? 0) !== (a.score ?? 0)) return (b.score ?? 0) - (a.score ?? 0);
-        if (filters.sortBy === 'ratingDesc') {
-          return (b.avgRating ?? 0) - (a.avgRating ?? 0);
-        }
-        return (a.hourlyRate ?? 0) - (b.hourlyRate ?? 0);
-      });
-  }, [scoredTutors, filters]);
+    const filtered = nameFilter
+      ? (scoredTutors || []).filter(t => (t.name || '').toLowerCase().includes((nameFilter || '').toLowerCase()))
+      : (scoredTutors || []);
 
-  // suggested tutors for dropdown (client-side)
+    return [...filtered].sort((a, b) => {
+      if (a.isTopRated && !b.isTopRated) return -1;
+      if (!a.isTopRated && b.isTopRated) return 1;
+
+      if ((b.score ?? 0) !== (a.score ?? 0)) return (b.score ?? 0) - (a.score ?? 0);
+
+      if (filters.sortBy === 'ratingDesc') {
+        return (b.avgRating ?? 0) - (a.avgRating ?? 0);
+      }
+
+      return (a.hourlyRate ?? 0) - (b.hourlyRate ?? 0);
+    });
+  }, [scoredTutors, filters, nameFilter]);
+
   const suggestedTutors = useMemo(() => {
     if (!inputValue) return [];
     const q = inputValue.toLowerCase();
@@ -150,20 +145,19 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
   }, [sourceTutors, inputValue]);
 
   const tutorsToShow = useMemo(() => sortedTutors.slice(0, visibleCount), [sortedTutors, visibleCount]);
-  const hasMore = authState?.isLoggedIn ? hasMoreServer : visibleCount < sortedTutors.length;
-  const noTutors = (!sourceTutors || sourceTutors.length === 0) && !loading;
 
-  /* Debounced search handling */
-  // update searchQuery (used for scoring + server fetch) with debounce
+  const loading = loadingInitial || loadingMore;
+  const hasMore = authState?.isLoggedIn ? hasMoreServer : visibleCount < sortedTutors.length;
+  const noTutors = ((!sourceTutors || sourceTutors.length === 0) || (sortedTutors.length === 0)) && !loading;
+
   const debouncedSetQuery = useMemo(() => debounce((val) => {
     setSearchQuery(val);
     setVisibleCount(INITIAL_TUTORS_COUNT);
     setIsDropdownOpen(val.length > 0);
+    setNameFilter(null);
   }, DEBOUNCE_DELAY), []);
 
-  useEffect(() => {
-    return () => debouncedSetQuery.cancel();
-  }, [debouncedSetQuery]);
+  useEffect(() => () => debouncedSetQuery.cancel(), [debouncedSetQuery]);
 
   const handleInputChange = (e) => {
     const v = e.target.value;
@@ -173,15 +167,28 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
   };
 
   const handleSearchSelect = (tutorName) => {
-    setInputValue(tutorName);
-    setSearchQuery(tutorName);
+    const trimmed = (tutorName || '').trim();
+    setInputValue(trimmed);
+    setSearchQuery(trimmed);
+    setNameFilter(trimmed);
     setIsDropdownOpen(false);
     inputRef.current?.blur();
     setVisibleCount(INITIAL_TUTORS_COUNT);
+    setHighlightedIndex(-1);
   };
 
   const handleKeyDown = (e) => {
-    if (!isDropdownOpen || suggestedTutors.length === 0) return;
+    if (!isDropdownOpen || suggestedTutors.length === 0) {
+      if (e.key === 'Enter') {
+        const trimmed = (inputValue || '').trim();
+        if (trimmed) {
+          setNameFilter(trimmed);
+          setSearchQuery(trimmed);
+          setVisibleCount(INITIAL_TUTORS_COUNT);
+        }
+      }
+      return;
+    }
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -200,7 +207,6 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
     }
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handler = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
@@ -212,27 +218,38 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
     return () => document.removeEventListener('click', handler);
   }, []);
 
-  /* Fetch recommendations (server) with abort handling */
-  const fetchRecommendations = useCallback(async (search = '', pageNum = 1, signal) => {
+  const fetchRecommendations = useCallback(async (search = '', pageNum = 1, { signal } = {}) => {
     if (!authState?.isLoggedIn) return;
-    setLoading(true);
-    setFetchError(null);
+
+    if (abortControllerRef.current) {
+      try { abortControllerRef.current.abort(); } catch (e) { /* no-op */ }
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const s = signal || controller.signal;
+
+    if (pageNum === 1) {
+      setLoadingInitial(true);
+      setLoadingMore(false);
+      setFetchError(null);
+    } else {
+      setLoadingMore(true);
+    }
+
     try {
       const url = `/tutors/recommend?q=${encodeURIComponent(search || '')}&page=${pageNum}&limit=${INITIAL_TUTORS_COUNT}`;
-      const res = await apiFetch(url, { signal });
+      const res = await apiFetch(url, { signal: s });
       let tutorsArr = (res && res.tutors) || [];
 
-      // fallback if empty & first page
       if ((!tutorsArr || tutorsArr.length === 0) && pageNum === 1) {
         try {
-          const fallback = await apiFetch('/tutors/loadTutors/1/12', { signal });
+          const fallback = await apiFetch('/tutors/loadTutors/1/12', { signal: s });
           tutorsArr = (fallback && fallback.tutors) || [];
         } catch (fbErr) {
-          // fallback failed silently; we'll just show empty
+          // ignore fallback failure
         }
       }
 
-      // normalize objects
       tutorsArr = (tutorsArr || []).map(t => {
         const copy = { ...t };
         copy.id = t._id ? String(t._id) : (t.id || undefined);
@@ -247,44 +264,58 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
 
       if (pageNum === 1) {
         setRecommended(tutorsArr);
+        setPage(1);
       } else {
-        setRecommended(prev => [...prev, ...(tutorsArr || [])]);
+        setRecommended(prev => {
+          const prevIds = new Set(prev.map(x => x.id || x._id));
+          const filtered = tutorsArr.filter(x => !prevIds.has(x.id || x._id));
+          return [...prev, ...filtered];
+        });
+        setPage(pageNum);
       }
 
       const total = res && (res.total || 0);
-      setHasMoreServer((pageNum * INITIAL_TUTORS_COUNT) < (total || tutorsArr.length));
+      setHasMoreServer(() => {
+        if (typeof total === 'number' && total > 0) return (pageNum * INITIAL_TUTORS_COUNT) < total;
+        return (tutorsArr && tutorsArr.length) === INITIAL_TUTORS_COUNT;
+      });
+
     } catch (err) {
       if (err?.name === 'AbortError') {
-        // aborted — ignore
       } else {
         console.error('Recommendations fetch failed', err);
         setFetchError('Unable to load personalized recommendations.');
       }
     } finally {
-      setLoading(false);
+      if (abortControllerRef.current && abortControllerRef.current.signal === (signal || controller.signal)) {
+        abortControllerRef.current = null;
+      }
+      setLoadingInitial(false);
+      setLoadingMore(false);
     }
   }, [authState?.isLoggedIn]);
 
-  // manage fetch lifecycle when auth/searchQuery/page changes
+  // Manage lifecycle: fetch when auth/searchQuery change
   useEffect(() => {
     if (!authState?.isLoggedIn) return;
 
-    const controller = new AbortController();
-    setPage(1);
-    fetchRecommendations(searchQuery, 1, controller.signal);
+    fetchRecommendations(searchQuery, 1, {});
 
-    return () => controller.abort();
+    return () => {
+      if (abortControllerRef.current) {
+        try { abortControllerRef.current.abort(); } catch (e) { /* no-op */ }
+        abortControllerRef.current = null;
+      }
+    };
   }, [authState?.isLoggedIn, searchQuery, fetchRecommendations]);
 
   const loadMoreServer = () => {
+    if (!authState?.isLoggedIn) return;
     const next = page + 1;
-    setPage(next);
-    const controller = new AbortController();
-    // fire-and-forget (we don't keep controllers for every page)
-    fetchRecommendations(searchQuery, next, controller.signal);
+    fetchRecommendations(searchQuery, next, {});
   };
 
-  // UI pieces: skeletons
+  // skeleton UI
   const SkeletonGrid = ({ count = 6 }) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 col-span-full w-full">
       {Array.from({ length: count }).map((_, i) => (
@@ -297,36 +328,37 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
     </div>
   );
 
-  // Render when not logged in
-  // if (!authState?.isLoggedIn) {
-  //   return (
-  //     <div className="max-w-full mx-auto bg-[color:color-mix(in srgb, hsl(var(--muted)) 40%, transparent)] border border-[color:hsl(var(--border)/0.6)] rounded-2xl shadow-md p-8 text-center space-y-5">
-  //       <div className="flex justify-center">
-  //         <div className="rounded-full p-4" style={{ background: 'color-mix(in srgb, hsl(var(--primary)) 8%, transparent)', color: 'hsl(var(--primary))' }}>
-  //           <LogIn size={28} />
-  //         </div>
-  //       </div>
-  //       <h2 className="text-2xl font-bold text-[color:hsl(var(--foreground))]">
-  //         {t('getPersonalizedTutors', 'Discover Your Ideal Tutor')}
-  //       </h2>
-  //       <p className="text-[color:hsl(var(--muted-foreground))] text-sm leading-relaxed">
-  //         {t('signInToSeeRecommendations', 'Sign in to receive personalized tutor recommendations based on your preferences.')}
-  //       </p>
-  //       <a
-  //         href="/login"
-  //         className="inline-flex items-center justify-center px-6 py-2 rounded-full text-[color:hsl(var(--primary-foreground))] bg-[color:hsl(var(--primary))] hover:brightness-90 transition font-medium"
-  //       >
-  //         {t('signIn', 'Sign in')}
-  //       </a>
-  //     </div>
-  //   );
-  // }
+  // Keep the sign-in required UI commented out (intentionally) so the caller can enable it if desired
+  /*
+  if (!authState?.isLoggedIn) {
+    return (
+      <div className="max-w-full mx-auto bg-[color:color-mix(in srgb, hsl(var(--muted)) 40%, transparent)] border border-[color:hsl(var(--border)/0.6)] rounded-2xl shadow-md p-8 text-center space-y-5">
+        <div className="flex justify-center">
+          <div className="rounded-full p-4" style={{ background: 'color-mix(in srgb, hsl(var(--primary)) 8%, transparent)', color: 'hsl(var(--primary))' }}>
+            <LogIn size={28} />
+          </div>
+        </div>
+        <h2 className="text-2xl font-bold text-[color:hsl(var(--foreground))]">
+          {t('getPersonalizedTutors', 'Discover Your Ideal Tutor')}
+        </h2>
+        <p className="text-[color:hsl(var(--muted-foreground))] text-sm leading-relaxed">
+          {t('signInToSeeRecommendations', 'Sign in to receive personalized tutor recommendations based on your preferences.')}
+        </p>
+        <a
+          href="/login"
+          className="inline-flex items-center justify-center px-6 py-2 rounded-full text-[color:hsl(var(--primary-foreground))] bg-[color:hsl(var(--primary))] hover:brightness-90 transition font-medium"
+        >
+          {t('signIn', 'Sign in')}
+        </a>
+      </div>
+    );
+  }
+  */
 
   return (
     <div className="max-w-full mx-auto">
       {(error || fetchError) && <ErrorBanner message={error || fetchError} />}
 
-      {/* Search */}
       <div className="relative mb-8" ref={searchRef}>
         <div className="relative flex gap-4 items-center bg-[color:hsl(var(--background))] border border-[color:hsl(var(--input))] rounded-lg h-12 sm:h-14 shadow-md focus-within:ring-2 focus-within:ring-[color:hsl(var(--ring))] transition-all duration-300 hover:shadow-lg">
           <Search className="w-5 h-5 text-[color:hsl(var(--muted-foreground))] ml-4" />
@@ -341,7 +373,6 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
           />
         </div>
 
-        {/* Suggestions dropdown */}
         <AnimatePresence>
           {isDropdownOpen && suggestedTutors.length > 0 && (
             <motion.div
@@ -389,9 +420,8 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
         </AnimatePresence>
       </div>
 
-      {/* Grid (responsive via Tailwind) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" style={{ gridAutoRows: 'min-content' }}>
-        {loading && (tutorsToShow.length === 0) ? (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" style={{ gridAutoRows: 'min-content' }}>
+        {loadingInitial && tutorsToShow.length === 0 ? (
           <div className="flex justify-center col-span-full">
             <Loader />
           </div>
@@ -421,8 +451,7 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
               </motion.div>
             ))}
 
-            {/* show skeleton placeholders for a smooth loading hint when loading more */}
-            {loading && tutorsToShow.length > 0 && (
+            {loadingMore && tutorsToShow.length > 0 && (
               <div className="col-span-full">
                 <div className="mt-4">
                   <SkeletonGrid count={Math.min(4, LOAD_MORE_COUNT)} />
@@ -433,7 +462,6 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
         )}
       </div>
 
-      {/* Load more */}
       {hasMore && (
         <div className="mt-8 flex justify-center">
           <button

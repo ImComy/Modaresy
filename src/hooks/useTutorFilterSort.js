@@ -1,3 +1,4 @@
+// useTutorFilterSort.js  (replace your existing hook)
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import Fuse from 'fuse.js';
 import { getConstants } from '@/api/constantsFetch';
@@ -42,7 +43,7 @@ const getInitialFilters = () => ({
 
 const getInitialSortBy = () => getStoredValue(LS_KEYS.sortBy, 'ratingDesc');
 
-const safeToLower = (v) => (v == null ? '' : String(v).toLowerCase());
+const normalize = (v) => (v == null ? 'all' : String(v).trim().toLowerCase());
 
 export const useTutorFilterSort = (initialTutors = []) => {
   const [searchTerm, setSearchTerm] = useState(getInitialSearchTerm);
@@ -250,18 +251,93 @@ export const useTutorFilterSort = (initialTutors = []) => {
     };
   }, [constants, filtersState]);
 
-  const gradesOptions = useMemo(() => {
+  // raw (unfiltered) grades (from EducationStructure) — preserved for fallback
+  const rawGradesOptions = useMemo(() => {
     if (!filtersState.educationSystem || filtersState.educationSystem === 'all') {
       return [];
     }
-
     const system = constants?.EducationStructure?.[filtersState.educationSystem];
     if (!system || !system.grades) return [];
-
     return Array.from(new Set(system.grades)).sort((a, b) =>
       String(a).localeCompare(b)
     );
   }, [constants, filtersState.educationSystem]);
+
+  // helper that reads subjects from constants strictly (accounts for array vs object sector entries)
+  const buildSubjectsFromConstants = useCallback((c, system, grade, sector) => {
+    if (!c || !system || !grade) return [];
+    const subjectsBySystem = c.SubjectsBySystem || {};
+    const sys = subjectsBySystem[system];
+    if (!sys) return [];
+    const gradeEntry = sys[grade];
+    if (!gradeEntry) return [];
+
+    const sectorNormalized = normalize(sector || 'all');
+
+    if (Array.isArray(gradeEntry)) {
+      if (sectorNormalized === 'all' || sectorNormalized === 'general') {
+        return Array.from(new Set(gradeEntry.map(s => String(s).trim()))).sort((a,b) => a.localeCompare(b));
+      }
+      return [];
+    }
+
+    if (typeof gradeEntry === 'object') {
+      const keys = Object.keys(gradeEntry || {});
+      // try case-insensitive match for sector keys
+      const matchKey = keys.find(k => normalize(k) === sectorNormalized);
+      if (matchKey) {
+        const arr = gradeEntry[matchKey] || [];
+        return Array.from(new Set(arr.map(s => String(s).trim()))).sort((a,b) => a.localeCompare(b));
+      }
+      // sector === 'all' -> combine all sector arrays
+      if (sectorNormalized === 'all') {
+        const combined = [].concat(...keys.map(k => gradeEntry[k] || [])).filter(Boolean);
+        return Array.from(new Set(combined.map(s => String(s).trim()))).sort((a,b) => a.localeCompare(b));
+      }
+      return [];
+    }
+    return [];
+  }, []);
+
+  // determine whether a given grade has subjects for the current combo
+  const gradeHasSubjectsForCombo = useCallback((grade, system, sector) => {
+    if (!system || system === 'all') return false;
+    if (!constants) return true; // while loading, show them (no blocking)
+    const sectorNormalized = normalize(sector || 'all');
+
+    const subjectsBySystem = constants?.SubjectsBySystem || {};
+    const sys = subjectsBySystem[system];
+    if (!sys) return false;
+    const gradeEntry = sys[grade];
+    if (!gradeEntry) return false;
+
+    if (sectorNormalized === 'all') {
+      if (Array.isArray(gradeEntry)) return gradeEntry.length > 0;
+      if (typeof gradeEntry === 'object') return Object.values(gradeEntry).some(arr => Array.isArray(arr) && arr.length > 0);
+      return false;
+    }
+
+    if (sectorNormalized === 'general') {
+      return Array.isArray(gradeEntry) && gradeEntry.length > 0;
+    }
+
+    if (Array.isArray(gradeEntry)) return false; // array-grades don't have sectors
+    if (typeof gradeEntry === 'object') {
+      const keys = Object.keys(gradeEntry || {});
+      const matchKey = keys.find(k => normalize(k) === sectorNormalized);
+      return Boolean(matchKey && Array.isArray(gradeEntry[matchKey]) && gradeEntry[matchKey].length > 0);
+    }
+    return false;
+  }, [constants]);
+
+  // filtered grades: only those that are actually available for the current combo
+  const gradesOptions = useMemo(() => {
+    if (!constants || loadingConstants) return rawGradesOptions;
+    if (!filtersState.educationSystem || filtersState.educationSystem === 'all') return [];
+    const all = rawGradesOptions || [];
+    const sector = filtersState.sector || 'all';
+    return all.filter(g => gradeHasSubjectsForCombo(g, filtersState.educationSystem, sector));
+  }, [constants, loadingConstants, rawGradesOptions, filtersState.educationSystem, filtersState.sector, gradeHasSubjectsForCombo]);
 
   const subjectsOptions = useMemo(() => {
     const chosenSystem =
@@ -285,8 +361,11 @@ export const useTutorFilterSort = (initialTutors = []) => {
       const gradeEntry = sys?.[chosenGrade];
       if (Array.isArray(gradeEntry)) subjectsArr = [...gradeEntry];
       else if (typeof gradeEntry === 'object') {
-        if (chosenSector) subjectsArr = gradeEntry[chosenSector] || [];
-        else subjectsArr = [];
+        if (chosenSector) {
+          const keys = Object.keys(gradeEntry || {});
+          const matchKey = keys.find(k => normalize(k) === normalize(chosenSector));
+          subjectsArr = matchKey ? (gradeEntry[matchKey] || []) : [];
+        } else subjectsArr = [];
       }
     }
     return Array.from(new Set(subjectsArr)).sort((a, b) =>
@@ -396,6 +475,9 @@ export const useTutorFilterSort = (initialTutors = []) => {
       name: teacher.name,
       governate: teacher.governate,
       district: teacher.district,
+      img: teacher.profile_picture || teacher.img || teacher.profilePicture || null,
+      profile_picture: teacher.profile_picture || teacher.img || teacher.profilePicture || null,
+      banner: teacher.banner || teacher.bannerimg || null,
       rating: teacher.rating,
       coordinates: normalizedCoords,
       subjects,
@@ -533,6 +615,7 @@ export const useTutorFilterSort = (initialTutors = []) => {
     educationCombos,
     educationSystemsOptions,
     gradesOptions,
+    rawGradesOptions,
     sectorsOptions,
     subjectsOptions,
     governatesOptions,

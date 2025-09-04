@@ -41,8 +41,22 @@ const TeacherSchema = new Schema(
     address: { type: String, required: false },
     about_me: { type: String, required: false },
 
-    profile_picture: { type: FileSchema, required: false },
-    banner: { type: FileSchema, required: false },
+    profile_picture: {
+      type: FileSchema,
+      required: false,
+      set: (v) => {
+        if (v === '' || (typeof v === 'string' && (v.startsWith('blob:') || v.startsWith('data:')))) return undefined;
+        return v;
+      },
+    },
+    banner: {
+      type: FileSchema,
+      required: false,
+      set: (v) => {
+        if (v === '' || (typeof v === 'string' && (v.startsWith('blob:') || v.startsWith('data:')))) return undefined;
+        return v;
+      },
+    },
     location_coordinates: { type: CoordinatesSchema, required: false },
     governate: { type: String, required: false },
     district: { type: String, required: false },

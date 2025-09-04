@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import TutorCard from './TutorCard';
 import { useTranslation } from 'react-i18next';
@@ -20,34 +20,42 @@ const ErrorBanner = ({ message }) => (
   </Card>
 );
 
+const HIDE_DELAY_MS = 220;
+
 const TutorGrid = ({ tutors, filters, loading = false, error = null }) => {
   const { t } = useTranslation();
-  const [showContent, setShowContent] = useState(false);
-  const [prevTutors, setPrevTutors] = useState(tutors);
+  const [showLoader, setShowLoader] = useState(Boolean(loading));
+  const hideTimerRef = useRef(null);
 
-  // Use effect to manage the transition between loading states
   useEffect(() => {
-    if (!loading && tutors) {
-      // When loading is complete and we have tutors, show content
-      setShowContent(true);
-      setPrevTutors(tutors);
-    } else if (loading) {
-      // When loading starts, hide content after a small delay
-      const timer = setTimeout(() => {
-        setShowContent(false);
-      }, 100);
-      return () => clearTimeout(timer);
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
     }
-  }, [loading, tutors]);
+
+    if (loading) {
+      setShowLoader(true);
+    } else {
+      hideTimerRef.current = window.setTimeout(() => {
+        setShowLoader(false);
+        hideTimerRef.current = null;
+      }, HIDE_DELAY_MS);
+    }
+
+    return () => {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+    };
+  }, [loading]);
 
   const isMissingRequiredFilters = useMemo(() => {
     return !filters || filters.subject === 'none' || filters.grade === 'none';
   }, [filters]);
 
   const filteredTutors = useMemo(() => {
-    if (!tutors || !Array.isArray(tutors)) {
-      return [];
-    }
+    if (!tutors || !Array.isArray(tutors)) return [];
 
     return tutors.filter(
       (tutor) =>
@@ -60,22 +68,9 @@ const TutorGrid = ({ tutors, filters, loading = false, error = null }) => {
             (!filters.education_system || s.education_system === filters.education_system)
         )
     );
-  }, [tutors, filters.subject, filters.grade, filters.language, filters.education_system]);
+  }, [tutors, filters?.subject, filters?.grade, filters?.language, filters?.education_system]);
 
-  // Show loading state
-  if (loading && !showContent) {
-    return (
-      <div className="flex justify-center items-center py-20">
-        <div className="flex flex-col items-center gap-3">
-          <Loader className="w-8 h-8 animate-spin text-primary" loadingText="Loading Tutors..."/>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return <ErrorBanner message={error} />;
-  }
+  if (error) return <ErrorBanner message={error} />;
 
   if (isMissingRequiredFilters) {
     return (
@@ -87,14 +82,21 @@ const TutorGrid = ({ tutors, filters, loading = false, error = null }) => {
               {t('missingFilters', 'Missing Required Filters')}
             </h4>
             <p className="text-sm mt-1 text-red-500 dark:text-red-400">
-              {t(
-                'selectSubjectGrade',
-                'Please select both a subject and grade to see tutor results.'
-              )}
+              {t('selectSubjectGrade', 'Please select both a subject and grade to see tutor results.')}
             </p>
           </div>
         </CardContent>
       </Card>
+    );
+  }
+
+  if (loading || showLoader) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <div className="flex flex-col items-center gap-3">
+          <Loader className="w-8 h-8 animate-spin text-primary" loadingText="Loading Tutors..." />
+        </div>
+      </div>
     );
   }
 
@@ -105,9 +107,7 @@ const TutorGrid = ({ tutors, filters, loading = false, error = null }) => {
           <UserX className="w-6 h-6 flex-shrink-0" />
           <div>
             <h4 className="font-semibold text-base">{t('noTutorsFound', 'No Tutors Found')}</h4>
-            <p className="text-sm mt-1">
-              {t('tryChangingFilters', 'Try adjusting your filters to see results.')}
-            </p>
+            <p className="text-sm mt-1">{t('tryChangingFilters', 'Try adjusting your filters to see results.')}</p>
           </div>
         </CardContent>
       </Card>
@@ -115,8 +115,9 @@ const TutorGrid = ({ tutors, filters, loading = false, error = null }) => {
   }
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence>
       <motion.div
+        key={`tutor-grid-${filteredTutors.length}-${filters?.subject || ''}-${filters?.grade || ''}`}
         layout
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
       >
