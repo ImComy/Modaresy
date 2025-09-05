@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Plus, GraduationCap, Trash, Edit, Check } from 'lucide-react';
@@ -37,6 +37,10 @@ const AddSubjectCard = ({
   const [availableLanguages, setAvailableLanguages] = useState([]);
   const [availableSubjects, setAvailableSubjects] = useState([]);
 
+  // Refs to avoid repeatedly auto-selecting the same value (prevents update loops)
+  const autoSelectedRef = useRef({ system: false, grade: false, sector: false, language: false, subject: false });
+  const prevSystemRef = useRef(null);
+
   useEffect(() => {
     if (editingIndex === null) {
       setNewSubject({
@@ -62,62 +66,124 @@ const AddSubjectCard = ({
     }
   }, [editingIndex, formData.subjects]);
 
+  // Clear auto-select flags when constants change (fresh load)
+  useEffect(() => {
+    autoSelectedRef.current = { system: false, grade: false, sector: false, language: false, subject: false };
+    prevSystemRef.current = null;
+  }, [constants]);
+
+  // If there is only one education system available, auto-select it for create mode (guarded)
+  useEffect(() => {
+    const systems = constants?.Education_Systems || [];
+    if (
+      systems.length === 1 &&
+      editingIndex === null &&
+      !newSubject.education_system &&
+      !autoSelectedRef.current.system
+    ) {
+      setNewSubject(prev => ({ ...prev, education_system: systems[0] }));
+      autoSelectedRef.current.system = true;
+    }
+  }, [constants, editingIndex, newSubject.education_system]);
+
   // Update available options when dependencies change
   useEffect(() => {
-    if (newSubject.education_system && constants?.EducationStructure) {
-      const grades = constants.EducationStructure[newSubject.education_system]?.grades || [];
-      setAvailableGrades(grades);
-
-      const languages = constants.EducationStructure[newSubject.education_system]?.languages || ['Arabic'];
-      setAvailableLanguages(languages);
-
-      // Only reset if not in edit mode
-      if (editingIndex === null) {
-        setNewSubject(prev => ({ 
-          ...prev, 
-          grade: '', 
-          sector: '',
-          language: languages.includes(prev.language) ? prev.language : '',
-          name: ''
-        }));
-      }
-    } else {
+    if (!newSubject.education_system || !constants?.EducationStructure) {
       setAvailableGrades([]);
       setAvailableLanguages([]);
+      return;
+    }
+
+    const grades = constants.EducationStructure[newSubject.education_system]?.grades || [];
+    setAvailableGrades(grades);
+
+    const languages = constants.EducationStructure[newSubject.education_system]?.languages || ['Arabic'];
+    setAvailableLanguages(languages);
+
+    // If the education system changed, reset dependent auto-select flags
+    if (prevSystemRef.current !== newSubject.education_system) {
+      autoSelectedRef.current.grade = false;
+      autoSelectedRef.current.sector = false;
+      autoSelectedRef.current.language = false;
+      autoSelectedRef.current.subject = false;
+      prevSystemRef.current = newSubject.education_system;
+    }
+
+    // Only reset grade/sector/name when entering create mode (not editing) and only when necessary
+    if (editingIndex === null) {
+      setNewSubject(prev => {
+        const next = { ...prev };
+        // don't overwrite user choices
+        if (!next.grade) next.grade = '';
+        if (!next.sector) next.sector = '';
+        if (!languages.includes(next.language)) next.language = '';
+        if (!next.name) next.name = '';
+        return next;
+      });
+    }
+
+    // If there's exactly one grade option, auto-select it once
+    if (grades.length === 1 && !newSubject.grade && !autoSelectedRef.current.grade) {
+      setNewSubject(prev => ({ ...prev, grade: grades[0] }));
+      autoSelectedRef.current.grade = true;
+    }
+
+    // If there's exactly one language option, auto-select it once
+    if (languages.length === 1 && !newSubject.language && !autoSelectedRef.current.language) {
+      setNewSubject(prev => ({ ...prev, language: languages[0] }));
+      autoSelectedRef.current.language = true;
     }
   }, [newSubject.education_system, constants, editingIndex]);
 
   useEffect(() => {
-    if (newSubject.grade && newSubject.education_system && constants?.EducationStructure) {
-      const sectors = constants.EducationStructure[newSubject.education_system]?.sectors[newSubject.grade] || [];
-      setAvailableSectors(sectors);
-
-      // Only reset if not in edit mode
-      if (editingIndex === null) {
-        setNewSubject(prev => ({ ...prev, sector: '', name: '' }));
-      }
-    } else {
+    if (!newSubject.grade || !newSubject.education_system || !constants?.EducationStructure) {
       setAvailableSectors([]);
+      return;
+    }
+
+    const sectors = constants.EducationStructure[newSubject.education_system]?.sectors[newSubject.grade] || [];
+    setAvailableSectors(sectors);
+
+    if (editingIndex === null) {
+      setNewSubject(prev => ({ ...prev, sector: prev.sector || '', name: prev.name || '' }));
+    }
+
+    // If there's exactly one sector, auto-select it once
+    if (sectors.length === 1 && !newSubject.sector && !autoSelectedRef.current.sector) {
+      setNewSubject(prev => ({ ...prev, sector: sectors[0] }));
+      autoSelectedRef.current.sector = true;
     }
   }, [newSubject.grade, newSubject.education_system, constants, editingIndex]);
 
   useEffect(() => {
-    if (newSubject.education_system && newSubject.grade && newSubject.sector && newSubject.language) {
-      const systemSubjects = constants?.SubjectsBySystem?.[newSubject.education_system] || {};
-      let subjects = [];
+    if (!newSubject.education_system || !newSubject.grade) {
+      setAvailableSubjects([]);
+      return;
+    }
 
-      try {
-        subjects = newSubject.grade === 'Secondary 1' 
-          ? systemSubjects['Secondary 1'] || []
-          : systemSubjects[newSubject.grade]?.[newSubject.sector] || [];
-      } catch (error) {
-        console.error('Error fetching subjects:', error);
+    const systemSubjects = constants?.SubjectsBySystem?.[newSubject.education_system] || {};
+    let subjects = [];
+
+    try {
+      const gradeEntry = systemSubjects[newSubject.grade];
+      if (Array.isArray(gradeEntry)) {
+        subjects = gradeEntry;
+      } else if (gradeEntry && typeof gradeEntry === 'object') {
+        subjects = gradeEntry[newSubject.sector] || [];
+      } else {
         subjects = [];
       }
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      subjects = [];
+    }
 
-      setAvailableSubjects(subjects);
-    } else {
-      setAvailableSubjects([]);
+    setAvailableSubjects(subjects);
+
+    // If there's exactly one subject, auto-select it once
+    if (subjects.length === 1 && !newSubject.name && !autoSelectedRef.current.subject) {
+      setNewSubject(prev => ({ ...prev, name: subjects[0] }));
+      autoSelectedRef.current.subject = true;
     }
   }, [newSubject.education_system, newSubject.grade, newSubject.sector, newSubject.language, constants]);
 
@@ -152,6 +218,9 @@ const AddSubjectCard = ({
       name: '',
       years_experience: 1
     });
+
+    // Reset auto-select flags so next add works as expected
+    autoSelectedRef.current = { system: false, grade: false, sector: false, language: false, subject: false };
   };
 
   const handleDelete = (index) => {
@@ -245,7 +314,17 @@ const AddSubjectCard = ({
   const isGradeDisabled = !newSubject.education_system;
   const isLanguageDisabled = !newSubject.education_system;
   const isSectorDisabled = !newSubject.grade;
-  const isSubjectDisabled = !newSubject.sector;
+  // Determine whether the chosen grade requires selecting a sector.
+  const gradeEntry = constants?.SubjectsBySystem?.[newSubject.education_system]?.[newSubject.grade];
+  const requiresSector = !!gradeEntry && typeof gradeEntry === 'object' && !Array.isArray(gradeEntry);
+  const isSubjectDisabled = requiresSector ? !newSubject.sector : false;
+
+  // Hide select controls if there's only one option and auto-select that option
+  const hideSystemSelect = (constants?.Education_Systems?.length === 1);
+  const hideGradeSelect = availableGrades.length === 1;
+  const hideSectorSelect = availableSectors.length === 1;
+  const hideLanguageSelect = availableLanguages.length === 1;
+  const hideSubjectSelect = availableSubjects.length === 1;
 
   return (
     <div className={cn(
@@ -258,115 +337,135 @@ const AddSubjectCard = ({
       </div>
 
       <div className="space-y-3">
-        {/* Education System Select */}
-        <div className="space-y-1">
-          <Label className="text-xs">{t('educationSystem')}</Label>
-          <Select
-            value={newSubject.education_system}
-            onValueChange={(val) => setNewSubject(prev => ({ ...prev, education_system: val }))}
-          >
-            <SelectTrigger className="h-10">
-              <SelectValue placeholder={t('selectSystem')} />
-            </SelectTrigger>
-            <SelectContent>
-              {constants?.Education_Systems?.map((system) => (
-                <SelectItem key={system} value={system}>
-                  {system}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Education System Select - hidden & auto-chosen if only one option */}
+        {hideSystemSelect ? (
+          <input type="hidden" value={newSubject.education_system} />
+        ) : (
+          <div className="space-y-1">
+            <Label className="text-xs">{t('educationSystem')}</Label>
+            <Select
+              value={newSubject.education_system}
+              onValueChange={(val) => setNewSubject(prev => ({ ...prev, education_system: val }))}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder={t('selectSystem')} />
+              </SelectTrigger>
+              <SelectContent>
+                {constants?.Education_Systems?.map((system) => (
+                  <SelectItem key={system} value={system}>
+                    {system}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-        {/* Grade Select - always visible but disabled until system chosen */}
-        <div className="space-y-1">
-          <Label className="text-xs">{t('grade')}</Label>
-          <Select
-            value={newSubject.grade}
-            onValueChange={(val) => setNewSubject(prev => ({ ...prev, grade: val }))}
-            disabled={isGradeDisabled}
-          >
-            <SelectTrigger className="h-10" aria-disabled={isGradeDisabled} title={isGradeDisabled ? t('selectSystemFirst') : undefined}>
-              <SelectValue placeholder={isGradeDisabled ? t('selectSystemFirst') : t('selectGrade')} />
-            </SelectTrigger>
-            <SelectContent>
-              {availableGrades.map((grade) => (
-                <SelectItem key={grade} value={grade}>
-                  {grade}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Grade Select - hidden & auto-chosen if only one option */}
+        {hideGradeSelect ? (
+          <input type="hidden" value={newSubject.grade} />
+        ) : (
+          <div className="space-y-1">
+            <Label className="text-xs">{t('grade')}</Label>
+            <Select
+              value={newSubject.grade}
+              onValueChange={(val) => setNewSubject(prev => ({ ...prev, grade: val }))}
+              disabled={isGradeDisabled}
+            >
+              <SelectTrigger className="h-10" aria-disabled={isGradeDisabled} title={isGradeDisabled ? t('selectSystemFirst') : undefined}>
+                <SelectValue placeholder={isGradeDisabled ? t('selectSystemFirst') : t('selectGrade')} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableGrades.map((grade) => (
+                  <SelectItem key={grade} value={grade}>
+                    {grade}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-        {/* Sector Select - always visible but disabled until grade chosen */}
-        <div className="space-y-1">
-          <Label className="text-xs">{t('sector')}</Label>
-          <Select
-            value={newSubject.sector}
-            onValueChange={(val) => setNewSubject(prev => ({ ...prev, sector: val }))}
-            disabled={isSectorDisabled}
-          >
-            <SelectTrigger className="h-10" aria-disabled={isSectorDisabled} title={isSectorDisabled ? t('selectGradeFirst') : undefined}>
-              <SelectValue placeholder={isSectorDisabled ? t('selectGradeFirst') : t('selectSector')} />
-            </SelectTrigger>
-            <SelectContent>
-              {availableSectors.map((sector) => (
-                <SelectItem key={sector} value={sector}>
-                  {sector}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Sector Select - hidden & auto-chosen if only one option */}
+        {hideSectorSelect ? (
+          <input type="hidden" value={newSubject.sector} />
+        ) : (
+          <div className="space-y-1">
+            <Label className="text-xs">{t('sector')}</Label>
+            <Select
+              value={newSubject.sector}
+              onValueChange={(val) => setNewSubject(prev => ({ ...prev, sector: val }))}
+              disabled={isSectorDisabled}
+            >
+              <SelectTrigger className="h-10" aria-disabled={isSectorDisabled ? 'true' : undefined} title={isSectorDisabled ? t('selectGradeFirst') : undefined}>
+                <SelectValue placeholder={isSectorDisabled ? t('selectGradeFirst') : t('selectSector')} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableSectors.map((sector) => (
+                  <SelectItem key={sector} value={sector}>
+                    {sector}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-        {/* Language Select - always visible but disabled until system chosen */}
-        <div className="space-y-1">
-          <Label className="text-xs">{t('language')}</Label>
-          <Select
-            value={newSubject.language}
-            onValueChange={(val) => setNewSubject(prev => ({ ...prev, language: val }))}
-            disabled={isLanguageDisabled}
-          >
-            <SelectTrigger className="h-10" aria-disabled={isLanguageDisabled} title={isLanguageDisabled ? t('selectSystemFirst') : undefined}>
-              <SelectValue placeholder={isLanguageDisabled ? t('selectSystemFirst') : t('selectLanguage')} />
-            </SelectTrigger>
-            <SelectContent>
-              {availableLanguages.map((lang) => (
-                <SelectItem key={lang} value={lang}>
-                  {lang}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Language Select - hidden & auto-chosen if only one option */}
+        {hideLanguageSelect ? (
+          <input type="hidden" value={newSubject.language} />
+        ) : (
+          <div className="space-y-1">
+            <Label className="text-xs">{t('language')}</Label>
+            <Select
+              value={newSubject.language}
+              onValueChange={(val) => setNewSubject(prev => ({ ...prev, language: val }))}
+              disabled={isLanguageDisabled}
+            >
+              <SelectTrigger className="h-10" aria-disabled={isLanguageDisabled ? 'true' : undefined} title={isLanguageDisabled ? t('selectSystemFirst') : undefined}>
+                <SelectValue placeholder={isLanguageDisabled ? t('selectSystemFirst') : t('selectLanguage')} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableLanguages.map((lang) => (
+                  <SelectItem key={lang} value={lang}>
+                    {lang}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-        {/* Subject Select - always visible but disabled until sector chosen */}
-        <div className="space-y-1">
-          <Label className="text-xs">{t('subject')}</Label>
-          <Select
-            value={newSubject.name}
-            onValueChange={(val) => setNewSubject(prev => ({ ...prev, name: val }))}
-            disabled={isSubjectDisabled || availableSubjects.length === 0}
-          >
-            <SelectTrigger className="h-10" aria-disabled={isSubjectDisabled || availableSubjects.length === 0} title={isSubjectDisabled ? t('selectSectorFirst') : (availableSubjects.length === 0 ? t('noSubjectsAvailable') : undefined)}>
-              <SelectValue placeholder={
-                isSubjectDisabled ? t('selectSectorFirst') :
-                availableSubjects.length === 0 ? t('noSubjectsAvailable') :
-                t('selectSubject')
-              }>
-                {newSubject.name}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {availableSubjects.map((subject) => (
-                <SelectItem key={subject} value={subject}>
-                  {subject}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Subject Select - hidden & auto-chosen if only one option */}
+        {hideSubjectSelect ? (
+          <input type="hidden" value={newSubject.name} />
+        ) : (
+          <div className="space-y-1">
+            <Label className="text-xs">{t('subject')}</Label>
+            <Select
+              value={newSubject.name}
+              onValueChange={(val) => setNewSubject(prev => ({ ...prev, name: val }))}
+              disabled={isSubjectDisabled || availableSubjects.length === 0}
+            >
+              <SelectTrigger className="h-10" aria-disabled={isSubjectDisabled || availableSubjects.length === 0 ? 'true' : undefined} title={isSubjectDisabled ? t('selectSectorFirst') : (availableSubjects.length === 0 ? t('noSubjectsAvailable') : undefined)}>
+                <SelectValue placeholder={
+                  isSubjectDisabled ? t('selectSectorFirst') :
+                  availableSubjects.length === 0 ? t('noSubjectsAvailable') :
+                  t('selectSubject')
+                }>
+                  {newSubject.name}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {availableSubjects.map((subject) => (
+                  <SelectItem key={subject} value={subject}>
+                    {subject}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Years Experience Input */}
         <div className="space-y-1">

@@ -647,12 +647,12 @@ const HorizontalFilters = (props) => {
                         </SelectContent>
                       </Select>
                     </motion.div>
-
+{/* 
                     <motion.div className="flex flex-col gap-2" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}>
                       <LabelWithIcon icon={DollarSign} text={t('monthlyRateRange')} />
                       <Slider min={50} max={2000} step={50} value={(filters?.rateRange ?? localFilters.rateRange) || [50,2000]} onValueChange={(v) => handleSliderChange(v)} className="w-full" />
                       <div className="text-xs text-muted-foreground">{t('from')} {localFilters.rateRange?.[0] || 50} - {t('to')} {localFilters.rateRange?.[1] || 2000}</div>
-                    </motion.div>
+                    </motion.div> */}
                   </div>
                 </motion.div>
               </motion.div>

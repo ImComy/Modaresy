@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -122,37 +122,40 @@ const TutorProfileHeaderEdit = ({
     };
   }, []);
 
-  const handleFieldChange = (field, value, options = { propagate: true }) => {
-    setFormData(prev => {
-      const newData = { ...prev, [field]: value };
-      if (options.propagate) onChange?.(field, value);
-      return newData;
-    });
-  };
-  
-  const handleSocialChange = (platform, url) => {
-    setFormData(prev => {
-      const updatedSocials = { ...prev.social_media, [platform]: url };
-      onChange?.('social_media', updatedSocials);
-      return { ...prev, social_media: updatedSocials };
-    });
-  };
+  const handleFieldChange = useCallback((field, value, options = { propagate: true }) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
 
-  const addSocial = () => {
-    if (newSocial.platform && newSocial.url) {
-      handleSocialChange(newSocial.platform, newSocial.url);
-      setNewSocial({ platform: '', url: '' });
+    // call parent AFTER scheduling our setState (do not call inside updater)
+    if (options.propagate) {
+      try {
+        onChange?.(field, value);
+      } catch (err) {
+        console.error('onChange handler threw', err);
+      }
     }
-  };
+  }, [onChange]);
 
-  const removeSocial = (platform) => {
-    setFormData(prev => {
-      const { [platform]: _, ...updatedSocials } = prev.social_media;
-      
-      onChange?.('social_media', updatedSocials);
-      return { ...prev, social_media: updatedSocials };
-    });
-  };
+  const handleSocialChange = useCallback((platform, url) => {
+    // use current formData snapshot to compute new socials
+    const updatedSocials = { ...(formData.social_media || {}), [platform]: url };
+    setFormData(prev => ({ ...prev, social_media: updatedSocials }));
+    onChange?.('social_media', updatedSocials);
+  }, [formData.social_media, onChange]);
+
+  const removeSocial = useCallback((platform) => {
+    const current = formData.social_media || {};
+    const { [platform]: _, ...updated } = current;
+    setFormData(prev => ({ ...prev, social_media: updated }));
+    onChange?.('social_media', updated);
+  }, [formData.social_media, onChange]);
+
+  const addSocial = useCallback(() => {
+    if (!newSocial.platform || !newSocial.url) return;
+    const updatedSocials = { ...(formData.social_media || {}), [newSocial.platform]: newSocial.url };
+    setFormData(prev => ({ ...prev, social_media: updatedSocials }));
+    onChange?.('social_media', updatedSocials);
+    setNewSocial({ platform: '', url: '' });
+  }, [formData.social_media, newSocial, onChange]);
 
   const handleFileSelect = (e, shape) => {
     const file = e.target.files?.[0];
