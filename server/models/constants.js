@@ -1,35 +1,25 @@
 export const userTypes = Object.freeze(["Student", "Teacher"]);
 
-export const weekDays = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+export const weekDays = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
-export const PaymentTimings = Object.freeze([
-  "Prepaid",
-  "Postpaid"
-]);
+export const PaymentTimings = Object.freeze(["Prepaid", "Postpaid"]);
 
-export const PricePeriod = Object.freeze([
-  "Session",
-  "Month"
-]);
+export const PricePeriod = Object.freeze(["Session", "Month"]);
 
 export const PaymentMethods = Object.freeze([
-  "Cash",
-  "Vodafone Cash",
-  "Etisalat Cash",
-  "Orange Money",
-  "Bank Transfer",
-  "Meeza",
-  "Instapay",
-  "ValU",
-  "Credit Card",
-  "Fawry"
+  "Cash", "Vodafone Cash", "Etisalat Cash", "Orange Money", "Bank Transfer",
+  "Meeza", "Instapay", "ValU", "Credit Card", "Fawry"
 ]);
 
 export const Education_Systems = Object.freeze(["National"]);
 
 export const EducationStructure = Object.freeze({
   National: {
-    grades: Object.freeze(["Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6", "Middle 1", "Middle 2", "Middle 3", "Secondary 1", "Secondary 2", "Secondary 3"]),
+    grades: Object.freeze([
+      "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
+      "Middle 1", "Middle 2", "Middle 3",
+      "Secondary 1", "Secondary 2", "Secondary 3"
+    ]),
     sectors: Object.freeze({
       "Primary 1": ["General"],
       "Primary 2": ["General"],
@@ -48,66 +38,106 @@ export const EducationStructure = Object.freeze({
   }
 });
 
-export const Languages = ["Arabic", "English", "French", "German", "General"]
+export const Languages = ["Arabic", "English", "French", "German", "General"];
 
-const Primary_Shared_Subjects = ["Arabic", "English", "Mathematics", "Science", "Social Studies", "Religion", "Art", "Music", "Physical Education"];
-const Middle_Shared_Subjects = ["Arabic", "English", "Mathematics", "Science", "Social Studies", "Religion", "French", "German", "Technology", "Computer Science", "Art", "Music", "Physical Education"];
-const Secondary_Shared_Subjects = ["Arabic", "English", "French", "German", "Religion", "National Education", "Technology", "Computer Science"];
+// Shared subject groups
+const Primary_Shared_Subjects = [
+  "Arabic", "English", "Mathematics", "Science", "Social Studies",
+  "Religion", "Art", "Music", "Physical Education"
+];
+
+const Middle_Shared_Subjects = [
+  "Arabic", "English", "Mathematics", "Science", "Social Studies",
+  "Religion", "French", "German", "Technology", "Computer Science",
+  "Art", "Music", "Physical Education"
+];
+
+const Secondary_Shared_Subjects = [
+  "Arabic", "English", "French", "German",
+  "Religion", "National Education", "Technology", "Computer Science"
+];
+
+export const Language_Independent_Subjects = ["History", "Geography"];
+
+const physicalSciences = ["Physics", "Chemistry"];
+const math = ["Math"];
+
+export const SubjectGroupsToSectorsMap = new Map([
+  [physicalSciences, ["Scientific", "Mathematics"]],
+  [math, ["Scientific", "Literature"]] 
+]);
 
 export const SubjectsBySystem = Object.freeze({
   National: Object.freeze({
-    "Primary 1": [...Primary_Shared_Subjects],
-    "Primary 2": [...Primary_Shared_Subjects],
-    "Primary 3": [...Primary_Shared_Subjects],
-    "Primary 4": [...Primary_Shared_Subjects],
-    "Primary 5": [...Primary_Shared_Subjects],
-    "Primary 6": [...Primary_Shared_Subjects],
-    "Middle 1": [...Middle_Shared_Subjects],
-    "Middle 2": [...Middle_Shared_Subjects],
-    "Middle 3": [...Middle_Shared_Subjects],
-    "Secondary 1": ["History", "Geography", "Math", "Integrated Sciences", "Philosophy and Logic", ...Secondary_Shared_Subjects],
+    // Primary
+    "Primary 1": [...Primary_Shared_Subjects, ...Language_Independent_Subjects],
+    "Primary 2": [...Primary_Shared_Subjects, ...Language_Independent_Subjects],
+    "Primary 3": [...Primary_Shared_Subjects, ...Language_Independent_Subjects],
+    "Primary 4": [...Primary_Shared_Subjects, ...Language_Independent_Subjects],
+    "Primary 5": [...Primary_Shared_Subjects, ...Language_Independent_Subjects],
+    "Primary 6": [...Primary_Shared_Subjects, ...Language_Independent_Subjects],
+
+    // Middle
+    "Middle 1": [...Middle_Shared_Subjects, ...Language_Independent_Subjects],
+    "Middle 2": [...Middle_Shared_Subjects, ...Language_Independent_Subjects],
+    "Middle 3": [...Middle_Shared_Subjects, ...Language_Independent_Subjects],
+
+    // Secondary 1
+    "Secondary 1": [
+      ...Language_Independent_Subjects,
+      "Integrated Sciences", "Philosophy and Logic",
+      ...Secondary_Shared_Subjects
+    ],
+
+    // Secondary 2
     "Secondary 2": {
-      Scientific: ["Physics", "Chemistry", "Biology", "Math", "Geology", ...Secondary_Shared_Subjects],
-      Literature: ["History", "Geography", "Psychology", "Sociology", "Math", "Philosophy", ...Secondary_Shared_Subjects]
+      Scientific: [
+        ...Secondary_Shared_Subjects,
+        "Biology", 
+        ...Array.from(SubjectGroupsToSectorsMap.entries())
+          .filter(([_, sectors]) => sectors.includes("Scientific"))
+          .flatMap(([subjects]) => subjects)
+      ],
+      Literature: [
+        ...Language_Independent_Subjects,
+        ...Secondary_Shared_Subjects,
+        "Psychology", "Sociology", "Philosophy", 
+        ...Array.from(SubjectGroupsToSectorsMap.entries())
+          .filter(([_, sectors]) => sectors.includes("Literature"))
+          .flatMap(([subjects]) => subjects)
+      ]
     },
+
+    // Secondary 3
     "Secondary 3": {
-      Mathematics: ["Math", "Physics", "Chemistry", "Geology", ...Secondary_Shared_Subjects],
-      Scientific: ["Physics", "Chemistry", "Biology", "Math", "Geology", ...Secondary_Shared_Subjects],
-      Literature: ["History", "Geography", "Psychology", "Sociology", "Statistics", "Economics", "Philosophy", ...Secondary_Shared_Subjects]
+      Mathematics: [
+        ...Secondary_Shared_Subjects,
+        ...Array.from(SubjectGroupsToSectorsMap.entries())
+          .filter(([_, sectors]) => sectors.includes("Mathematics"))
+          .flatMap(([subjects]) => subjects)
+      ],
+      Scientific: [
+        ...Secondary_Shared_Subjects,
+        "Biology", "Geology",
+        ...Array.from(SubjectGroupsToSectorsMap.entries())
+          .filter(([_, sectors]) => sectors.includes("Scientific"))
+          .flatMap(([subjects]) => subjects)
+      ],
+      Literature: [
+        ...Language_Independent_Subjects,
+        ...Secondary_Shared_Subjects,
+        "Psychology", "Sociology", "Statistics", "Economics", "Philosophy" 
+      ]
     }
   })
 });
 
+// Regions
 export const Governates = Object.freeze([
-"Alexandria",
-"Assiut",
-"Aswan",
-"Beheira",
-"Bani Suef",
-"Cairo",
-"Daqahliya",
-"Damietta",
-"Fayyoum",
-"Gharbiya",
-"Giza",
-"Helwan",
-"Ismailia",
-"Kafr El Sheikh",
-"Luxor",
-"Marsa Matrouh",
-"Minya",
-"Monofiya",
-"New Valley",
-"North Sinai",
-"Port Said",
-"Qalioubiya",
-"Qena",
-"Red Sea",
-"Sharqiya",
-"Sohag",
-"South Sinai",
-"Suez",
-"Tanta"
+  "Alexandria", "Assiut", "Aswan", "Beheira", "Bani Suef", "Cairo", "Daqahliya", "Damietta",
+  "Fayyoum", "Gharbiya", "Giza", "Helwan", "Ismailia", "Kafr El Sheikh", "Luxor", "Marsa Matrouh",
+  "Minya", "Monofiya", "New Valley", "North Sinai", "Port Said", "Qalioubiya", "Qena", "Red Sea",
+  "Sharqiya", "Sohag", "South Sinai", "Suez", "Tanta"
 ]);
 
 export const Districts = Object.freeze({

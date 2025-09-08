@@ -57,17 +57,43 @@ const TutorGrid = ({ tutors, filters, loading = false, error = null }) => {
   const filteredTutors = useMemo(() => {
     if (!tutors || !Array.isArray(tutors)) return [];
 
-    return tutors.filter(
-      (tutor) =>
-        Array.isArray(tutor.subjects) &&
-        tutor.subjects.some(
-          (s) =>
-            s.subject === filters.subject &&
-            s.grade === filters.grade &&
-            (!filters.language || s.language === filters.language) &&
-            (!filters.education_system || s.education_system === filters.education_system)
-        )
-    );
+    const normalize = (v) => (v == null ? '' : String(v));
+
+    const matches = (subjectValue, filterValue) => {
+      // treat 'all' or 'none' or empty filter as no-op (always match)
+      if (!filterValue || filterValue === 'all' || filterValue === 'none') return true;
+
+      // if filterValue is an array, match if any of its values match the subjectValue
+      if (Array.isArray(filterValue)) {
+        return filterValue.some((fv) => matches(subjectValue, fv));
+      }
+
+      const f = String(filterValue).toLowerCase();
+
+      if (Array.isArray(subjectValue)) {
+        return subjectValue.some((sv) => String(sv).toLowerCase() === f);
+      }
+
+      return String(subjectValue).toLowerCase() === f;
+    };
+
+    return tutors.filter((tutor) => {
+      if (!Array.isArray(tutor.subjects)) return false;
+
+      return tutor.subjects.some((s) => {
+        // subject and grade are required by upstream logic (TutorGrid shows missing filter message otherwise)
+        const subjectMatch = normalize(s.subject) === normalize(filters.subject);
+        const gradeMatch = normalize(s.grade) === normalize(filters.grade);
+        if (!subjectMatch || !gradeMatch) return false;
+
+        // language, education_system, and sector may be arrays or strings — use matches helper
+        const languageMatch = matches(s.language, filters.language);
+        const eduMatch = matches(s.education_system, filters.education_system);
+        const sectorMatch = matches(s.sector, filters.sector);
+
+        return languageMatch && eduMatch && sectorMatch;
+      });
+    });
   }, [tutors, filters?.subject, filters?.grade, filters?.language, filters?.education_system]);
 
   if (error) return <ErrorBanner message={error} />;

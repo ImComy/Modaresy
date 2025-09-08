@@ -133,14 +133,20 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
         const deletedSubjectIds = originalSubjects.filter(s => !updatedSubjectIds.has(s._id)).map(s => s._id);
         const existingSubjectsToUpdate = updatedSubjects.filter(s => s._id && originalSubjectIds.has(s._id));
 
-        const promises = [];
+        // Split operations into phases to avoid race conditions:
+        // 1) create subjects, update subjects, update profiles
+        // 2) delete subjects (which may remove related profiles)
+        const createPromises = [];
+        const updateSubjectPromises = [];
+        const updateProfilePromises = [];
+        const deletePromises = [];
 
         addedSubjects.forEach(subject => {
-          promises.push(addSubjectToBackend(subject));
+          createPromises.push(addSubjectToBackend(subject));
         });
 
         deletedSubjectIds.forEach(subjectId => {
-          promises.push(deleteSubjectFromBackend(subjectId));
+          deletePromises.push(deleteSubjectFromBackend(subjectId));
         });
 
         existingSubjectsToUpdate.forEach(subject => {
@@ -165,7 +171,7 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
           
           const coreFields = { name, grade, education_system, language, sector, years_experience };
 
-          promises.push(updateSubjectInBackend(subject._id, coreFields));
+          updateSubjectPromises.push(updateSubjectInBackend(subject._id, coreFields));
 
           if (profileId) {
             const profileFields = Object.keys(profileData).reduce((acc, key) => {
@@ -174,7 +180,7 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
               }
               return acc;
             }, {});
-            promises.push(updateSubjectProfile(profileId, profileFields));
+            updateProfilePromises.push(updateSubjectProfile(profileId, profileFields));
           }
         });
 
@@ -252,12 +258,24 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
           tutorProfileData.bannerimg = '';
         }
 
-        promises.push(apiFetch('/tutors/updateProfile', {
+        // First, run creates and updates (subjects + profiles) and tutor update
+        const tutorUpdatePromise = apiFetch('/tutors/updateProfile', {
           method: 'PUT',
           body: JSON.stringify({ updated_information: tutorProfileData })
-        }));
+        });
 
-        await Promise.all(promises);
+        await Promise.all([
+          ...createPromises,
+          ...updateSubjectPromises,
+          ...updateProfilePromises,
+          tutorUpdatePromise
+        ]);
+
+        // Now run deletes (subjects). We run them after updates to avoid profile-not-found races
+        if (deletePromises.length > 0) {
+          await Promise.all(deletePromises);
+        }
+
         await fetchTutorData(tutor._id);
 
         if (pendingFilesRef && pendingFilesRef.current) {

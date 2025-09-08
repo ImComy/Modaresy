@@ -29,6 +29,15 @@ const ErrorBanner = ({ message }) => (
   </Card>
 );
 
+// Skeleton card for loading state
+const SkeletonCard = () => (
+  <div className="animate-pulse bg-[color:color-mix(in srgb, hsl(var(--card)) 4%, transparent)] rounded-xl p-4 min-h-[120px] flex flex-col gap-3 mb-4">
+    <div className="rounded-md bg-muted/40 h-36 sm:h-40" />
+    <div className="h-4 bg-muted/30 rounded w-3/5" />
+    <div className="h-3 bg-muted/20 rounded w-2/5 mt-2" />
+  </div>
+);
+
 export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
   const { t } = useTranslation();
   const { authState } = useAuth();
@@ -36,13 +45,14 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
   const [visibleCount, setVisibleCount] = useState(INITIAL_TUTORS_COUNT);
   const [inputValue, setInputValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [nameFilter, setNameFilter] = useState(null);
+  const [nameFilter, setNameFilter] = useState(null); // ONLY name search filters results
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [recommended, setRecommended] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMoreServer, setHasMoreServer] = useState(false);
-  const [loadingInitial, setLoadingInitial] = useState(false);
+  const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [showSkeletons, setShowSkeletons] = useState(true);
 
   const searchRef = useRef(null);
   const inputRef = useRef(null);
@@ -50,7 +60,7 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
   const abortControllerRef = useRef(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  // load filters from localStorage
+  // read "filters" from localStorage but treat them as SORT PREFERENCES (not filters)
   const filters = useMemo(() => {
     try {
       return {
@@ -79,13 +89,15 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
   // data source depends on auth
   const sourceTutors = authState?.isLoggedIn ? recommended : tutors;
 
-  // scoring: compute a score for sorting only — do not filter tutors out because of search text
+  // IMPORTANT: scoring should NOT exclude tutors; it only boosts matching tutors so they appear higher.
   const scoredTutors = useMemo(() => {
     const qLower = (searchQuery || '').toLowerCase();
     return (sourceTutors || []).map((tutor) => {
       const avgRating = (tutor.avgRating ?? tutor.rating ?? 0) || 0;
       let score = 0;
 
+      // We compute booleans based on user-selected preferences,
+      // but we DON'T use them to filter — only to increase score.
       const hasSubject = !!filters.subject && (
         (tutor.subjects || []).some(s => ((s.subject || s.name) === filters.subject)) ||
         (tutor.subject_profiles || []).some(p => ((p.subject_doc?.name || p.subject) === filters.subject))
@@ -102,6 +114,7 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
       const locPref = !filters.location || filters.location === 'all' || tutor.governate === filters.location || tutor.location === filters.location;
       const secPref = !filters.sector || filters.sector === 'all' || tutor.sector === filters.sector;
 
+      // scoring boosts (higher weight for subject/grade and name match)
       if (hasSubject) score += 3;
       if (hasGrade) score += 2;
       if (inRating) score += 2;
@@ -112,29 +125,38 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
       const nameMatch = qLower && (tutor.name || '').toLowerCase().includes(qLower);
       if (nameMatch) score += 5;
 
+      // you may add additional heuristics here (recent activity, isTopRated handled later)
       return { ...tutor, score };
     });
   }, [sourceTutors, filters, searchQuery]);
 
+  // Sorting: optionally restrict to the name search ONLY.
   const sortedTutors = useMemo(() => {
+    // ONLY the name search acts as a filter: when the user selects a name we show matching names.
+    // All other "filters" only affect score and therefore ranking, not inclusion/exclusion.
     const filtered = nameFilter
       ? (scoredTutors || []).filter(t => (t.name || '').toLowerCase().includes((nameFilter || '').toLowerCase()))
       : (scoredTutors || []);
 
     return [...filtered].sort((a, b) => {
+      // top rated always first
       if (a.isTopRated && !b.isTopRated) return -1;
       if (!a.isTopRated && b.isTopRated) return 1;
 
+      // then by computed score
       if ((b.score ?? 0) !== (a.score ?? 0)) return (b.score ?? 0) - (a.score ?? 0);
 
+      // fallback to user sort preference
       if (filters.sortBy === 'ratingDesc') {
         return (b.avgRating ?? 0) - (a.avgRating ?? 0);
       }
 
+      // assume sortBy === 'priceAsc' (or other) means price ascending
       return (a.hourlyRate ?? 0) - (b.hourlyRate ?? 0);
     });
-  }, [scoredTutors, filters, nameFilter]);
+  }, [scoredTutors, filters.sortBy, nameFilter]);
 
+  // suggestions must be name-based; keep this behavior
   const suggestedTutors = useMemo(() => {
     if (!inputValue) return [];
     const q = inputValue.toLowerCase();
@@ -148,13 +170,12 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
 
   const loading = loadingInitial || loadingMore;
   const hasMore = authState?.isLoggedIn ? hasMoreServer : visibleCount < sortedTutors.length;
-  const noTutors = ((!sourceTutors || sourceTutors.length === 0) || (sortedTutors.length === 0)) && !loading;
 
   const debouncedSetQuery = useMemo(() => debounce((val) => {
     setSearchQuery(val);
     setVisibleCount(INITIAL_TUTORS_COUNT);
     setIsDropdownOpen(val.length > 0);
-    setNameFilter(null);
+    setNameFilter(null); // reset name filter when typing
   }, DEBOUNCE_DELAY), []);
 
   useEffect(() => () => debouncedSetQuery.cancel(), [debouncedSetQuery]);
@@ -170,7 +191,7 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
     const trimmed = (tutorName || '').trim();
     setInputValue(trimmed);
     setSearchQuery(trimmed);
-    setNameFilter(trimmed);
+    setNameFilter(trimmed); // selecting a name filters by name only
     setIsDropdownOpen(false);
     inputRef.current?.blur();
     setVisibleCount(INITIAL_TUTORS_COUNT);
@@ -237,6 +258,8 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
     }
 
     try {
+      // NOTE: We intentionally do NOT send client-side filter preferences to server here
+      // because those preferences are only used locally for sorting.
       const url = `/tutors/recommend?q=${encodeURIComponent(search || '')}&page=${pageNum}&limit=${INITIAL_TUTORS_COUNT}`;
       const res = await apiFetch(url, { signal: s });
       let tutorsArr = (res && res.tutors) || [];
@@ -297,7 +320,11 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
 
   // Manage lifecycle: fetch when auth/searchQuery change
   useEffect(() => {
-    if (!authState?.isLoggedIn) return;
+    if (!authState?.isLoggedIn) {
+      // For non-logged in users, we have the tutors from props
+      setLoadingInitial(false);
+      return;
+    }
 
     fetchRecommendations(searchQuery, 1, {});
 
@@ -315,45 +342,17 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
     fetchRecommendations(searchQuery, next, {});
   };
 
-  // skeleton UI
-  const SkeletonGrid = ({ count = 6 }) => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 col-span-full w-full">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="animate-pulse bg-[color:color-mix(in srgb, hsl(var(--card)) 4%, transparent)] rounded-xl p-4 min-h-[120px] flex flex-col gap-3">
-          <div className="rounded-md bg-muted/40 h-36 sm:h-40" />
-          <div className="h-4 bg-muted/30 rounded w-3/5" />
-          <div className="h-3 bg-muted/20 rounded w-2/5 mt-2" />
-        </div>
-      ))}
-    </div>
-  );
-
-  // Keep the sign-in required UI commented out (intentionally) so the caller can enable it if desired
-  /*
-  if (!authState?.isLoggedIn) {
-    return (
-      <div className="max-w-full mx-auto bg-[color:color-mix(in srgb, hsl(var(--muted)) 40%, transparent)] border border-[color:hsl(var(--border)/0.6)] rounded-2xl shadow-md p-8 text-center space-y-5">
-        <div className="flex justify-center">
-          <div className="rounded-full p-4" style={{ background: 'color-mix(in srgb, hsl(var(--primary)) 8%, transparent)', color: 'hsl(var(--primary))' }}>
-            <LogIn size={28} />
-          </div>
-        </div>
-        <h2 className="text-2xl font-bold text-[color:hsl(var(--foreground))]">
-          {t('getPersonalizedTutors', 'Discover Your Ideal Tutor')}
-        </h2>
-        <p className="text-[color:hsl(var(--muted-foreground))] text-sm leading-relaxed">
-          {t('signInToSeeRecommendations', 'Sign in to receive personalized tutor recommendations based on your preferences.')}
-        </p>
-        <a
-          href="/login"
-          className="inline-flex items-center justify-center px-6 py-2 rounded-full text-[color:hsl(var(--primary-foreground))] bg-[color:hsl(var(--primary))] hover:brightness-90 transition font-medium"
-        >
-          {t('signIn', 'Sign in')}
-        </a>
-      </div>
-    );
-  }
-  */
+  // Hide skeletons after a short delay when data is loaded
+  useEffect(() => {
+    if (!loadingInitial && tutorsToShow.length > 0) {
+      const timer = setTimeout(() => {
+        setShowSkeletons(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    } else if (loadingInitial) {
+      setShowSkeletons(true);
+    }
+  }, [loadingInitial, tutorsToShow.length]);
 
   return (
     <div className="max-w-full mx-auto">
@@ -420,46 +419,38 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
         </AnimatePresence>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" style={{ gridAutoRows: 'min-content' }}>
-        {loadingInitial && tutorsToShow.length === 0 ? (
-          <div className="flex justify-center col-span-full">
-            <Loader />
+      {/* Pinterest-style masonry grid */}
+      <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
+        {/* Show skeletons while loading or if no tutors yet */}
+        {showSkeletons && Array.from({ length: INITIAL_TUTORS_COUNT }).map((_, index) => (
+          <div key={`skeleton-${index}`} className="mb-4 break-inside-avoid">
+            <SkeletonCard />
           </div>
-        ) : noTutors ? (
-          <Card className="max-w-md mx-auto mt-10 bg-[color:hsl(var(--muted))/0.6] col-span-full rounded-xl">
-            <CardContent className="flex items-center gap-4 py-6 text-[color:hsl(var(--muted-foreground))]">
-              <UserX className="w-6 h-6 flex-shrink-0" />
-              <div>
-                <h4 className="font-semibold text-base text-[color:hsl(var(--foreground))]">{t('noTutorsFound', 'No Tutors Found')}</h4>
-                <p className="text-sm mt-1 text-[color:hsl(var(--muted-foreground))]">{t('tryChangingFilters', 'Try adjusting your filters to see results.')}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {tutorsToShow.map((tutor) => (
-              <motion.div
-                key={tutor.id || tutor._id || tutor.name}
-                layout
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.22 }}
-                className="h-min"
-              >
-                <GeneralTutorCard tutor={tutor} />
-              </motion.div>
-            ))}
+        ))}
 
-            {loadingMore && tutorsToShow.length > 0 && (
-              <div className="col-span-full">
-                <div className="mt-4">
-                  <SkeletonGrid count={Math.min(4, LOAD_MORE_COUNT)} />
-                </div>
-              </div>
-            )}
-          </>
-        )}
+        {/* Actual tutor cards */}
+        <AnimatePresence>
+          {tutorsToShow.map((tutor, index) => (
+            <motion.div
+              key={tutor.id || tutor._id || tutor.name}
+              layout
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              className="mb-4 break-inside-avoid"
+            >
+              <GeneralTutorCard tutor={tutor} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {/* Loading more skeletons */}
+        {loadingMore && Array.from({ length: LOAD_MORE_COUNT }).map((_, index) => (
+          <div key={`more-skeleton-${index}`} className="mb-4 break-inside-avoid">
+            <SkeletonCard />
+          </div>
+        ))}
       </div>
 
       {hasMore && (

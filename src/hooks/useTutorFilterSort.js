@@ -1,4 +1,4 @@
-// useTutorFilterSort.js  (replace your existing hook)
+// useTutorFilterSort.js
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import Fuse from 'fuse.js';
 import { getConstants } from '@/api/constantsFetch';
@@ -20,11 +20,22 @@ const LS_KEYS = {
   },
 };
 
+// Try to restore arrays saved as JSON; otherwise return raw string
 const getStoredValue = (key, fallback) => {
   try {
     const item = localStorage.getItem(key);
     if (item === null) return fallback;
-    if (Array.isArray(fallback)) return JSON.parse(item);
+    // If the stored item looks like JSON array/object - parse it
+    const trimmed = item.trim();
+    if ((trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+        (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+      try {
+        return JSON.parse(item);
+      } catch {
+        // fallthrough to return string
+      }
+    }
+    // numeric fallback
     if (typeof fallback === 'number') return parseFloat(item);
     return item;
   } catch {
@@ -38,12 +49,43 @@ const getInitialFilters = () => ({
   subject: getStoredValue(LS_KEYS.filters.subject, 'none'),
   grade: getStoredValue(LS_KEYS.filters.grade, 'none'),
   educationSystem: getStoredValue(LS_KEYS.filters.educationSystem, 'all'),
+  // language/sector default is 'all' meaning "no filter" — when user picks, they'll be arrays or strings
   language: getStoredValue(LS_KEYS.filters.language, 'all'),
+  sector: getStoredValue(LS_KEYS.filters.sector, 'all'),
 });
 
 const getInitialSortBy = () => getStoredValue(LS_KEYS.sortBy, 'ratingDesc');
 
 const normalize = (v) => (v == null ? 'all' : String(v).trim().toLowerCase());
+
+// Ensure we return either:
+// - 'all' (string) meaning no filter
+// - a string value
+// - an array of strings
+const ensureArrayOrAll = (val) => {
+  if (val == null) return 'all';
+  if (Array.isArray(val)) return val.map(v => String(v).trim()).filter(Boolean);
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (trimmed === '' || trimmed.toLowerCase() === 'all') return 'all';
+    // comma-separated -> array
+    if (trimmed.includes(',')) {
+      return trimmed.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    return trimmed;
+  }
+  return String(val);
+};
+
+// Serialize param for API:
+// - arrays -> comma separated string
+// - single value -> string
+// - 'all' -> omitted by caller
+const serializeFilterParam = (val) => {
+  if (Array.isArray(val)) return val.map(v => String(v).trim()).filter(Boolean).join(',');
+  if (val == null) return '';
+  return String(val).trim();
+};
 
 export const useTutorFilterSort = (initialTutors = []) => {
   const [searchTerm, setSearchTerm] = useState(getInitialSearchTerm);
@@ -87,24 +129,26 @@ export const useTutorFilterSort = (initialTutors = []) => {
   );
 
   const fuzzySearchResults = useMemo(() => {
+    if (!searchTerm) return initialTutors;
     return fuse.search(searchTerm).map((r) => r.item);
   }, [fuse, searchTerm, initialTutors]);
 
   useEffect(() => {
-    localStorage.setItem(LS_KEYS.searchTerm, searchTerm);
+    localStorage.setItem(LS_KEYS.searchTerm, searchTerm || '');
   }, [searchTerm]);
   useEffect(() => {
-    localStorage.setItem(LS_KEYS.sortBy, sortBy);
+    localStorage.setItem(LS_KEYS.sortBy, sortBy || '');
   }, [sortBy]);
   useEffect(() => {
     Object.entries(filtersState).forEach(([key, value]) => {
       const storageKey = LS_KEYS.filters[key];
       if (!storageKey) return;
       try {
-        localStorage.setItem(
-          storageKey,
-          Array.isArray(value) ? JSON.stringify(value) : String(value)
-        );
+        if (Array.isArray(value)) {
+          localStorage.setItem(storageKey, JSON.stringify(value));
+        } else {
+          localStorage.setItem(storageKey, String(value));
+        }
       } catch {}
     });
   }, [filtersState]);
@@ -435,35 +479,36 @@ export const useTutorFilterSort = (initialTutors = []) => {
               (p.group_pricing && p.group_pricing.price) ||
               null;
 
+            // language and sector are now arrays (or might be single values), preserve as arrays
+            const subjLanguage = Array.isArray(subj.language)
+              ? subj.language
+              : subj.language
+                ? [subj.language]
+                : p.language
+                  ? (Array.isArray(p.language) ? p.language : [p.language])
+                  : ['Unknown'];
+
+            const subjSector = Array.isArray(subj.sector)
+              ? subj.sector
+              : subj.sector
+                ? [subj.sector]
+                : p.sector
+                  ? (Array.isArray(p.sector) ? p.sector : [p.sector])
+                  : ['General'];
+
             let educationSystem =
               subj.education_system ||
               subj.educationSystem ||
               p.education_system ||
               p.educationSystem ||
               null;
-            let sector = subj.sector || p.sector || null;
-
-            if ((!educationSystem || !sector) && (p.type || subj.type)) {
-              const legacy = (p.type || subj.type || '').toString();
-              const parts = legacy
-                .split('-')
-                .map((s) => s.trim())
-                .filter(Boolean);
-              if (parts.length === 1) {
-                if (!educationSystem) educationSystem = parts[0];
-                if (!sector) sector = 'General';
-              } else if (parts.length > 1) {
-                if (!sector) sector = parts[0];
-                if (!educationSystem) educationSystem = parts.slice(1).join(' - ');
-              }
-            }
 
             return {
               subject: subj.name || subj.title || p.subject_name || '',
               grade: subj.grade || p.grade || 'Unknown',
-              language: subj.language || p.language || 'Unknown',
+              language: subjLanguage,
               education_system: educationSystem || null,
-              sector: sector || 'General',
+              sector: subjSector,
               price,
               rating: p.rating ?? null,
             };
@@ -499,8 +544,17 @@ export const useTutorFilterSort = (initialTutors = []) => {
           params.set('education_system', f.educationSystem);
         if (f.grade && f.grade !== 'none') params.set('grade', f.grade);
         if (f.subject && f.subject !== 'none') params.set('subject', f.subject);
-        if (f.sector && f.sector !== 'all') params.set('sector', f.sector);
-        if (f.language && f.language !== 'all') params.set('language', f.language);
+
+        // sector/language may be array or string — serialize arrays as comma-separated
+        if (f.sector && f.sector !== 'all') {
+          const v = serializeFilterParam(ensureArrayOrAll(f.sector));
+          if (v) params.set('sector', v);
+        }
+        if (f.language && f.language !== 'all') {
+          const v = serializeFilterParam(ensureArrayOrAll(f.language));
+          if (v) params.set('language', v);
+        }
+
         if (f.governate && f.governate !== 'all') params.set('governate', f.governate);
         if (f.district && f.district !== 'all') params.set('district', f.district);
         if (f.minRating && Number(f.minRating) > 0)

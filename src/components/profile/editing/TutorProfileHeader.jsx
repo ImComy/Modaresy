@@ -80,6 +80,7 @@ const TutorProfileHeaderEdit = ({
       subject_profiles: tutorData?.subject_profiles || [],
       rating: tutorData?.rating || 0,
       subjects: tutorData?.subjects || [],
+      experience_years: tutorData?.experience_years || 0,
     };
   }
 
@@ -318,16 +319,16 @@ const TutorProfileHeaderEdit = ({
                             lastObjectUrl.current = URL.createObjectURL(formData.bannerimg);
                             return lastObjectUrl.current;
                           } catch {
-                            return 'https://placehold.co/600x200?text=Tutor+Banner';
+                            return '/banner.png';
                           }
                         })()
-                      : 'https://placehold.co/600x200?text=Tutor+Banner'
+                      : '/banner.png'
                     )
             }
             alt={formData.name}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.currentTarget.src = 'https://placehold.co/600x200?text=Tutor+Banner';
+              e.currentTarget.src = '/banner.png';
               e.currentTarget.onerror = null;
             }}
           />
@@ -659,30 +660,26 @@ const DetailsSection = ({
 );
 
 const ExperienceLocationSection = ({ formData, handleFieldChange, t }) => {
-  // Calculate highest experience among current subjects
-  const highestSubjectExperience = formData.subjects?.reduce((max, subject) => {
-    return Math.max(max, subject.years_experience || 0);
-  }, 0) || 0;
 
   return (
-    <div className="space-y-4 w-full md:w-1/2">      
-      {/* Subject Experience Section */}
+    <div className="space-y-4 w-full md:w-1/2">
+      {/* Overall Experience Section - NEW */}
       <div className="bg-muted/30 p-3 rounded-lg border border-primary/20">
         <div className="flex items-center gap-2 mb-1">
-          <GraduationCap className="h-5 w-5 text-primary" />
-          <h3 className="font-medium">{t('highestSubjectExperience')}</h3>
+          <Award className="h-5 w-5 text-primary" />
+          <h3 className="font-medium">{t('overallExperience')}</h3>
         </div>
         <div className="flex items-center gap-3">
           <Input
             type="number"
             min="0"
             max="50"
-            value={highestSubjectExperience}
-            readOnly
+            value={formData.experience_years || 0}
+            onChange={(e) => handleFieldChange('experience_years', parseInt(e.target.value) || 0)}
             className="w-20 bg-background"
           />
           <span className="text-sm text-muted-foreground">
-            {t('years')} ({t('fromSubjects')})
+            {t('years')}
           </span>
         </div>
       </div>

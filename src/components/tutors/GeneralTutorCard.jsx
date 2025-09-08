@@ -29,7 +29,7 @@ const TutorCard = ({ tutor }) => {
           const education_system = subj?.education_system || subj?.educationSystem || p.education_system || p.educationSystem || null;
           const sector = subj?.sector || p.sector || 'General';
           const language = subj?.language || p.language || (Array.isArray(subj?.languages) ? subj.languages[0] : null) || null;
-              const years_experience = p.years_experience ?? p.yearsExp ?? subj?.years_experience ?? 0;
+          const years_experience = p.years_experience ?? p.yearsExp ?? subj?.years_experience ?? 0;
           return {
             name,
             subject: name,
@@ -65,12 +65,11 @@ const TutorCard = ({ tutor }) => {
     0
   );
   const maxYearsExp = Math.max(computedMaxYears || 0, tutor?.experience_years || tutor?.experienceYears || tutor?.experience || 0);
-  const grouped = subjectEntries.reduce((acc, subj) => {
-  let edu = subj?.education_system ?? subj?.educationSystem ?? null;
-  let sec = subj?.sector ?? subj?.Sector ?? null;
-    edu = edu || 'Other';
-    sec = sec || 'General';
-    const key = `${sec} - ${edu}`;
+
+  // NEW: group by subject (subject is now the group tag)
+  const groupedBySubject = subjectEntries.reduce((acc, subj) => {
+    const subjName = subj?.name || subj?.subject || 'Unknown';
+    const key = String(subjName);
     if (!acc[key]) acc[key] = [];
     acc[key].push(subj);
     return acc;
@@ -91,7 +90,7 @@ const TutorCard = ({ tutor }) => {
           {/* Banner */}
           <div className="relative w-full h-32 rounded-t-xl">
             <img
-              src={getBannerUrl(tutor) || getImageUrl(tutor?.bannerimg) || 'https://placehold.co/Tutor'}
+              src={getBannerUrl(tutor) || getImageUrl(tutor?.bannerimg) || 'banner.png'}
               alt="Banner"
               className="w-full h-full object-cover rounded-t-xl"
             />
@@ -139,17 +138,29 @@ const TutorCard = ({ tutor }) => {
               </div>
             </div>
 
-            {/* Subjects grouped by educationSystem-sector */}
-            {Object.entries(grouped).length > 0 ? (
-              Object.entries(grouped).map(([key, subjects]) => {
-                const isOpen = openTypes[key] ?? Object.keys(grouped).length === 1;
+            {/* Subjects grouped by subject name (subject is the group tag). Inside each subject we show unique sector/grade/education_system combos */}
+            {Object.entries(groupedBySubject).length > 0 ? (
+              Object.entries(groupedBySubject).map(([subjectKey, subjects]) => {
+                const isOpen = openTypes[subjectKey] ?? Object.keys(groupedBySubject).length === 1;
+
+                // Build unique combos of sector/grade/education_system for this subject
+                const combosMap = {};
+                subjects.forEach(s => {
+                  const edu = s?.education_system || s?.educationSystem || null;
+                  const sec = s?.sector || s?.Sector || 'General';
+                  const grade = s?.grade || '';
+                  const comboKey = `${sec}||${grade}||${edu}`;
+                  if (!combosMap[comboKey]) combosMap[comboKey] = { sector: sec, grade, education_system: edu };
+                });
+                const combos = Object.values(combosMap);
+
                 return (
                   <div
-                    key={key}
+                    key={subjectKey}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setOpenTypes((prev) => ({ ...prev, [key]: !isOpen }));
+                      setOpenTypes((prev) => ({ ...prev, [subjectKey]: !isOpen }));
                     }}
                     className={clsx(
                       'relative transition-all rounded-xl',
@@ -158,7 +169,7 @@ const TutorCard = ({ tutor }) => {
                         : 'p-0 border-none mt-2'
                     )}
                   >
-                    {/* Header */}
+                    {/* Header: now the subject is the tag */}
                     <div
                       className={clsx(
                         'flex items-center gap-2',
@@ -166,10 +177,10 @@ const TutorCard = ({ tutor }) => {
                       )}
                     >
                       <span className="px-3 py-0.5 text-[11px] font-semibold rounded-full shadow-sm border border-green-300 bg-green-100 text-green-700">
-                        {key}
+                        {subjectKey}
                       </span>
 
-                      {/* Language label (styled same as system-sector) */}
+                      {/* Language label (same as before) */}
                       {(() => {
                         const first = subjects[0] || {};
                         const lang =
@@ -190,7 +201,7 @@ const TutorCard = ({ tutor }) => {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          setOpenTypes((prev) => ({ ...prev, [key]: !isOpen }));
+                          setOpenTypes((prev) => ({ ...prev, [subjectKey]: !isOpen }));
                         }}
                         className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white hover:bg-primary/90 border border-primary shadow-sm transition"
                       >
@@ -203,11 +214,11 @@ const TutorCard = ({ tutor }) => {
                       </button>
                     </div>
 
-                    {/* Subjects */}
+                    {/* Sector/Grade combos (grouped inside the subject) */}
                     <AnimatePresence initial={false}>
                       {isOpen && (
                         <motion.div
-                          key="subjects"
+                          key="combos"
                           initial={{ opacity: 0, y: -4 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -4 }}
@@ -215,23 +226,40 @@ const TutorCard = ({ tutor }) => {
                           className="mt-2"
                         >
                           <div className="flex flex-wrap gap-2 -m-1">
-                            {subjects.map((subject, idx) => {
-                              const subjName = subject?.name || subject?.subject || '';
-                              const subjGrade = subject?.grade || '';
+                            {combos.map((c, idx) => {
+                              const sectors = Array.isArray(c.sector) ? c.sector : [c.sector];
+                              const title = [sectors.join(", "), c.grade, c.education_system].filter(Boolean).join(" - ");
+
                               return (
                                 <div
                                   key={idx}
-                                  className="flex items-center gap-1 px-2 py-1 rounded-md border text-xs text-primary border-primary bg-primary/10 max-w-xs truncate"
-                                  title={`${subjName}${subjGrade ? ` - ${subjGrade}` : ''}`}
+                                  className="flex items-center gap-1 px-2 py-1 rounded-md border text-xs text-primary border-primary bg-primary/10 max-w-xs"
+                                  title={title}
                                 >
-                                  <GraduationCap size={12} className="flex-shrink-0" />
-                                  <span className="truncate">
-                                    {subjName}
-                                    {subjGrade ? ` - ${subjGrade}` : ''}
-                                  </span>
+                                  <MapPin size={12} className="flex-shrink-0" />
+
+                                  <div className="flex flex-wrap items-center gap-1 flex-1">
+                                    {/* Sectors */}
+                                    {sectors.map((s, i) => (
+                                      <span
+                                        key={i}
+                                        className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] leading-tight"
+                                      >
+                                        {s}
+                                      </span>
+                                    ))}
+
+                                    {/* Grade & Education */}
+                                    {(c.grade || c.education_system) && (
+                                      <span className="ml-auto text-muted-foreground text-[10px] italic">
+                                        {c.grade}{c.education_system ? ` - ${c.education_system}` : ''}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               );
                             })}
+
                           </div>
                         </motion.div>
                       )}

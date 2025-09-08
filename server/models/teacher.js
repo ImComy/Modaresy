@@ -75,11 +75,27 @@ const TeacherSchema = new Schema(
       },
     ],
 
+    // simple casual property for tutor's total experience (moved from subject-level logic)
     experience_years: {
       type: Number,
       default: 0,
       required: false,
     },
+
+    // YouTube links for the tutor (moved from subject_profile)
+    youtube: [
+      {
+        title: { type: String, required: false },
+        url: {
+          type: String,
+          required: false,
+          validate: {
+            validator: v => v == null || v === '' || /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/.+$/.test(v),
+            message: 'Invalid YouTube URL'
+          }
+        }
+      }
+    ],
 
     rating: {
       type: Number,
@@ -135,22 +151,4 @@ export const EnrollmentRequest = mongoose.model(
 
 export const Teacher = User.discriminator('Teacher', TeacherSchema);
 
-TeacherSchema.pre('save', async function (next) {
-  try {
-    if (Array.isArray(this.subjects) && this.subjects.length > 0) {
-      const subs = await Subject.find({ _id: { $in: this.subjects } })
-        .select('years_experience')
-        .lean();
-      const maxYears = subs.reduce(
-        (max, s) => Math.max(max, (s && s.years_experience) || 0),
-        0
-      );
-      this.experience_years = maxYears;
-    } else {
-      this.experience_years = 0;
-    }
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
+// experience_years is now a simple property on the Teacher model.

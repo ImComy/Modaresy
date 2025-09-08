@@ -198,13 +198,61 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
       const response = await apiFetch(`/subjects/subjects/${subjectId}`, {
         method: 'DELETE',
       });
-      if (response.error && response.status !== 204) throw new Error(response.error);
+
+      // If apiFetch returns null/undefined (common for 204 No Content), treat as success.
+      // If it returns an object, check for .error.
+      if (!response) {
+        // update local state immediately so UI shows the deletion
+        setSubjects(prev => {
+          const next = prev.filter(s => String(s._id) !== String(subjectId));
+          // clamp selected index
+          setSelectedSubjectIndex(idx => {
+            const newIdx = Math.max(0, Math.min(idx, Math.max(0, next.length - 1)));
+            return newIdx;
+          });
+          return next;
+        });
+
+        setTutor(prev => {
+          if (!prev) return prev;
+          const nextTutor = { ...prev, subjects: (prev.subjects || []).filter(s => String(s._id) !== String(subjectId)) };
+          setOriginalTutor(structuredClone(nextTutor));
+          return nextTutor;
+        });
+
+        // mark as dirty in edit-mode (if appropriate)
+        try { markDirty(); } catch (e) { /* ignore if markDirty not available */ }
+
+        return { success: true };
+      }
+
+      // If response present, check for error
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      // successful JSON response path - also update local state
+      setSubjects(prev => {
+        const next = prev.filter(s => String(s._id) !== String(subjectId));
+        setSelectedSubjectIndex(idx => Math.max(0, Math.min(idx, Math.max(0, next.length - 1))));
+        return next;
+      });
+
+      setTutor(prev => {
+        if (!prev) return prev;
+        const nextTutor = { ...prev, subjects: (prev.subjects || []).filter(s => String(s._id) !== String(subjectId)) };
+        setOriginalTutor(structuredClone(nextTutor));
+        return nextTutor;
+      });
+
+      try { markDirty(); } catch (e) {}
+
       return { success: true };
     } catch (error) {
       toast({ title: 'Error', description: `Failed to delete subject: ${error.message}`, variant: 'destructive' });
       throw error;
     }
-  }, [toast]);
+  }, [toast, markDirty]);
 
   const updateSubjectProfile = useCallback(async (profileId, updateData) => {
     try {

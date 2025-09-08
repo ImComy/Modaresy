@@ -2,27 +2,33 @@ import { Teacher, Enrollment, EnrollmentRequest } from '../models/teacher.js';
 import { Subject } from '../models/subject.js';
 import { PersonalAvailability } from '../models/misc.js';
 
+/**
+ * Middleware - attach teacher to req
+ */
 export async function getTeacherbyId(req, res, next) {
-    try {
-        const { tutorId } = req.params;
-        if (!tutorId) return res.status(400).json({ error: "tutorId is required" });
-        
-        const teacher = await Teacher.findById(tutorId);
-        if (!teacher) return res.status(404).json({ error: "Teacher not found" });
-        
-        req.teacher = teacher;
-        next();
-    } catch (err) {
-        res.status(500).json({ error: "Error fetching teacher" });
-    }
+  try {
+    const { tutorId } = req.params;
+    if (!tutorId) return res.status(400).json({ error: "tutorId is required" });
+
+    const teacher = await Teacher.findById(tutorId);
+    if (!teacher) return res.status(404).json({ error: "Teacher not found" });
+
+    req.teacher = teacher;
+    next();
+  } catch (err) {
+    console.error('getTeacherbyId error:', err);
+    res.status(500).json({ error: "Error fetching teacher" });
+  }
 }
 
 export function isTeacher(req, res, next) {
-    if (req.user?.type === "Teacher") return next();
-    res.status(403).json({ error: "Teacher access required" });
+  if (req.user?.type === "Teacher") return next();
+  res.status(403).json({ error: "Teacher access required" });
 }
 
-
+/**
+ * Enroll student to teacher
+ */
 export async function enrollStudent(student, teacher) {
   try {
     if (!student || !teacher) {
@@ -48,6 +54,9 @@ export async function enrollStudent(student, teacher) {
   }
 }
 
+/**
+ * Create new tutor
+ */
 export async function createNewTutor(req, res) {
   try {
     console.log('createNewTutor called');
@@ -98,6 +107,20 @@ export async function createNewTutor(req, res) {
   }
 }
 
+/**
+ * Normalize filter input: allow string or array for language/sector
+ */
+function normalizeFilterInput(val) {
+  if (val == null) return null;
+  if (Array.isArray(val)) return val.map(v => String(v).trim()).filter(Boolean);
+  if (typeof val === 'string') return [val.trim()];
+  // other types -> attempt to stringify
+  return [String(val)];
+}
+
+/**
+ * filterTutors: aggregation pipeline with correct handling of array fields (language/sector)
+ */
 export async function filterTutors(filters) {
   const {
     educationSystem,
@@ -120,6 +143,11 @@ export async function filterTutors(filters) {
     if (minRating != null && !Number.isNaN(minRating)) teacherMatch.rating = { $gte: Number(minRating) };
     if (Object.keys(teacherMatch).length) pipeline.push({ $match: teacherMatch });
 
+    // Prepare normalized filters for language/sector
+    const languageArray = normalizeFilterInput(language); // null | ['Arabic'] | ['Arabic','English']
+    const sectorArray = normalizeFilterInput(sector);
+
+    // Lookup subject_profiles and subjects
     pipeline.push({
       $lookup: {
         from: 'subjectprofiles',
@@ -140,13 +168,31 @@ export async function filterTutors(filters) {
     });
     pipeline.push({ $unwind: { path: '$subject_doc', preserveNullAndEmptyArrays: false } });
 
+    // Build profile match based on provided filters
     const profileMatch = {};
     if (educationSystem) profileMatch['subject_doc.education_system'] = educationSystem;
     if (grade) profileMatch['subject_doc.grade'] = grade;
     if (subject) profileMatch['subject_doc.name'] = subject;
-    if (language) profileMatch['subject_doc.language'] = language;
-    if (sector) profileMatch['subject_doc.sector'] = sector;
 
+    // language: if client passed array -> $all, else exact match against array elements works by using the value directly
+    if (languageArray && languageArray.length > 0) {
+      if (languageArray.length === 1) {
+        profileMatch['subject_doc.language'] = languageArray[0]; // matches if array contains this value
+      } else {
+        profileMatch['subject_doc.language'] = { $all: languageArray }; // subject_doc.language must contain all items
+      }
+    }
+
+    // sector: same logic as language
+    if (sectorArray && sectorArray.length > 0) {
+      if (sectorArray.length === 1) {
+        profileMatch['subject_doc.sector'] = sectorArray[0];
+      } else {
+        profileMatch['subject_doc.sector'] = { $all: sectorArray };
+      }
+    }
+
+    // price filtering (subject_profiles private/group pricing)
     if (minPrice != null || maxPrice != null) {
       const priceClauses = [];
       if (minPrice != null) {
@@ -169,6 +215,7 @@ export async function filterTutors(filters) {
       pipeline.push({ $match: { 'subject_profiles.rating': { $gte: Number(minRating) } } });
     }
 
+    // Group back teacher docs and attach matchedProfiles
     pipeline.push({
       $group: {
         _id: '$_id',
@@ -185,6 +232,7 @@ export async function filterTutors(filters) {
       }
     });
 
+    // add coordinates convenience field
     pipeline.push({
       $addFields: {
         coordinates: {
@@ -200,6 +248,7 @@ export async function filterTutors(filters) {
       }
     });
 
+    // remove sensitive/internal fields
     pipeline.push({ $project: { password: 0, __v: 0, 'subject_profiles.__v': 0 } });
 
     const results = await Teacher.aggregate(pipeline).exec();
@@ -212,13 +261,14 @@ export async function filterTutors(filters) {
 
 export async function recommendTutorsForStudent(student, { q, page = 1, limit = 30 } = {}) {
   try {
-    const studentEdu = student.education_system;
-    const studentGrade = student.grade;
-    const studentSector = student.sector;
-    const governate = student.governate;
+    const studentEdu = student.education_system || null;
+    const studentGrade = student.grade || null;
+    const studentSector = student.sector || null;
+    const governate = student.governate || null;
 
     const pipeline = [];
 
+    // Bring subject_profiles & subject_doc
     pipeline.push({
       $lookup: {
         from: 'subjectprofiles',
@@ -239,29 +289,75 @@ export async function recommendTutorsForStudent(student, { q, page = 1, limit = 
     });
     pipeline.push({ $unwind: { path: '$subject_doc', preserveNullAndEmptyArrays: true } });
 
+    // Sector match (safe default = 0 if missing)
+    const matchSectorExpr = studentSector
+      ? {
+          $cond: [
+            { $and: [
+              { $ifNull: ['$subject_doc.sector', false] },
+              { $in: [ studentSector, { $ifNull: ['$subject_doc.sector', []] } ] }
+            ] },
+            1,
+            0
+          ]
+        }
+      : 0;
+
+    // Add scoring fields
     pipeline.push({
       $addFields: {
-        matchSubject: { $cond: [ { $eq: ['$subject_doc.grade', studentGrade] }, 2, 0 ] },
-        matchEdu: { $cond: [ { $eq: ['$subject_doc.education_system', studentEdu] }, 2, 0 ] },
-        matchSector: { $cond: [ { $eq: ['$subject_doc.sector', studentSector] }, 1, 0 ] },
-        profileRatingScore: { $cond: [ { $ifNull: ['$subject_profiles.rating', false] }, '$subject_profiles.rating', 0 ] },
+        matchSubject: studentGrade
+          ? { $cond: [ { $eq: ['$subject_doc.grade', studentGrade] }, 2, 0 ] }
+          : 0,
+        matchEdu: studentEdu
+          ? { $cond: [ { $eq: ['$subject_doc.education_system', studentEdu] }, 2, 0 ] }
+          : 0,
+        matchSector: matchSectorExpr,
+        profileRatingScore: { $ifNull: ['$subject_profiles.rating', 0] }
       }
     });
 
+    // Sum scores per tutor
     pipeline.push({
       $group: {
         _id: '$_id',
         doc: { $first: '$$ROOT' },
-        totalScore: { $sum: { $add: [ '$matchSubject', '$matchEdu', '$matchSector', '$profileRatingScore' ] } },
-        subject_profiles: { $push: { $mergeObjects: [ '$subject_profiles', { subject_doc: '$subject_doc' } ] } }
+        totalScore: {
+          $sum: { $add: [ '$matchSubject', '$matchEdu', '$matchSector', '$profileRatingScore' ] }
+        },
+        subject_profiles: {
+          $push: { $mergeObjects: [ '$subject_profiles', { subject_doc: '$subject_doc' } ] }
+        }
       }
     });
 
-    pipeline.push({ $replaceRoot: { newRoot: { $mergeObjects: ['$doc', { score: '$totalScore', subject_profiles: '$subject_profiles' }] } } });
+    pipeline.push({
+      $replaceRoot: {
+        newRoot: {
+          $mergeObjects: [
+            '$doc',
+            { score: '$totalScore', subject_profiles: '$subject_profiles' }
+          ]
+        }
+      }
+    });
 
-    if (governate) pipeline.push({ $addFields: { locationBoost: { $cond: [ { $eq: ['$governate', governate] }, 1, 0 ] } } });
-    pipeline.push({ $addFields: { finalScore: { $add: [ '$score', { $ifNull: ['$locationBoost', 0] }, '$rating' ] } } });
+    // Location boost (optional)
+    if (governate) {
+      pipeline.push({
+        $addFields: {
+          locationBoost: { $cond: [ { $eq: ['$governate', governate] }, 1, 0 ] }
+        }
+      });
+    }
 
+    pipeline.push({
+      $addFields: {
+        finalScore: { $add: [ '$score', { $ifNull: ['$locationBoost', 0] }, { $ifNull: ['$rating', 0] } ] }
+      }
+    });
+
+    // Add coordinates if exist
     pipeline.push({
       $addFields: {
         coordinates: {
@@ -277,10 +373,16 @@ export async function recommendTutorsForStudent(student, { q, page = 1, limit = 
       }
     });
 
+    // Sorting by score (high to low)
     pipeline.push({ $sort: { finalScore: -1, rating: -1 } });
 
+    // Pagination
     const skip = Math.max(0, (page - 1) * limit);
-    pipeline.push({ $skip: skip }, { $limit: limit }, { $project: { password: 0, __v: 0, 'subject_profiles.__v': 0 } });
+    pipeline.push(
+      { $skip: skip },
+      { $limit: limit },
+      { $project: { password: 0, __v: 0, 'subject_profiles.__v': 0 } }
+    );
 
     const tutors = await Teacher.aggregate(pipeline).exec();
     const total = await Teacher.countDocuments();
@@ -290,4 +392,3 @@ export async function recommendTutorsForStudent(student, { q, page = 1, limit = 
     throw new Error('recommend error: ' + err.message);
   }
 }
-

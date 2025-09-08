@@ -16,6 +16,10 @@ import {
   Clock,
   Users,
   Award,
+  MapPin,
+  Languages,
+  Grid3X3,
+  ChevronRight
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -26,12 +30,11 @@ import {
 } from '@/components/ui/card';
 import SubjectPricingInfo from '@/components/profile/Subject';
 import TutorVideoManager from '@/components/profile/TutorVideoManager';
-import TutorCourseInfo from '@/components/profile/TutorCourseInfo';
 import TutorScheduleManager from '@/components/profile/TutorScheduleManager';
 import TutorReviews from '@/components/profile/TutorReviews';
 import TutorLocationMap from './map';
 
-const MENU_MAX_HEIGHT_PX = 18 * 16; // Tailwind max-h-72 => 18rem => ~288px
+const MENU_MAX_HEIGHT_PX = 18 * 16; 
 
 const SubjectSelector = ({
   tutor,
@@ -49,6 +52,7 @@ const SubjectSelector = ({
   );
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [expandedSubjectId, setExpandedSubjectId] = useState(null);
 
   const toggleRef = useRef(null);
   const listRef = useRef(null);
@@ -96,9 +100,15 @@ const SubjectSelector = ({
       setSelectedSubjectIndex(index);
       setIsOpen(false);
       setHighlightIndex(-1);
+      setExpandedSubjectId(null);
     },
     [subjects.length]
   );
+
+  const toggleExpandSubject = useCallback((subjectId, e) => {
+    e.stopPropagation();
+    setExpandedSubjectId(prev => prev === subjectId ? null : subjectId);
+  }, []);
 
   // Close when clicking outside toggle or the list (works with portal listRef)
   useEffect(() => {
@@ -197,23 +207,116 @@ const SubjectSelector = ({
     };
   }, [isOpen]);
 
+  // Helper to handle arrays for sectors and languages
+  const getDisplayValues = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    return [value];
+  };
+
   const renderPreviewBadges = (sub) => {
     if (!sub) return null;
-    const fields = ['education_system', 'grade', 'sector', 'language'];
-
-    return fields
-      .map((field) => [field, sub[field] || sub.subject_id?.[field]])
-      .filter(([, val]) => Boolean(val))
-      .slice(0, 3)
-      .map(([field, val], idx) => (
-        <Badge
-          key={`${field}-${idx}`}
-          variant="secondary"
-          className="text-[10px] px-1.5 py-0.5 truncate max-w-[96px]"
-        >
-          {val}
+    
+    const system = sub.education_system || sub.subject_id?.education_system;
+    const grade = sub.grade || sub.subject_id?.grade;
+    const sectors = getDisplayValues(sub.sector || sub.subject_id?.sector);
+    const languages = getDisplayValues(sub.language || sub.subject_id?.language);
+    
+    const badges = [];
+    
+    if (system) {
+      badges.push(
+        <Badge key="system" variant="secondary" className="text-[10px] px-1.5 py-0.5">
+          {system}
         </Badge>
-      ));
+      );
+    }
+    
+    if (grade) {
+      badges.push(
+        <Badge key="grade" variant="secondary" className="text-[10px] px-1.5 py-0.5">
+          {grade}
+        </Badge>
+      );
+    }
+    
+    // Show sector information
+    if (sectors.length > 0) {
+      badges.push(
+        <Badge key="sectors" variant="outline" className="text-[10px] px-1.5 py-0.5 flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">
+          <Grid3X3 size={10} />
+          {sectors.length === 1 ? sectors[0] : `${sectors.length} sectors`}
+        </Badge>
+      );
+    }
+    
+    // Show language information
+    if (languages.length > 0) {
+      badges.push(
+        <Badge key="languages" variant="outline" className="text-[10px] px-1.5 py-0.5 flex items-center gap-1 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">
+          <Languages size={10} />
+          {languages.length === 1 ? languages[0] : `${languages.length} languages`}
+        </Badge>
+      );
+    }
+    
+    return badges.slice(0, 4);
+  };
+
+  const renderSubjectDetailsInDropdown = (subject) => {
+    const system = subject.education_system || subject.subject_id?.education_system;
+    const grade = subject.grade || subject.subject_id?.grade;
+    const sectors = getDisplayValues(subject.sector || subject.subject_id?.sector);
+    const languages = getDisplayValues(subject.language || subject.subject_id?.language);
+    const isExpanded = expandedSubjectId === (subject._id || subject.tempId);
+    
+    return (
+      <div className="min-w-0 flex-1">
+        <div className="font-medium text-sm truncate">
+          {subject.name || subject.subject_id?.name || t('unknownSubject', 'Unknown subject')}
+        </div>
+        <div className="text-xs text-muted-foreground truncate">
+          {system || '—'} • {grade || '—'}
+        </div>
+        
+        {/* Expandable details */}
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="mt-2 space-y-2"
+            >
+              {/* Sectors */}
+              {sectors.length > 0 && (
+                <div className="flex flex-wrap gap-1 items-center">
+                  <span className="text-xs font-medium text-muted-foreground">Sectors:</span>
+                  {sectors.map((sector, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                      {sector}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              
+              {/* Languages */}
+              {languages.length > 0 && (
+                <div className="flex flex-wrap gap-1 items-center">
+                  <span className="text-xs font-medium text-muted-foreground">Languages:</span>
+                  {languages.map((language, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                      {language}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
   };
 
   const subjectsCount = subjects?.length || 0;
@@ -242,16 +345,16 @@ const SubjectSelector = ({
 
   if (!subjects || subjectsCount === 0) {
     return (
-      <div className="rounded-xl bg-[color:hsl(var(--muted))/0.08] border border-[color:hsl(var(--border))] px-6 py-10 text-center space-y-4 shadow-sm mt-10">
+      <div className="rounded-xl bg-muted/10 border border-border px-6 py-10 text-center space-y-4 shadow-sm mt-10">
         <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-full bg-[color:hsl(var(--primary))/0.08] text-[color:hsl(var(--primary))] flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center">
             <BookOpen className="w-7 h-7" />
           </div>
         </div>
-        <h2 className="text-lg font-semibold text-[color:hsl(var(--foreground))]">
+        <h2 className="text-lg font-semibold text-foreground">
           {t('noSubjectsHeader', 'No Subjects Added')}
         </h2>
-        <p className="text-[color:hsl(var(--muted-foreground))] max-w-md mx-auto text-sm">
+        <p className="text-muted-foreground max-w-md mx-auto text-sm">
           {t('noSubjectsDescription', "This tutor hasn't added any subjects yet.")}
         </p>
       </div>
@@ -265,17 +368,17 @@ const SubjectSelector = ({
         <Card className="md:w-fit flex justify-center items-center">
           <CardHeader className="p-4 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-md bg-[color:hsl(var(--primary))/0.08] text-[color:hsl(var(--primary))]">
+              <div className="flex items-center justify-center w-10 h-10 rounded-md bg-primary/10 text-primary">
                 <BookOpen className="w-5 h-5" />
               </div>
               <div>
-                <CardTitle className="text-base font-semibold text-[color:hsl(var(--foreground))] flex items-center gap-2">
+                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
                   {t('subjectss', 'Subjects')}
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-[color:hsl(var(--muted))/0.12] text-[color:hsl(var(--muted-foreground))] ml-2">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground ml-2">
                     {subjectsCount}
                   </span>
                 </CardTitle>
-                <div className="text-sm text-[color:hsl(var(--muted-foreground))]">
+                <div className="text-sm text-muted-foreground">
                   {t('chooseSubjectTip', 'Select a subject to view and edit details')}
                 </div>
               </div>
@@ -289,10 +392,10 @@ const SubjectSelector = ({
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
                 onClick={toggleDropdown}
-                className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border bg-[color:hsl(var(--background))] hover:bg-[color:hsl(var(--muted))/0.06] transition-shadow shadow-sm focus:outline-none focus:ring-2 focus:ring-[color:hsl(var(--ring))]"
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border bg-background hover:bg-muted/5 transition-shadow shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <div className="flex flex-col items-start overflow-hidden">
-                  <span className="font-medium text-sm text-[color:hsl(var(--foreground))] truncate">
+                  <span className="font-medium text-sm text-foreground truncate">
                     {selectedSubject?.name ||
                       selectedSubject?.subject_id?.name ||
                       t('unknownSubject', 'Unknown subject')}
@@ -305,12 +408,12 @@ const SubjectSelector = ({
                         {t('egp', 'EGP')}
                       </Badge>
                     ) : (
-                      <span className="text-xs text-[color:hsl(var(--muted-foreground))]">—</span>
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </div>
                 </div>
                 <ChevronDown
-                  className={`w-4 h-4 text-[color:hsl(var(--muted-foreground))] transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
                 />
               </button>
 
@@ -335,18 +438,17 @@ const SubjectSelector = ({
                         maxHeight: portalStyle.maxHeight,
                         overflowY: 'auto',
                       }}
-                      className="rounded-xl border bg-[color:hsl(var(--popover))] shadow-xl overflow-y-auto"
+                      className="rounded-xl border bg-popover shadow-xl overflow-y-auto"
                     >
                       {subjects.map((subject, idx) => {
-                        const name =
-                          subject.name ||
-                          subject.subject_id?.name ||
-                          t('unknownSubject', 'Unknown subject');
                         const isSelected = idx === selectedSubjectIndex;
                         const isHighlighted = idx === highlightIndex;
+                        const subjectId = subject._id || subject.tempId || `${idx}`;
+                        const isExpanded = expandedSubjectId === subjectId;
+                        
                         return (
                           <li
-                            key={subject._id || subject.tempId || `${idx}`}
+                            key={subjectId}
                             role="option"
                             aria-selected={isSelected}
                           >
@@ -355,55 +457,39 @@ const SubjectSelector = ({
                               onClick={() => selectIndex(idx)}
                               onMouseEnter={() => setHighlightIndex(idx)}
                               onMouseLeave={() => setHighlightIndex(-1)}
-                              className={`w-full text-left px-4 py-3 flex flex-col gap-2 transition-colors ${
+                              className={`w-full text-left p-4 flex items-start gap-3 transition-colors ${
                                 isSelected
-                                  ? 'bg-[color:hsl(var(--primary))/0.08] text-[color:hsl(var(--primary))]'
+                                  ? 'bg-primary/10 text-primary'
                                   : ''
                               } ${
                                 isHighlighted && !isSelected
-                                  ? 'bg-[color:hsl(var(--muted))/0.06]'
+                                  ? 'bg-muted/5'
                                   : ''
                               }`}
                             >
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <div className="flex-shrink-0 w-9 h-9 rounded-md bg-[color:hsl(var(--muted))/0.06] flex items-center justify-center text-[color:hsl(var(--muted-foreground))]">
-                                    <BookOpen className="w-4 h-4" />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <div className="font-medium text-sm truncate">
-                                      {name}
-                                    </div>
-                                    <div className="text-xs text-[color:hsl(var(--muted-foreground))] truncate">
-                                      {subject.subject_id?.grade || subject.grade || '—'} • {subject.subject_id?.education_system || subject.education_system || '—'}
-                                    </div>
-                                  </div>
-                                </div>
-
+                              <div className="flex-shrink-0 w-9 h-9 rounded-md bg-muted/10 flex items-center justify-center text-muted-foreground mt-0.5">
+                                <BookOpen className="w-4 h-4" />
+                              </div>
+                              
+                              {renderSubjectDetailsInDropdown(subject)}
+                              
+                              <div className="flex flex-col items-end gap-2 flex-shrink-0">
                                 <div className="flex items-center gap-2">
                                   {subject.hourlyRate || subject.price ? (
-                                    <div className="text-sm font-semibold text-[color:hsl(var(--foreground))]">
+                                    <div className="text-sm font-semibold text-foreground whitespace-nowrap">
                                       {subject.hourlyRate ?? subject.price} {t('egp', 'EGP')}
                                     </div>
                                   ) : (
-                                    <div className="text-xs text-[color:hsl(var(--muted-foreground))]">—</div>
+                                    <div className="text-xs text-muted-foreground">—</div>
                                   )}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => toggleExpandSubject(subjectId, e)}
+                                    className={`p-1 rounded transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                                  >
+                                    <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                                  </button>
                                 </div>
-                              </div>
-
-                              <div className="flex gap-2 mt-1 flex-wrap">
-                                {['education_system', 'grade', 'sector', 'language'].map(
-                                  (f) =>
-                                    subject?.[f] || subject?.subject_id?.[f] ? (
-                                      <Badge
-                                        key={f}
-                                        variant="secondary"
-                                        className="text-[10px] px-1.5 py-0.5 truncate max-w-[96px]"
-                                      >
-                                        {subject[f] || subject.subject_id?.[f]}
-                                      </Badge>
-                                    ) : null
-                                )}
                               </div>
                             </button>
                           </li>
@@ -441,10 +527,10 @@ const SubjectSelector = ({
                   onTutorChange={onTutorChange}
                 />
                 <TutorVideoManager
-                  videos={selectedSubject?.youtube || []}
+                  videos={tutor?.youtube || []}
                   isEditing={isEditing}
                   isOwner={isOwner}
-                  onVideosChange={(newVideos) => handleNestedChange('youtube', newVideos)}
+                  onVideosChange={(newVideos) => onTutorChange('youtube', newVideos)}
                 />
                 {!isEditing && (
                   <TutorReviews
@@ -456,13 +542,6 @@ const SubjectSelector = ({
               </div>
 
               <div className="space-y-6">
-                <TutorCourseInfo
-                  subject={selectedSubject}
-                  tutor={tutor}
-                  isEditing={isEditing}
-                  onFieldChange={handleNestedChange}
-                  onTutorChange={onTutorChange}
-                />
                 <TutorScheduleManager
                   tutor={tutor}
                   subject={selectedSubject}
@@ -481,17 +560,10 @@ const SubjectSelector = ({
               isEditing={isEditing}
             />
             <TutorVideoManager
-              videos={selectedSubject?.youtube || []}
+              videos={tutor?.youtube || []}
               isEditing={isEditing}
               isOwner={isOwner}
-              onVideosChange={(newVideos) => handleNestedChange('youtube', newVideos)}
-            />
-            <TutorCourseInfo
-              subject={selectedSubject}
-              tutor={tutor}
-              isEditing={isEditing}
-              onFieldChange={handleNestedChange}
-              onTutorChange={onTutorChange}
+              onVideosChange={(newVideos) => onTutorChange('youtube', newVideos)}
             />
             <TutorScheduleManager
               tutor={tutor}

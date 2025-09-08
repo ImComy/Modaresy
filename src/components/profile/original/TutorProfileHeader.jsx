@@ -59,12 +59,11 @@ const TutorProfileHeaderDisplay = ({ tutor, isOwner }) => {
           )} */}
           <img
             src={
-              getBannerUrl(tutor) || 'https://placehold.co/600x200?text=Tutor+Banner'
+              getBannerUrl(tutor) || '/banner.png'
             }
             alt={tutor.name}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.currentTarget.src = 'https://placehold.co/600x200?text=Tutor+Banner';
               e.currentTarget.onerror = null;
             }}
           />
@@ -261,11 +260,6 @@ const ExperienceLocationSection = ({ tutor, t }) => {
             <span className="font-medium text-lg">
               {maxExperience} {t('years')}
             </span>
-            {tutor.subjects?.length > 0 && (
-              <span className="text-sm text-muted-foreground">
-                ({t('highestAmongSubjects')})
-              </span>
-            )}
           </div>
         </div>
       </div>
@@ -297,16 +291,53 @@ const ExperienceLocationSection = ({ tutor, t }) => {
   );
 };
 
-const SubjectsDisplay = ({ tutor, t }) => {
+function SubjectsDisplay({ tutor = {}, t }) {
   const subjects = tutor.subjects || [];
 
+  const normalizeArrayField = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.filter(Boolean);
+    if (typeof value === 'string' && value.includes(',')) {
+      return value.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    return [String(value)];
+  };
+
+  const Chips = ({ value, ariaLabel }) => {
+    const items = normalizeArrayField(value);
+    if (items.length === 0) {
+      return <span className="font-medium text-xs">{t('notSpecified')}</span>;
+    }
+
+    return (
+      <div
+        className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full p-1"
+        aria-label={ariaLabel}
+      >
+        {items.map((it, i) => (
+          <span
+            key={it + i}
+            className="flex-shrink-0 text-[10px] px-2 py-1 rounded-full border border-primary/30 bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 backdrop-blur-sm whitespace-nowrap transition-all hover:scale-105 hover:border-primary/50"
+            title={it}
+          >
+            {it}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <div className={cn(
-      "w-full bg-white dark:bg-gray-800 shadow-lg rounded-xl p-5 z-30",
-      "max-h-[400px] overflow-y-auto flex-1 min-w-0 md:max-w-xs mt-0 md:-mt-32"
-    )}>
-      <div className="text-lg font-semibold flex items-center gap-2 text-primary mb-4">
-        <GraduationCap size={20} />
+    <div
+      className={cn(
+        'w-full bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 shadow-lg rounded-2xl p-4 z-30 border border-gray-200 dark:border-gray-700 rounded-l-md',
+        'max-h-[400px] overflow-y-auto flex-1 min-w-0 md:max-w-xs mt-0 md:-mt-32'
+      )}
+    >
+      <div className="text-lg font-semibold flex items-center gap-2 text-primary mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">
+        <div className="p-1.5 rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10">
+          <GraduationCap size={20} className="text-primary" />
+        </div>
         {t('teachesSubjects')}
       </div>
 
@@ -318,41 +349,51 @@ const SubjectsDisplay = ({ tutor, t }) => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="rounded-xl px-4 py-3 bg-white/60 dark:bg-white/10 backdrop-blur-sm border border-primary/20 shadow-sm"
+              className="rounded-xl p-3 bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/70 dark:to-gray-800/70 backdrop-blur-sm border border-gray-200/80 dark:border-gray-600/50 shadow-sm hover:shadow-md transition-all hover:border-primary/30"
             >
-              <div className="flex items-center gap-2 mb-1">
-                <GraduationCap size={18} className="text-primary shrink-0" />
-                <h4 className="text-base font-semibold">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1 rounded-md bg-primary/10">
+                  <GraduationCap size={16} className="text-primary shrink-0" />
+                </div>
+                <h4 className="text-base font-semibold truncate flex-1">
                   {subject.name || t('unnamedSubject')}
                 </h4>
               </div>
-              <div className="text-xs text-muted-foreground grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1">
-                    <span>{t('System')}:</span>
-                    <span className="font-medium">
+
+              <div className="text-xs text-muted-foreground flex flex-col gap-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2">
+                    <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                      {t('System')}
+                    </div>
+                    <div className="font-medium truncate text-xs">
                       {subject.education_system || t('notSpecified')}
-                    </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span>{t('Grade')}:</span>
-                    <span className="font-medium">
+                  
+                  <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2">
+                    <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                      {t('Grade')}
+                    </div>
+                    <div className="font-medium truncate text-xs">
                       {subject.grade || t('notSpecified')}
-                    </span>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1">
-                    <span>{t('Sector')}:</span>
-                    <span className="font-medium">
-                      {subject.sector || t('notSpecified')}
-                    </span>
+
+                <div className="space-y-2">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                      {t('Sector')}
+                    </div>
+                    <Chips value={subject.sector} ariaLabel={`${t('Sector')} for ${subject.name || ''}`} />
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span>{t('Language')}:</span>
-                    <span className="font-medium">
-                      {subject.language || t('notSpecified')}
-                    </span>
+
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                      {t('Language')}
+                    </div>
+                    <Chips value={subject.language} ariaLabel={`${t('Language')} for ${subject.name || ''}`} />
                   </div>
                 </div>
               </div>
@@ -360,14 +401,18 @@ const SubjectsDisplay = ({ tutor, t }) => {
           ))}
         </div>
       ) : (
-        <div className="border-2 border-dashed border-border rounded-xl p-6 bg-muted/20 flex flex-col items-center text-center text-muted-foreground gap-3">
-          <GraduationCap size={40} className="text-primary/50" />
+        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-5 bg-gradient-to-br from-gray-100/50 to-gray-200/30 dark:from-gray-700/30 dark:to-gray-800/20 flex flex-col items-center text-center text-muted-foreground gap-3">
+          <div className="p-2 rounded-full bg-primary/10">
+            <GraduationCap size={32} className="text-primary/60" />
+          </div>
           <p className="font-medium text-sm">{t('noSubjectsAdded')}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Subjects will appear here once added</p>
         </div>
       )}
     </div>
   );
-};
+}
+
 
 const AboutMeSection = ({ aboutMe, t }) => (
   <div className="w-full flex flex-col  rtl:text-right">

@@ -31,9 +31,10 @@ const port = process.env.PORT || process.env.port || 3000;
 app.use(express.json());
 app.use(cookieParser());
 
+const CLIENT_URL = 'http://localhost:5173';
 app.use(
   cors({
-    origin: ['https://www.modaresy.me', 'https://modaresy.me'],
+    origin: CLIENT_URL,
     credentials: true,
   })
 );

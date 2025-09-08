@@ -8,6 +8,23 @@ import {
 import { Teacher } from '../models/teacher.js';
 import { PersonalAvailability } from '../models/misc.js';
 
+/**
+ * Normalize query params into arrays if needed
+ * - Accepts comma-separated string or single string
+ * - Always returns an array of strings
+ */
+function normalizeToArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map(String);
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+  }
+  return [String(value)];
+}
+
 export async function getProfile(req, res) {
   try {
     console.log('getProfile called for user:', req.user._id);
@@ -61,6 +78,7 @@ export async function updateProfile(req, res) {
       address: updated_information.address,
       experience_years: updated_information.experience_years,
       rating: updated_information.rating,
+      youtube: updated_information.youtube,
     };
 
     Object.keys(teacherUpdateData).forEach((key) => {
@@ -101,7 +119,6 @@ export async function updateProfile(req, res) {
       }
     }
 
-    // Persist location coordinates if provided
     if (updated_information.location_coordinates && typeof updated_information.location_coordinates === 'object') {
       const loc = updated_information.location_coordinates;
       const lat = loc.latitude ?? loc.lat ?? null;
@@ -258,8 +275,8 @@ export async function filterTutorsController(req, res) {
       educationSystem: req.query.education_system || req.query.educationSystem,
       grade: req.query.grade,
       subject: req.query.subject,
-      language: req.query.language,
-      sector: req.query.sector,
+      language: normalizeToArray(req.query.language),
+      sector: normalizeToArray(req.query.sector),
       governate: req.query.governate,
       district: req.query.district,
       minRating: req.query.min_rating

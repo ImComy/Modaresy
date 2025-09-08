@@ -158,24 +158,49 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
   const isMissingRequiredFilters = useMemo(() => {
     return !filters || filters.subject === 'none' || filters.grade === 'none';
   }, [filters]);
-
   const filteredTutors = useMemo(() => {
-    if (!tutors || !Array.isArray(tutors)) {
-      return [];
+    if (!tutors || !Array.isArray(tutors)) return [];
+
+    const normalize = (v) => (v == null ? '' : String(v));
+
+    const matches = (subjectValue, filterValue) => {
+      // treat 'all' or 'none' or empty filter as no-op (always match)
+      if (!filterValue || filterValue === 'all' || filterValue === 'none') return true;
+
+      if (Array.isArray(filterValue)) {
+        return filterValue.some((fv) => matches(subjectValue, fv));
+      }
+
+      const f = String(filterValue).toLowerCase();
+
+      if (Array.isArray(subjectValue)) {
+        return subjectValue.some((sv) => String(sv).toLowerCase() === f);
+      }
+
+      return String(subjectValue).toLowerCase() === f;
+    };
+
+    // If required filters are missing, return all tutors (map should show everyone)
+    if (!filters || filters.subject === 'none' || filters.grade === 'none') {
+      return tutors;
     }
 
-    return tutors.filter(
-      (tutor) =>
-        Array.isArray(tutor.subjects) &&
-        tutor.subjects.some(
-          (s) =>
-            s.subject === filters.subject &&
-            s.grade === filters.grade &&
-            (!filters.language || s.language === filters.language) &&
-            (!filters.education_system || s.education_system === filters.education_system)
-        )
-    );
-  }, [tutors, filters?.subject, filters?.grade, filters?.language, filters?.education_system]);
+    return tutors.filter((tutor) => {
+      if (!Array.isArray(tutor.subjects)) return false;
+
+      return tutor.subjects.some((s) => {
+        const subjectMatch = normalize(s.subject) === normalize(filters.subject);
+        const gradeMatch = normalize(s.grade) === normalize(filters.grade);
+        if (!subjectMatch || !gradeMatch) return false;
+
+        const languageMatch = matches(s.language, filters.language);
+        const eduMatch = matches(s.education_system, filters.education_system);
+        const sectorMatch = matches(s.sector, filters.sector);
+
+        return languageMatch && eduMatch && sectorMatch;
+      });
+    });
+  }, [tutors, filters?.subject, filters?.grade, filters?.language, filters?.education_system, filters?.sector]);
 
   useEffect(() => {
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -227,7 +252,9 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
   }, [getUserLocation]);
 
   useEffect(() => {
-    const tutorsWithDistances = filteredTutors
+    const sourceTutors = (Array.isArray(filteredTutors) && filteredTutors.length > 0) ? filteredTutors : tutors || [];
+
+    const tutorsWithDistances = sourceTutors
       .map((tutor) => {
         const processedTutor = processTutorData(tutor, filters);
 
@@ -296,60 +323,16 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
   }
 
   if (isMissingRequiredFilters) {
-    return (
-      <div className="relative h-[calc(100vh-4rem)] w-full">
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          <Card className="max-w-md border-red-500/40 bg-red-50 dark:bg-red-950">
-            <CardContent className="flex items-center gap-4 py-6 text-red-600 dark:text-red-300">
-              <AlertTriangle className="w-6 h-6 flex-shrink-0" />
-              <div>
-                <h4 className="font-semibold text-base">
-                  {t('missingFilters', 'Missing Required Filters')}
-                </h4>
-                <p className="text-sm mt-1 text-red-500 dark:text-red-400">
-                  {t(
-                    'selectSubjectGrade',
-                    'Please select both a subject and grade to see tutor results.'
-                  )}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        <MapContainer center={userLocation} zoom={10} scrollWheelZoom={true} className="h-full w-full z-0 opacity-50">
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-        </MapContainer>
-      </div>
-    );
+  // show banner but continue to render full map with tutors (map will show ALL tutors as fallback)
+  // we fall through to normal rendering below
+  /* eslint-disable no-console */
+  console.debug('[MapSearchPage] missing required filters — showing all tutors on map');
+  /* eslint-enable no-console */
   }
 
   if (filteredTutors.length === 0) {
-    return (
-      <div className="relative h-[calc(100vh-4rem)] w-full">
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          <Card className="max-w-md bg-muted/60 dark:bg-muted/40">
-            <CardContent className="flex items-center gap-4 py-6 text-muted-foreground">
-              <UserX className="w-6 h-6 flex-shrink-0" />
-              <div>
-                <h4 className="font-semibold text-base">{t('noTutorsFound', 'No Tutors Found')}</h4>
-                <p className="text-sm mt-1">
-                  {t('tryChangingFilters', 'Try adjusting your filters to see results.')}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        <MapContainer center={userLocation} zoom={10} scrollWheelZoom={true} className="h-full w-full z-0 opacity-50">
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-        </MapContainer>
-      </div>
-    );
+  // no filtered tutors — show banner but render map (it will display all tutors as fallback)
+  console.debug('[MapSearchPage] no filtered tutors — falling back to show all tutors');
   }
 
   return (

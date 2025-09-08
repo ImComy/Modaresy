@@ -18,27 +18,31 @@ const SubjectSchema = new Schema({
     }
   },
   sector: {
-    type: String,
+    type: [String],
     validate: {
-      validator(value) {
-        if (!value) return true;
-        return validateSector(value, this.grade, this.education_system);
+      validator(values) {
+        if (!values || values.length === 0) return true; 
+        return values.every(value =>
+          validateSector(value, this.grade, this.education_system)
+        );
       },
-      message: "Invalid sector for the selected grade and education system"
+      message: "Invalid sector(s) for the selected grade and education system"
     }
   },
   language: {
-    type: String,
+    type: [String],
     required: true,
     validate: {
-      validator(value) {
-        return validateEducationStructure_one("languages", value, this.education_system);
+      validator(values) {
+        return values.every(value =>
+          validateEducationStructure_one("languages", value, this.education_system)
+        );
       },
-      message: "Invalid language for the given education system"
+      message: "Invalid language(s) for the given education system"
     }
   },
   education_system: { type: String, required: true },
-  years_experience: { type: Number, default: 0, min: 0 },
+  // years_experience moved to Teacher schema (simple property on tutors)
 });
 
 const SubjectProfileSchema = new Schema({
@@ -99,17 +103,6 @@ const SubjectProfileSchema = new Schema({
   session_duration: { type: Number, min: 0 },
   lectures_per_week: { type: Number, min: 0 },
   reviews: { type: [mongoose.Types.ObjectId], ref: 'Review', default: [] },
-  youtube: [{
-    title: { type: String, required: true },
-    url: { 
-      type: String, 
-      required: true,
-      validate: {
-        validator: v => /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/.+$/.test(v),
-        message: "Invalid YouTube URL"
-      }
-    }
-  }],
   content: { type: [String], default: [] }
 }, { timestamps: true });
 
