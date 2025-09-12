@@ -804,11 +804,12 @@ createSubject: async (data) => {
   },
 
   getSubjectsForTutor: async (tutorId, requesterId) => {
-    if (!mongoose.Types.ObjectId.isValid(tutorId)) {
-      throw new Error("Invalid tutor ID format");
-    }
+    // Accept either an ObjectId or a public identifier (username, email, slug)
+    const query = mongoose.Types.ObjectId.isValid(tutorId)
+      ? { _id: tutorId }
+      : { $or: [{ username: tutorId }, { email: tutorId }, { slug: tutorId }] };
 
-    const teacher = await Teacher.findById(tutorId)
+    const teacher = await Teacher.findOne(query)
       .select("subjects subject_profiles")
       .populate({
         path: "subjects",
@@ -835,7 +836,10 @@ createSubject: async (data) => {
       })
       .lean();
 
-    if (!teacher) throw new Error("Teacher not found");
+    if (!teacher) {
+      console.warn(`getSubjectsForTutor: teacher not found for query=${JSON.stringify(query)}`);
+      return { baseSubjects: [], subjectProfiles: [] };
+    }
 
     return {
       baseSubjects: teacher.subjects || [],

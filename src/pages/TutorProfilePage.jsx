@@ -392,7 +392,7 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
                   options={segOptions}
                   value={viewMode}
                   onChange={(val) => setViewMode(val)}
-                  ariaLabel="Profile view mode"
+                  ariaLabel={t('viewMode', 'View Mode')}
                 />
               </motion.div>
             </div>

@@ -39,7 +39,7 @@ const TutorCard = ({ tutor, filters }) => {
   const displayName = tutor?.name && tutor.name.length > 16 ? tutor.name.slice(0, 15) + '...' : tutor?.name;
 
   const locationLabel = tutor?.governate
-    ? `${tutor.governate}${tutor?.district ? ` - ${tutor.district}` : ''}`
+    ? `${t(`constants.Governates.${tutor.governate}`, { defaultValue: tutor.governate })}${tutor?.district ? ` - ${t(`constants.Districts.${tutor.district}`, { defaultValue: tutor.district })}` : ''}`
     : tutor?.location || t('unknownLocation', 'Unknown location');
 
   const price = (typeof selectedSubject?.price === 'number' && isFinite(selectedSubject.price))
@@ -57,6 +57,14 @@ const TutorCard = ({ tutor, filters }) => {
 
   const derivedSector = selectedSubject?.sector || selectedSubject?.Sector || tutor?.sector || 'General';
   const derivedEducationSystem = selectedSubject?.education_system || selectedSubject?.educationSystem || tutor?.education_system || null;
+
+  const translateSector = (s, system) => (s ? t(`constants.EducationStructure.${system || 'National'}.sectors.${s}`, { defaultValue: s }) : '');
+  const translateGrade = (g, system) => (g ? t(`constants.EducationStructure.${system || 'National'}.grades.${g}`, { defaultValue: g }) : '');
+  const translateEducation = (e) => (e ? t(`constants.Education_Systems.${e}`, { defaultValue: e }) : '');
+  const translateSubject = (sub) => {
+    const name = (sub && (sub.subject || sub.name)) ? (sub.subject || sub.name) : (filters?.subject || '');
+    return name ? t(`constants.Subjects.${name}`, { defaultValue: name }) : t('unknownSubject', 'Subject');
+  };
 
   const renderBadgeList = (items, icon = null, labelPrefix = '') => {
     if (!items || items.length === 0) return null;
@@ -108,7 +116,7 @@ const TutorCard = ({ tutor, filters }) => {
 
                 <div className="text-muted-foreground flex items-center gap-2 text-sm">
                   <BookOpen size={14} />
-                  <span className="truncate">{selectedSubject?.subject || filters?.subject || t('unknownSubject', 'Subject')}</span>
+                  <span className="truncate">{translateSubject(selectedSubject)}</span>
                 </div>
 
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mt-1">
@@ -159,36 +167,29 @@ const TutorCard = ({ tutor, filters }) => {
               {selectedSubject?.grade && (
                 <Badge className="bg-primary/10 border border-primary text-primary text-xs px-2 py-0.5 hover:bg-primary/20 transition-colors">
                   <GraduationCap size={12} className="mr-1" />
-                  {selectedSubject.grade}
+                  {translateGrade(selectedSubject.grade)}
                 </Badge>
               )}
 
               {/* Sector badge (derived from explicit sector or subject.type) */}
               <Badge className="text-green-700 border border-green-300 bg-green-200 text-xs px-2 py-0.5 hover:bg-green-300 transition-colors">
                 <Users size={12} className="mr-1" />
-                {derivedSector}
+                {translateSector(derivedSector)}
               </Badge>
 
               {/* Languages */}
-              {languages.length > 0 && (
-                <div className="flex items-center gap-2">
-                  {languages.map((lang, idx) => (
-                    <Badge
-                      key={`lang-${idx}-${lang}`}
-                      className="bg-muted/20 border border-border text-xs px-2 py-0.5 hover:bg-muted/30 transition-colors"
-                    >
-                      <span className="mr-1 text-[12px]">🌐</span>
-                      <span className="truncate max-w-[7rem]">{lang}</span>
-                    </Badge>
-                  ))}
-                </div>
+              {Array.isArray(languages) && languages.length > 0 && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Globe size={14} />
+                  {languages.map(l => t(`constants.Languages.${l}`, { defaultValue: l })).join(', ')}
+                </span>
               )}
 
               {/* Education system badge (derived) */}
               {derivedEducationSystem && (
                 <Badge className="bg-muted/20 border border-border text-xs px-2 py-0.5 hover:bg-muted/30 transition-colors">
                   <GraduationCap size={12} className="mr-1" />
-                  <span className="truncate max-w-[7rem]">{derivedEducationSystem}</span>
+                  <span className="truncate max-w-[7rem]">{translateEducation(derivedEducationSystem)}</span>
                 </Badge>
               )}
             </div>

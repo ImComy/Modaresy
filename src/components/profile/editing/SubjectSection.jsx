@@ -13,16 +13,7 @@ import {
   SelectItem
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-
-/*
-  AddSubjectCard — supports arrays for language & sector.
-  Auto-populates sectors & languages based on constants and SubjectsBySystem.
-  Change for this variant:
-    - When the selected subject is a language AND the education system is "National",
-      pre-select *all existing languages from the education structure* as the default language tags.
-    - Do NOT create any new language labels (do not inject the subject name into the language toggles).
-    - Keep languages editable (user can remove/add toggles) — the preselection is only a default.
-*/
+import { useTranslation } from 'react-i18next';
 
 const normalizeArray = (v) => {
   if (!v) return [];
@@ -38,15 +29,17 @@ const AddSubjectCard = ({
   onUpdateSubject,
   onDeleteSubject,
   constants = {},
-  t = (s) => s,
   isSubjectMutating
 }) => {
-  // newSubject: sector & language are arrays
+  const { t, i18n } = useTranslation();
+  const dir = (i18n && typeof i18n.dir === 'function') ? i18n.dir() : 'ltr';
+  const textAlign = dir === 'rtl' ? 'right' : 'left';
+
   const [newSubject, setNewSubject] = useState({
     education_system: '',
     grade: '',
-    sector: [],      // array of sectors
-    language: [],    // array of languages
+    sector: [],
+    language: [],
     name: ''
   });
 
@@ -56,7 +49,6 @@ const AddSubjectCard = ({
   const infoIconRef = useRef(null);
   const [tooltipPos, setTooltipPos] = useState({ left: 0, top: 0, width: 0 });
 
-  // track auto-selected flags to avoid repeating auto behavior
   const autoSelectedRef = useRef({
     system: false,
     grade: false,
@@ -65,14 +57,11 @@ const AddSubjectCard = ({
     subject: false
   });
 
-  // Helper safe setter (shallow compare)
   const safeSetNewSubject = useCallback((updater) => {
     setNewSubject(prev => {
       const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
-      // ensure sector/language are arrays
       next.sector = normalizeArray(next.sector);
       next.language = normalizeArray(next.language);
-      // compare
       const same =
         prev.education_system === next.education_system &&
         prev.grade === next.grade &&
@@ -83,65 +72,73 @@ const AddSubjectCard = ({
     });
   }, []);
 
-  /* -------------------------
-     Derived option lists (memoized)
-     ------------------------- */
-  const systems = useMemo(() => constants?.Education_Systems || [], [constants]);
-  const educationStructure = useMemo(() => constants?.EducationStructure || {}, [constants]);
-  const subjectsBySystem = useMemo(() => constants?.SubjectsBySystem || {}, [constants]);
+  const systems = useMemo(() => {
+    const cs = constants?.Education_Systems || (t('constants.Education_Systems', { returnObjects: true }) || {});
+    return Array.isArray(cs) ? cs : Object.keys(cs || {});
+  }, [constants, t]);
+
+  const educationStructure = useMemo(() => {
+    const es = constants?.EducationStructure || (t('constants.EducationStructure', { returnObjects: true }) || {});
+    if (es && typeof es === 'object') return es;
+    return {};
+  }, [constants, t]);
+
+  const subjectsBySystem = useMemo(() => {
+    if (constants?.SubjectsBySystem) return constants.SubjectsBySystem;
+    const subjectsObj = constants?.Subjects || t('constants.Subjects', { returnObjects: true }) || {};
+    return { fallback: Object.keys(subjectsObj || {}) };
+  }, [constants, t]);
 
   const availableGrades = useMemo(() => {
     if (!newSubject.education_system) return [];
-    return educationStructure[newSubject.education_system]?.grades || [];
+    const gradesObj = educationStructure[newSubject.education_system]?.grades || educationStructure[newSubject.education_system]?.grades;
+    if (!gradesObj) return [];
+    if (Array.isArray(gradesObj)) return gradesObj;
+    if (typeof gradesObj === 'object') return Object.keys(gradesObj);
+    return [];
   }, [educationStructure, newSubject.education_system]);
 
   const availableLanguages = useMemo(() => {
     if (!newSubject.education_system) return [];
-    return educationStructure[newSubject.education_system]?.languages || [];
+    const langs = educationStructure[newSubject.education_system]?.languages || {};
+    if (Array.isArray(langs)) return langs;
+    if (typeof langs === 'object') return Object.keys(langs);
+    return [];
   }, [educationStructure, newSubject.education_system]);
 
-  // IMPORTANT CHANGE:
-  // Do NOT inject the subject name into the toggles. Keep the toggles strictly the languages
-  // defined by the education structure (availableLanguages). This prevents creating new language labels.
   const uiAvailableLanguages = useMemo(() => {
     return availableLanguages || [];
   }, [availableLanguages]);
 
-  // For sectors we return the grade-specific sector list; may be [] for general grades
   const availableSectors = useMemo(() => {
     if (!newSubject.education_system || !newSubject.grade) return [];
     const s = educationStructure[newSubject.education_system]?.sectors?.[newSubject.grade];
-    // normalize object/array possibilities: some structures may have object per sector names mapping
     if (!s) return [];
     if (Array.isArray(s)) return s;
     if (typeof s === 'object') {
-      // if object with sector keys (e.g. { "Scientific": [...], "Literature": [...] }) return keys
       return Object.keys(s);
     }
     return [];
   }, [educationStructure, newSubject.education_system, newSubject.grade]);
 
-  // subjects available for the selected system/grade/sector
   const availableSubjects = useMemo(() => {
     if (!newSubject.education_system || !newSubject.grade) return [];
-    const systemSubjects = subjectsBySystem[newSubject.education_system] || {};
-    const gradeEntry = systemSubjects[newSubject.grade];
+    const sys = subjectsBySystem[newSubject.education_system] || subjectsBySystem.fallback || {};
+    const gradeEntry = sys[newSubject.grade];
     if (Array.isArray(gradeEntry)) return gradeEntry;
     if (gradeEntry && typeof gradeEntry === 'object') {
-      // if gradeEntry is object keyed by sector names
-      // if user selected a sector (or sectors), combine the subject lists for them
       if (Array.isArray(newSubject.sector) && newSubject.sector.length > 0) {
         const combined = newSubject.sector.flatMap(sec => gradeEntry[sec] || []);
         return Array.from(new Set(combined));
       }
-      // otherwise combine all sectors
       const combined = Object.values(gradeEntry).flat();
       return Array.from(new Set(combined));
     }
+    if (Array.isArray(sys)) return sys;
+    if (typeof sys === 'object') return Object.keys(sys);
     return [];
   }, [subjectsBySystem, newSubject.education_system, newSubject.grade, newSubject.sector]);
 
-  // If there is exactly one system available, auto-select it so hidden-select flows still work
   useEffect(() => {
     if (systems && systems.length === 1) {
       const only = systems[0];
@@ -151,22 +148,18 @@ const AddSubjectCard = ({
     }
   }, [systems, newSubject.education_system, safeSetNewSubject]);
 
-  /* -------------------------
-     Editing mode sync
-     ------------------------- */
   useEffect(() => {
     if (editingIndex === null) {
-      // creation mode — make sure persisted values are valid
       safeSetNewSubject(prev => {
         const next = { ...prev };
         if (next.education_system && !systems.includes(next.education_system)) next.education_system = '';
-        const gradesForSystem = educationStructure[next.education_system]?.grades || [];
+        const gradesForSystem = availableGrades || [];
         if (next.grade && !gradesForSystem.includes(next.grade)) next.grade = '';
         const sectorsForGrade = availableSectors || [];
         if (next.sector && next.sector.length > 0) {
           next.sector = next.sector.filter(s => sectorsForGrade.includes(s));
         }
-        const langs = educationStructure[next.education_system]?.languages || [];
+        const langs = availableLanguages || [];
         if (next.language && next.language.length > 0 && langs.length) {
           next.language = next.language.filter(l => langs.includes(l));
         }
@@ -174,7 +167,6 @@ const AddSubjectCard = ({
         return next;
       });
     } else {
-      // populate from formData
       const subject = formData.subjects?.[editingIndex];
       if (subject) {
         safeSetNewSubject({
@@ -186,20 +178,13 @@ const AddSubjectCard = ({
         });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editingIndex, formData.subjects, educationStructure, systems]);
+  }, [editingIndex, formData.subjects, educationStructure, systems, availableGrades, availableSectors, availableLanguages, safeSetNewSubject]);
 
-  /* -------------------------
-     Auto-populate sectors & languages after subject change
-     ------------------------- */
   const computeAutoSectorsFor = useCallback((system, grade, subjectName) => {
-    // Try to find sectors that include the subject under SubjectsBySystem
     if (!system || !grade || !subjectName) return [];
-    const sys = subjectsBySystem[system];
-    if (!sys) return [];
+    const sys = subjectsBySystem[system] || {};
     const gradeEntry = sys[grade];
     if (!gradeEntry) return [];
-    // if gradeEntry is array -> general grade
     if (Array.isArray(gradeEntry)) return ['General'];
     if (typeof gradeEntry === 'object') {
       const sectors = [];
@@ -208,9 +193,7 @@ const AddSubjectCard = ({
           sectors.push(secName);
         }
       }
-      // if no sectors found but gradeEntry has sectors -> default to all sector keys
       if (sectors.length === 0) {
-        // Some subjects may not be present under any sector arrays (rare). In that case choose all sectors
         return Object.keys(gradeEntry);
       }
       return sectors;
@@ -219,31 +202,27 @@ const AddSubjectCard = ({
   }, [subjectsBySystem]);
 
   const isLanguageSubject = useCallback((subjectName) => {
-    if (!subjectName || !constants?.Languages) return false;
-    return constants.Languages.map(l => String(l).toLowerCase()).includes(String(subjectName).toLowerCase());
-  }, [constants]);
+    if (!subjectName) return false;
+    const langsConst = constants?.Languages || t('constants.Languages', { returnObjects: true }) || {};
+    const langs = Array.isArray(langsConst) ? langsConst : Object.keys(langsConst || {});
+    return langs.map(l => String(l).toLowerCase()).includes(String(subjectName).toLowerCase());
+  }, [constants, t]);
 
   useEffect(() => {
-    // Whenever subject name changes (user selects a subject), auto-populate sectors & languages
     const name = newSubject.name;
     if (!name) return;
 
-    // compute auto sectors
     const autoSectors = computeAutoSectorsFor(newSubject.education_system, newSubject.grade, name);
     if (autoSectors && autoSectors.length > 0) {
-      // set only if different
       const currentS = normalizeArray(newSubject.sector);
       const joinCurr = arrayJoin(currentS);
       const joinAuto = arrayJoin(autoSectors);
       if (joinCurr !== joinAuto) {
-        safeSetNewSubject({ sector: autoSectors });
+        safeSetNewSubject({ sector: autoSectors ?? autoSectors });
       }
     }
 
-    // compute auto languages
     if (isLanguageSubject(name)) {
-      // NEW BEHAVIOR: when the system is "National", preselect ALL existing language tags
-      // from the education structure (availableLanguages) and DO NOT create any new labels.
       if (newSubject.education_system === 'National' && Array.isArray(availableLanguages) && availableLanguages.length > 0) {
         const autoLangs = Array.from(new Set(availableLanguages.map(String)));
         const currentL = normalizeArray(newSubject.language);
@@ -251,8 +230,6 @@ const AddSubjectCard = ({
           safeSetNewSubject({ language: autoLangs });
         }
       } else {
-        // Non-National behavior: keep legacy auto-selection (language subject + English) but still only choose labels
-        // that exist in uiAvailableLanguages. This avoids creating new labels for unknown languages.
         const desired = ['English', String(name)];
         const valid = desired.filter(d => uiAvailableLanguages.map(x => x.toLowerCase()).includes(String(d).toLowerCase()));
         const autoLangs = Array.from(new Set(valid.length ? valid : uiAvailableLanguages));
@@ -262,19 +239,14 @@ const AddSubjectCard = ({
         }
       }
     } else {
-      // not a language subject: if language empty, default to uiAvailableLanguages (allow tutor to uncheck)
       const currentL = normalizeArray(newSubject.language);
       const av = uiAvailableLanguages || [];
       if ((!currentL || currentL.length === 0) && av && av.length > 0) {
         safeSetNewSubject({ language: av });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newSubject.name, newSubject.education_system, newSubject.grade, computeAutoSectorsFor, uiAvailableLanguages, isLanguageSubject, availableLanguages]);
+  }, [newSubject.name, newSubject.education_system, newSubject.grade, computeAutoSectorsFor, uiAvailableLanguages, isLanguageSubject, availableLanguages, safeSetNewSubject]);
 
-  /* -------------------------
-     Multi-toggle helpers for languages/sectors
-     ------------------------- */
   const toggleLanguage = useCallback((lang) => {
     setNewSubject(prev => {
       const langs = normalizeArray(prev.language);
@@ -296,7 +268,6 @@ const AddSubjectCard = ({
   }, []);
 
   const selectAllLanguages = useCallback(() => {
-    // select all existing UI languages (which are strictly the availableLanguages)
     safeSetNewSubject({ language: uiAvailableLanguages || [] });
   }, [uiAvailableLanguages, safeSetNewSubject]);
 
@@ -304,27 +275,19 @@ const AddSubjectCard = ({
     safeSetNewSubject({ sector: availableSectors || [] });
   }, [availableSectors, safeSetNewSubject]);
 
-  /* -------------------------
-     Handlers add/update/delete
-     ------------------------- */
   const handleAddSubject = useCallback(() => {
-    // validation: arrays must have at least one entry
     if (!newSubject.name || !newSubject.education_system || !newSubject.grade) {
-      console.error('Missing required fields:', newSubject);
       return;
     }
     if (!newSubject.sector || newSubject.sector.length === 0) {
-      console.error('Sector required (auto-populated):', newSubject);
       return;
     }
     if (!newSubject.language || newSubject.language.length === 0) {
-      console.error('Language required (auto-populated):', newSubject);
       return;
     }
 
     const subjectData = {
       ...newSubject,
-      // ensure arrays are copied
       sector: normalizeArray(newSubject.sector),
       language: normalizeArray(newSubject.language),
       private_pricing: {
@@ -336,11 +299,9 @@ const AddSubjectCard = ({
 
     onAddSubject(subjectData);
 
-    // keep context for quick add
     safeSetNewSubject(prev => ({
       ...prev,
       name: ''
-      // keep education_system, grade, sector, language to speed up adding similar subjects
     }));
 
     autoSelectedRef.current.subject = false;
@@ -360,7 +321,6 @@ const AddSubjectCard = ({
         !newSubject.sector || newSubject.sector.length === 0 ||
         !newSubject.language || newSubject.language.length === 0 ||
         editingIndex === null) {
-      console.error('Missing required fields for update:', newSubject);
       return;
     }
     onUpdateSubject(editingIndex, {
@@ -373,31 +333,23 @@ const AddSubjectCard = ({
 
   const cancelEdit = useCallback(() => setEditingIndex(null), []);
 
-  /* -------------------------
-     Helpers for UI state
-     ------------------------- */
   const gradeEntry = subjectsBySystem?.[newSubject.education_system]?.[newSubject.grade];
   const requiresSector = !!gradeEntry && typeof gradeEntry === 'object' && !Array.isArray(gradeEntry);
   const isSubjectDisabled = requiresSector ? !newSubject.sector || newSubject.sector.length === 0 : false;
   const hideSystemSelect = systems.length === 1;
-  // if subject is a language subject we still want it editable but mark it as auto-preselected
   const selectedIsLanguage = isLanguageSubject(newSubject.name);
 
-  // Info popup handlers
   const handleMouseEnterInfo = useCallback(() => {
     if (infoTimeoutRef.current) {
       clearTimeout(infoTimeoutRef.current);
     }
-    // compute position for portal tooltip
     try {
       const el = infoIconRef.current;
       if (el && typeof el.getBoundingClientRect === 'function') {
         const r = el.getBoundingClientRect();
         setTooltipPos({ left: r.left + window.scrollX + r.width / 2, top: r.top + window.scrollY });
       }
-    } catch (e) {
-      // ignore in SSR or if DOM not ready
-    }
+    } catch (e) {}
     setShowInfoPopup(true);
   }, []);
 
@@ -407,7 +359,6 @@ const AddSubjectCard = ({
     }, 300);
   }, []);
 
-  // keep tooltip positioned on scroll/resize while visible
   useEffect(() => {
     if (!showInfoPopup) return undefined;
     const update = () => {
@@ -419,19 +370,19 @@ const AddSubjectCard = ({
         }
       } catch (e) {}
     };
-    window.addEventListener('scroll', update, true);
-    window.addEventListener('resize', update);
-    // initial update
     update();
     return () => {
-      window.removeEventListener('scroll', update, true);
-      window.removeEventListener('resize', update);
     };
   }, [showInfoPopup]);
 
-  /* -------------------------
-     Render helpers
-     ------------------------- */
+  const translateConst = (pathBase, key, fallback) => {
+    if (!key && key !== 0) return fallback || '';
+    const full = `${pathBase}.${key}`;
+    const translated = t(full, { defaultValue: null });
+    if (translated && translated !== 'null') return translated;
+    return fallback || key;
+  };
+
   const renderSubjectDetails = useCallback((subject, index) => (
     <motion.div
       key={subject._id || subject.tempId || index}
@@ -439,15 +390,14 @@ const AddSubjectCard = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
       className="rounded-xl p-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/70 dark:to-gray-800/70 backdrop-blur-sm border border-gray-200/80 dark:border-gray-600/50 shadow-sm"
+      style={{ direction: dir }}
     >
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className="p-1 rounded-md bg-primary/10">
+      <div className="flex items-center justify-between mb-2" style={{ textAlign }}>
+        <div className="flex items-center gap-2" style={{ justifyContent: dir === 'rtl' ? 'flex-end' : 'flex-start' }}>
+          <div className="p-1 rounded-md bg-primary/10" style={{ order: dir === 'rtl' ? 2 : 0 }}>
             <GraduationCap size={16} className="text-primary shrink-0" />
           </div>
-          <span className="font-medium">
-            {subject.name || t('unnamedSubject')}
-          </span>
+          <span className="font-medium">{translateConst('constants.Subjects', subject.name || subject.subject_id?.name, subject.name || subject.subject_id?.name)}</span>
         </div>
         <div className="flex gap-1">
           <Button variant="ghost" size="icon" onClick={() => handleEditSubject(index)} className="h-8 w-8">
@@ -458,61 +408,52 @@ const AddSubjectCard = ({
           </Button>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2 text-xs">
+      <div className="grid grid-cols-2 gap-2 text-xs" style={{ textAlign }}>
         <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2">
-          <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
-            {t('System')}
-          </div>
-          <div>{subject.education_system || t('notSpecified')}</div>
+          <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">{t('System', 'System')}</div>
+          <div>{translateConst('constants.Education_Systems', subject.education_system, subject.education_system) || t('notSpecified', 'Not specified')}</div>
         </div>
         <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2">
-          <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
-            {t('Grade')}
-          </div>
-          <div>{subject.grade || t('notSpecified')}</div>
+          <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">{t('Grade', 'Grade')}</div>
+          <div>{translateConst(`constants.EducationStructure.${subject.education_system || 'National'}.grades`, subject.grade, subject.grade) || t('notSpecified', 'Not specified')}</div>
         </div>
         <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2">
-          <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
-            {t('Sector')}
-          </div>
-          <div>{Array.isArray(subject.sector) ? subject.sector.join(', ') : subject.sector || t('notSpecified')}</div>
+          <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">{t('Sector', 'Sector')}</div>
+          <div>{Array.isArray(subject.sector) ? subject.sector.map(s => translateConst(`constants.EducationStructure.${subject.education_system || 'National'}.sectors`, s, s)).join(', ') : translateConst(`constants.EducationStructure.${subject.education_system || 'National'}.sectors`, subject.sector, subject.sector) || t('notSpecified', 'Not specified')}</div>
         </div>
         <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2">
-          <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
-            {t('Language')}
-          </div>
-          <div>{Array.isArray(subject.language) ? subject.language.join(', ') : subject.language || t('notSpecified')}</div>
+          <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">{t('Language', 'Language')}</div>
+          <div>{Array.isArray(subject.language) ? subject.language.map(l => translateConst(`constants.EducationStructure.${subject.education_system || 'National'}.languages`, l, translateConst('constants.Languages', l, l))).join(', ') : translateConst(`constants.EducationStructure.${subject.education_system || 'National'}.languages`, subject.language, translateConst('constants.Languages', subject.language, subject.language)) || t('notSpecified', 'Not specified')}</div>
         </div>
       </div>
     </motion.div>
-  ), [t, handleEditSubject, handleDelete]);
+  ), [t, handleEditSubject, handleDelete, dir, textAlign]);
 
-  /* -------------------------
-     JSX
-     ------------------------- */
   return (
-    <div className={cn(
-      "w-full bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 shadow-lg rounded-2xl p-4 z-30 border border-gray-200 dark:border-gray-700",
-      "max-h-[500px] overflow-y-auto flex-1 min-w-0 md:max-w-xs mt-0 md:-mt-32"
-    )}>
-      <div className="text-lg font-semibold flex items-center gap-2 text-primary mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">
-        <div className="p-1.5 rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10">
+    <div
+      dir={dir}
+      style={{ direction: dir }}
+      className={cn(
+        "w-full bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 shadow-lg rounded-2xl p-4 z-30 border border-gray-200 dark:border-gray-700",
+        "max-h-[500px] overflow-y-auto flex-1 min-w-0 md:max-w-xs mt-0 md:-mt-32"
+      )}
+    >
+      <div className="text-lg font-semibold flex items-center gap-2 text-primary mb-4 pb-2 border-b border-gray-100 dark:border-gray-700" style={{ textAlign }}>
+        <div className="p-1.5 rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10" style={{ marginInlineEnd: dir === 'rtl' ? 0 : undefined }}>
           <GraduationCap size={20} className="text-primary" />
         </div>
-        {editingIndex !== null ? t('editSubject') : t('addNewSubject')}
-        
-        {/* Info Icon with Popup */}
-        <div 
+        {editingIndex !== null ? t('editSubject', 'Edit subject') : t('addNewSubject', 'Add new subject')}
+        <div
           className="relative ml-2"
           onMouseEnter={handleMouseEnterInfo}
           onMouseLeave={handleMouseLeaveInfo}
         >
-          <Info 
+          <Info
             ref={infoIconRef}
-            size={16} 
-            className="text-muted-foreground cursor-help" 
+            size={16}
+            className="text-muted-foreground cursor-help"
+            aria-label={t('info', 'Info')}
           />
-
           {showInfoPopup && typeof document !== 'undefined' && createPortal(
             <div
               style={{
@@ -524,7 +465,7 @@ const AddSubjectCard = ({
               }}
               className="w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg"
             >
-              {t('checkSectorsLanguagesTooltip') || 'Make sure to check and adjust the sectors and languages you teach for this subject.'}
+              {t('checkSectorsLanguagesTooltip', 'Make sure to check and adjust the sectors and languages you teach for this subject.')}
               <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
             </div>,
             document.body
@@ -532,38 +473,35 @@ const AddSubjectCard = ({
         </div>
       </div>
 
-
       <div className="space-y-3">
-        {/* Education System */}
         {hideSystemSelect ? (
           <input type="hidden" value={newSubject.education_system} />
         ) : (
           <div className="space-y-1">
-            <Label className="text-xs flex items-center gap-1">
+            <Label className="text-xs flex items-center gap-1" style={{ textAlign }}>
               <BookOpen size={12} />
-              {t('educationSystem')}
+              {t('educationSystem', 'Education system')}
             </Label>
             <Select
               value={newSubject.education_system}
               onValueChange={(val) => safeSetNewSubject({ education_system: val, grade: '', name: '', sector: [], language: [] })}
             >
               <SelectTrigger className="h-10 bg-white dark:bg-gray-700">
-                <SelectValue placeholder={t('selectSystem')} />
+                <SelectValue placeholder={t('selectSystem', 'Select system')} />
               </SelectTrigger>
               <SelectContent className="z-50" position="popper">
                 {systems.map((system) => (
-                  <SelectItem key={system} value={system}>{system}</SelectItem>
+                  <SelectItem key={system} value={system}>{translateConst('constants.Education_Systems', system, system)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         )}
 
-        {/* Grade */}
         <div className="space-y-1">
-          <Label className="text-xs flex items-center gap-1">
+          <Label className="text-xs flex items-center gap-1" style={{ textAlign }}>
             <Award size={12} />
-            {t('grade')}
+            {t('grade', 'Grade')}
           </Label>
           <Select
             value={newSubject.grade}
@@ -571,19 +509,18 @@ const AddSubjectCard = ({
             disabled={!newSubject.education_system}
           >
             <SelectTrigger className="h-10 bg-white dark:bg-gray-700" aria-disabled={!newSubject.education_system}>
-              <SelectValue placeholder={!newSubject.education_system ? t('selectSystemFirst') : t('selectGrade')} />
+              <SelectValue placeholder={!newSubject.education_system ? t('selectSystemFirst', 'Select system first') : t('selectGrade', 'Select grade')} />
             </SelectTrigger>
             <SelectContent className="z-50" position="popper">
-              {availableGrades.map((grade) => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}
+              {availableGrades.map((grade) => <SelectItem key={grade} value={grade}>{translateConst(`constants.EducationStructure.${newSubject.education_system}.grades`, grade, translateConst('constants.EducationStructure.National.grades', grade, grade))}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Subject */}
         <div className="space-y-1">
-          <Label className="text-xs flex items-center gap-1">
+          <Label className="text-xs flex items-center gap-1" style={{ textAlign }}>
             <GraduationCap size={12} />
-            {t('subject')}
+            {t('subject', 'Subject')}
           </Label>
           <Select
             value={newSubject.name}
@@ -591,43 +528,40 @@ const AddSubjectCard = ({
             disabled={!newSubject.grade || availableSubjects.length === 0}
           >
             <SelectTrigger className="h-10 bg-white dark:bg-gray-700" aria-disabled={!newSubject.grade || availableSubjects.length === 0}>
-              <SelectValue placeholder={!newSubject.grade ? t('selectGradeFirst') : (availableSubjects.length === 0 ? t('noSubjectsAvailable') : t('selectSubject'))} />
+              <SelectValue placeholder={!newSubject.grade ? t('selectGradeFirst', 'Select grade first') : (availableSubjects.length === 0 ? t('noSubjectsAvailable', 'No subjects available') : t('selectSubject', 'Select subject'))} />
             </SelectTrigger>
             <SelectContent className="z-50" position="popper">
-              {availableSubjects.map((subject) => <SelectItem key={subject} value={subject}>{subject}</SelectItem>)}
+              {availableSubjects.map((subject) => <SelectItem key={subject} value={subject}>{translateConst('constants.Subjects', subject, subject)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Sector (multi-chip + toggles) */}
         <div className="space-y-1">
-          <Label className="text-xs flex items-center justify-between">
+          <Label className="text-xs flex items-center justify-between" style={{ textAlign }}>
             <span className="flex items-center gap-1">
               <MapPin size={12} />
-              {t('sector')}
+              {t('sector', 'Sector')}
             </span>
-            <small className="text-xs text-muted-foreground">Auto-populated — editable</small>
+            <small className="text-xs text-muted-foreground">{t('autoPopulatedEditable', 'Auto-populated — editable')}</small>
           </Label>
 
-          {/* Selected chips */}
-          <div className="flex flex-wrap gap-1 mb-2">
+          <div className="flex flex-wrap gap-1 mb-2" style={{ textAlign }}>
             {(newSubject.sector && newSubject.sector.length > 0) ? newSubject.sector.map(s => (
               <div key={s} className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-xs">
-                <span>{s}</span>
+                <span>{translateConst(`constants.EducationStructure.${newSubject.education_system || 'National'}.sectors`, s, s)}</span>
                 <button
                   type="button"
                   onClick={() => toggleSector(s)}
-                  title={t('removeSector') || 'Remove'}
+                  title={t('removeSector', 'Remove')}
                   className="opacity-70 hover:opacity-100 text-primary"
                 >
                   ✕
                 </button>
               </div>
-            )) : <div className="text-xs text-muted-foreground">{t('noSectorSelected')}</div>}
+            )) : <div className="text-xs text-muted-foreground">{t('noSectorSelected', 'No sector selected')}</div>}
           </div>
 
-          {/* Toggle list */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2" style={{ textAlign }}>
             {(availableSectors && availableSectors.length > 0) ? availableSectors.map(sec => {
               const isSelected = (newSubject.sector || []).map(x => x.toLowerCase()).includes(sec.toLowerCase());
               return (
@@ -637,55 +571,51 @@ const AddSubjectCard = ({
                   onClick={() => toggleSector(sec)}
                   className={cn(
                     "text-xs px-2 py-1 rounded-md border transition-all",
-                    isSelected 
-                      ? "bg-primary text-white border-primary" 
+                    isSelected
+                      ? "bg-primary text-white border-primary"
                       : "bg-transparent border-gray-300 dark:border-gray-600 hover:border-primary/50"
                   )}
                 >
-                  {sec}
+                  {translateConst(`constants.EducationStructure.${newSubject.education_system || 'National'}.sectors`, sec, sec)}
                 </button>
               );
-            }) : <div className="text-xs text-muted-foreground col-span-2">{t('noSectorsAvailable')}</div>}
-            {/* quick select-all */}
+            }) : <div className="text-xs text-muted-foreground col-span-2">{t('noSectorsAvailable', 'No sectors available')}</div>}
             {availableSectors && availableSectors.length > 1 && (
-              <button 
-                type="button" 
-                onClick={selectAllSectors} 
+              <button
+                type="button"
+                onClick={selectAllSectors}
                 className="col-span-2 text-xs px-2 py-1 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
               >
-                {t('selectAllSectors') || 'Select all sectors'}
+                {t('selectAllSectors', 'Select all sectors')}
               </button>
             )}
           </div>
         </div>
 
-        {/* Language (multi-chip + toggles). Auto-preselected for language subjects but still editable */}
         <div className="space-y-1">
-          <Label className="text-xs flex items-center justify-between">
+          <Label className="text-xs flex items-center justify-between" style={{ textAlign }}>
             <span className="flex items-center gap-1">
               <BookOpen size={12} />
-              {t('language')}
+              {t('language', 'Language')}
             </span>
-            <small className="text-xs text-muted-foreground">{selectedIsLanguage ? (t('autoPreselectedEditable') || 'Auto-preselected — editable') : 'Editable'}</small>
+            <small className="text-xs text-muted-foreground">{selectedIsLanguage ? t('autoPreselectedEditable', 'Auto-preselected — editable') : t('editable', 'Editable')}</small>
           </Label>
 
-          <div className="flex flex-wrap gap-1 mb-2">
+          <div className="flex flex-wrap gap-1 mb-2" style={{ textAlign }}>
             {(newSubject.language && newSubject.language.length > 0) ? newSubject.language.map(l => (
               <div key={l} className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-xs">
-                <span>{l}</span>
-                {/* allow removal even for language subjects (editable) */}
+                <span>{translateConst(`constants.EducationStructure.${newSubject.education_system || 'National'}.languages`, l, translateConst('constants.Languages', l, l))}</span>
                 <button
                   type="button"
                   onClick={() => toggleLanguage(l)}
-                  title={t('removeLanguage') || 'Remove'}
+                  title={t('removeLanguage', 'Remove')}
                   className="opacity-70 hover:opacity-100 text-primary"
                 >✕</button>
               </div>
-            )) : <div className="text-xs text-muted-foreground">{t('noLanguageSelected')}</div>}
+            )) : <div className="text-xs text-muted-foreground">{t('noLanguageSelected', 'No language selected')}</div>}
           </div>
 
-          {/* Always show toggles — language subjects are only auto-preselected but still editable */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2" style={{ textAlign }}>
             {(uiAvailableLanguages && uiAvailableLanguages.length > 0) ? uiAvailableLanguages.map(lang => {
               const isSelected = (newSubject.language || []).map(x => x.toLowerCase()).includes(lang.toLowerCase());
               return (
@@ -695,28 +625,27 @@ const AddSubjectCard = ({
                   onClick={() => toggleLanguage(lang)}
                   className={cn(
                     "text-xs px-2 py-1 rounded-md border transition-all",
-                    isSelected 
-                      ? "bg-primary text-white border-primary" 
+                    isSelected
+                      ? "bg-primary text-white border-primary"
                       : "bg-transparent border-gray-300 dark:border-gray-600 hover:border-primary/50"
                   )}
                 >
-                  {lang}
+                  {translateConst(`constants.EducationStructure.${newSubject.education_system || 'National'}.languages`, lang, translateConst('constants.Languages', lang, lang))}
                 </button>
               );
-            }) : <div className="text-xs text-muted-foreground col-span-2">{t('noLanguagesAvailable')}</div>}
+            }) : <div className="text-xs text-muted-foreground col-span-2">{t('noLanguagesAvailable', 'No languages available')}</div>}
             {uiAvailableLanguages && uiAvailableLanguages.length > 1 && (
-              <button 
-                type="button" 
-                onClick={selectAllLanguages} 
+              <button
+                type="button"
+                onClick={selectAllLanguages}
                 className="col-span-2 text-xs px-2 py-1 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
               >
-                {t('selectAllLanguages') || 'Select all languages'}
+                {t('selectAllLanguages', 'Select all languages')}
               </button>
             )}
           </div>
         </div>
 
-        {/* Buttons */}
         {editingIndex !== null ? (
           <div className="flex gap-2 pt-2">
             <Button
@@ -726,7 +655,7 @@ const AddSubjectCard = ({
               disabled={!newSubject.name || (newSubject.sector || []).length === 0 || (newSubject.language || []).length === 0}
             >
               <Check size={16} className="mr-1" />
-              {t('updateSubject')}
+              {t('updateSubject', 'Update subject')}
             </Button>
             <Button
               type="button"
@@ -734,7 +663,7 @@ const AddSubjectCard = ({
               className="w-full h-10"
               onClick={cancelEdit}
             >
-              {t('cancel')}
+              {t('cancel', 'Cancel')}
             </Button>
           </div>
         ) : (
@@ -744,17 +673,16 @@ const AddSubjectCard = ({
             disabled={!newSubject.name || (newSubject.sector || []).length === 0 || (newSubject.language || []).length === 0}
           >
             <Plus size={16} className="mr-1" />
-            {t('addSubject')}
+            {t('addSubject', 'Add subject')}
           </Button>
         )}
       </div>
 
-      {/* Current Subjects List */}
       {formData.subjects?.length > 0 && (
         <div className="mt-6">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <h3 className="font-semibold mb-3 flex items-center gap-2" style={{ textAlign }}>
             <GraduationCap size={16} className="text-primary" />
-            {t('yourSubjects')}
+            {t('yourSubjects', 'Your subjects')}
           </h3>
           <div className="flex flex-col gap-3">
             {formData.subjects.map((subject, index) => (

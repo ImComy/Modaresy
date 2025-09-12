@@ -120,7 +120,7 @@ const TutorGrid = ({ tutors, filters, loading = false, error = null }) => {
     return (
       <div className="flex justify-center items-center py-20">
         <div className="flex flex-col items-center gap-3">
-          <Loader className="w-8 h-8 animate-spin text-primary" loadingText="Loading Tutors..." />
+          <Loader className="w-8 h-8 animate-spin text-primary" loadingText={t('loadingTutors', 'Loading Tutors...')} />
         </div>
       </div>
     );

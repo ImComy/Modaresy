@@ -16,8 +16,8 @@ export const useWishlistLogic = (tutor) => {
 
     if (!tutorId) {
       toast({
-        title: 'Error',
-        description: 'Invalid tutor information',
+        title: t('error'),
+        description: t('invalidTutorInformation'),
         variant: 'destructive'
       });
       return;

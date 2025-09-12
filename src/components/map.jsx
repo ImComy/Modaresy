@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Star, MapPin, BookOpen, DollarSign, AlertTriangle, UserX, User, Navigation } from 'lucide-react';
+import { Star, MapPin, BookOpen, DollarSign, AlertTriangle, User } from 'lucide-react';
 import Loader from '@/components/ui/loader';
 import { useTranslation } from 'react-i18next';
 
@@ -15,7 +15,6 @@ delete L.Icon.Default.prototype._getIconUrl;
 
 const createCustomIcon = (color) => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${encodeURIComponent(color)}"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>`;
-  
   return new L.Icon({
     iconUrl: `data:image/svg+xml;utf8,${svg}`,
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
@@ -27,47 +26,48 @@ const createCustomIcon = (color) => {
 
 const lightIcon = createCustomIcon('#2563eb');
 const darkIcon = createCustomIcon('#3b82f6');
-const userLocationIcon = createCustomIcon('#22c55e'); // Green for user location
+const userLocationIcon = createCustomIcon('#22c55e');
 
-// Component to handle map instance
 const MapInstanceHandler = ({ mapInstanceRef }) => {
   const map = useMap();
-  
   useEffect(() => {
     mapInstanceRef.current = map;
   }, [map, mapInstanceRef]);
-  
   return null;
 };
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371; 
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const a =
     Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon/2) * Math.sin(dLon/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   const distance = R * c;
   return distance;
 };
 
-const ErrorBanner = ({ message }) => (
-  <Card className="max-w-md mx-auto mt-10 border-red-500/40 bg-red-50 dark:bg-red-950">
-    <CardContent className="flex items-center gap-4 py-6 text-red-600 dark:text-red-300">
-      <AlertTriangle className="w-6 h-6 flex-shrink-0" />
-      <div>
-        <h4 className="font-semibold text-base">Connection Error</h4>
-        <p className="text-sm mt-1 text-red-500 dark:text-red-400">
-          {message || 'An error occurred while connecting to the server. Please try again later.'}
-        </p>
-      </div>
-    </CardContent>
-  </Card>
-);
+const ErrorBanner = ({ message }) => {
+  const { t } = useTranslation();
+  return (
+    <Card className="max-w-md mx-auto mt-10 border-red-500/40 bg-red-50 dark:bg-red-950">
+      <CardContent className="flex items-center gap-4 py-6 text-red-600 dark:text-red-300">
+        <AlertTriangle className="w-6 h-6 flex-shrink-0" />
+        <div>
+          <h4 className="font-semibold text-base">{t('connectionErrorTitle', 'Connection Error')}</h4>
+          <p className="text-sm mt-1 text-red-500 dark:text-red-400">
+            {message || t('connectionErrorMessage', 'An error occurred while connecting to the server. Please try again later.')}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const getInitials = (name) => {
+  if (!name) return '';
   return name
     .split(' ')
     .map(word => word[0])
@@ -95,12 +95,13 @@ const processTutorData = (tutor, filters) => {
     return name === (filters?.subject ?? name) && grade === (filters?.grade ?? grade);
   }) || subjectList[0];
 
-  const displayName = tutor?.name && tutor.name.length > 16 ? 
-    tutor.name.slice(0, 15) + '...' : tutor?.name;
+  const displayName = tutor?.name && tutor.name.length > 16
+    ? tutor.name.slice(0, 15) + '...'
+    : tutor?.name;
 
   const locationLabel = tutor?.governate
     ? `${tutor.governate}${tutor?.district ? ` - ${tutor.district}` : ''}`
-    : tutor?.location || 'Unknown location';
+    : tutor?.location || null;
 
   const price = (typeof selectedSubject?.price === 'number' && isFinite(selectedSubject.price))
     ? selectedSubject.price
@@ -113,7 +114,7 @@ const processTutorData = (tutor, filters) => {
 
   const languages = (selectedSubject?.language && typeof selectedSubject.language === 'string')
     ? [selectedSubject.language]
-    : (Array.isArray(selectedSubject?.language) ? selectedSubject.language.filter(Boolean) : 
+    : (Array.isArray(selectedSubject?.language) ? selectedSubject.language.filter(Boolean) :
       (Array.isArray(tutor?.languages) ? tutor.languages.slice(0) : []));
 
   const derivedSector = selectedSubject?.sector || selectedSubject?.Sector || tutor?.sector || 'General';
@@ -122,7 +123,7 @@ const processTutorData = (tutor, filters) => {
   return {
     ...tutor,
     displayName,
-    locationLabel,
+    locationLabel: locationLabel || null,
     price,
     rating,
     languages,
@@ -136,7 +137,7 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
   const { t } = useTranslation();
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [theme, setTheme] = useState('light');
-  const [userLocation, setUserLocation] = useState([30.0444, 31.2357]); 
+  const [userLocation, setUserLocation] = useState([30.0444, 31.2357]);
   const [tutorsWithDistance, setTutorsWithDistance] = useState([]);
   const [showContent, setShowContent] = useState(false);
   const [prevTutors, setPrevTutors] = useState(tutors);
@@ -158,13 +159,13 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
   const isMissingRequiredFilters = useMemo(() => {
     return !filters || filters.subject === 'none' || filters.grade === 'none';
   }, [filters]);
+
   const filteredTutors = useMemo(() => {
     if (!tutors || !Array.isArray(tutors)) return [];
 
     const normalize = (v) => (v == null ? '' : String(v));
 
     const matches = (subjectValue, filterValue) => {
-      // treat 'all' or 'none' or empty filter as no-op (always match)
       if (!filterValue || filterValue === 'all' || filterValue === 'none') return true;
 
       if (Array.isArray(filterValue)) {
@@ -180,7 +181,6 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
       return String(subjectValue).toLowerCase() === f;
     };
 
-    // If required filters are missing, return all tutors (map should show everyone)
     if (!filters || filters.subject === 'none' || filters.grade === 'none') {
       return tutors;
     }
@@ -207,7 +207,6 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
     setTheme(isDark ? 'dark' : 'light');
   }, []);
 
-  // Get user's current location
   const getUserLocation = useCallback(() => {
     setLocationError(null);
     if (navigator.geolocation) {
@@ -215,39 +214,30 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
         (position) => {
           const { latitude, longitude } = position.coords;
           setUserLocation([latitude, longitude]);
-          
-          // If we have a map instance, pan to the user's location
           if (mapInstanceRef.current) {
             mapInstanceRef.current.setView([latitude, longitude], 13);
           }
         },
         (error) => {
-          console.error("Error getting user location:", error);
-          let errorMessage = t('locationAccessDenied');
-          
+          console.error(t('errorGettingLocation', 'Error getting user location:'), error);
+          let errorMessage = t('locationAccessDenied', 'Could not access location.');
           if (error.code === error.PERMISSION_DENIED) {
-            errorMessage = t('locationPermissionDenied');
+            errorMessage = t('locationPermissionDenied', 'Location permission denied.');
           } else if (error.code === error.POSITION_UNAVAILABLE) {
-            errorMessage = t('locationUnavailable');
+            errorMessage = t('locationUnavailable', 'Position unavailable.');
           } else if (error.code === error.TIMEOUT) {
-            errorMessage = t('locationTimeout');
+            errorMessage = t('locationTimeout', 'Location request timed out.');
           }
-          
           setLocationError(errorMessage);
         },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
     } else {
-      setLocationError(t('geolocationNotSupported'));
+      setLocationError(t('geolocationNotSupported', 'Geolocation not supported by this browser.'));
     }
   }, [t]);
 
   useEffect(() => {
-    // Try to get user location when component mounts
     getUserLocation();
   }, [getUserLocation]);
 
@@ -282,23 +272,23 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
       .filter(Boolean);
 
     setTutorsWithDistance(tutorsWithDistances);
-  }, [userLocation, filteredTutors, filters]);
+  }, [userLocation, filteredTutors, filters, tutors]);
 
   const formatPrice = (tutor) => {
     if (tutor.price == null) return '—';
     const curr = tutor.currency || tutor.currency_symbol || '$';
-    return `${curr}${tutor.price}/hr`;
+    return `${tutor.price}/hr`;
   };
 
   if (loading && !showContent) {
     return (
       <div className="relative h-[calc(100vh-4rem)] w-full flex justify-center items-center">
         <div className="flex flex-col items-center gap-3 z-10 absolute">
-          <Loader className="w-8 h-8 animate-spin text-primary" loadingText="Loading Tutors..."/>
+          <Loader className="w-8 h-8 animate-spin text-primary" loadingText={t('loadingTutors', 'Loading Tutors...')} />
         </div>
         <MapContainer center={userLocation} zoom={10} scrollWheelZoom={true} className="h-full w-full z-0 opacity-50">
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution={t('osmAttribution', '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors')}
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
         </MapContainer>
@@ -314,25 +304,12 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
         </div>
         <MapContainer center={userLocation} zoom={10} scrollWheelZoom={true} className="h-full w-full z-0 opacity-50">
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution={t('osmAttribution', '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors')}
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
         </MapContainer>
       </div>
     );
-  }
-
-  if (isMissingRequiredFilters) {
-  // show banner but continue to render full map with tutors (map will show ALL tutors as fallback)
-  // we fall through to normal rendering below
-  /* eslint-disable no-console */
-  console.debug('[MapSearchPage] missing required filters — showing all tutors on map');
-  /* eslint-enable no-console */
-  }
-
-  if (filteredTutors.length === 0) {
-  // no filtered tutors — show banner but render map (it will display all tutors as fallback)
-  console.debug('[MapSearchPage] no filtered tutors — falling back to show all tutors');
   }
 
   return (
@@ -341,22 +318,18 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
         <MapContainer center={userLocation} zoom={10} scrollWheelZoom={true} className="h-full w-full z-0">
           <MapInstanceHandler mapInstanceRef={mapInstanceRef} />
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution={t('osmAttribution', '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors')}
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          
-          {/* Add marker for user's location */}
-          <Marker 
-            position={userLocation} 
-            icon={userLocationIcon}
-          >
-            <Popup>Your Location</Popup>
+
+          <Marker position={userLocation} icon={userLocationIcon}>
+            <Popup>{t('yourLocation', 'Your Location')}</Popup>
           </Marker>
-          
+
           {tutorsWithDistance.map(tutor => (
-            <Marker 
-              key={tutor.id} 
-              position={tutor.position} 
+            <Marker
+              key={tutor.id}
+              position={tutor.position}
               icon={theme === 'dark' ? darkIcon : lightIcon}
               eventHandlers={{
                 click: () => {
@@ -366,16 +339,15 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
             >
               <Popup className="custom-popup" closeButton={false}>
                 <div className="min-w-[260px] p-4 bg-popover border border-border rounded-xl shadow-2xl backdrop-blur-sm overflow-hidden">
-                  {/* Header with gradient accent */}
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent rounded-t-xl "></div>
-                  
+
                   <div className="flex items-start justify-between">
                     <div className="flex flex-col">
                       <h3 className="font-bold text-lg text-foreground">{tutor.displayName}</h3>
                       <div className="flex items-center space-x-1">
                         <BookOpen className="h-6 w-6 text-muted-foreground" />
                         <p className="text-accent font-medium text-md">
-                          {tutor.selectedSubject?.subject || filters?.subject || 'Unknown Subject'}
+                          {tutor.selectedSubject?.subject || filters?.subject || t('unknownSubject', 'Unknown Subject')}
                         </p>
                       </div>
                     </div>
@@ -385,21 +357,19 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  
-                  {/* Price information */}
+
                   <div className="flex items-center justify-between mb-2 py-2 px-3 bg-primary/10 rounded-lg">
                     <div className="flex items-center space-x-1">
                       <DollarSign className="h-4 w-4 text-primary" />
                       <span className="font-bold text-sm text-primary">{formatPrice(tutor)}</span>
                     </div>
                   </div>
-                  
-                  {/* Rating and distance info */}
+
                   <div className="flex items-center justify-between mb-3 py-2 px-3 bg-muted/30 rounded-lg">
                     <div className="flex items-center space-x-1">
                       <Star className="h-3 w-3 text-yellow-400 fill-current" />
                       <span className="font-semibold text-xs text-foreground">
-                        {tutor.rating ? tutor.rating.toFixed(1) : 'N/A'}
+                        {tutor.rating ? tutor.rating.toFixed(1) : t('na', 'N/A')}
                       </span>
                     </div>
                     <div className="flex items-center space-x-1">
@@ -407,14 +377,14 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
                       <span className="text-xs text-muted-foreground">{tutor.distance}</span>
                     </div>
                   </div>
-                  
+
                   <div className="pt-2 border-t border-border/50">
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground text-xs py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                       onClick={() => setSelectedTutor(tutor)}
                     >
-                      <Link to={`/tutor/${tutor.id}`}>View Details</Link>
+                      <Link to={`/tutor/${tutor.id}`}>{t('viewDetails', 'View Details')}</Link>
                     </Button>
                   </div>
                 </div>
@@ -423,18 +393,16 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
           ))}
         </MapContainer>
 
-        {/* Show My Location button */}
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={getUserLocation}
           className="absolute top-4 right-4 bg-white dark:bg-gray-800 p-2 rounded-full shadow-md flex items-center justify-center"
-          aria-label="Show my location"
+          aria-label={t('showMyLocation', 'Show my location')}
         >
           <User className="w-4 h-4" />
         </motion.button>
 
-        {/* Error message */}
         {locationError && (
           <div className="absolute bottom-4 left-4 right-4 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-2 rounded-md text-xs z-[500]">
             {locationError}
@@ -464,35 +432,34 @@ const MapSearchPage = ({ tutors = [], filters, loading = false, error = null }) 
                       <div className="flex items-center justify-start mt-1 gap-1">
                         <BookOpen className="h-4 w-4 text-muted-foreground" />
                         <p className="text-accent font-medium">
-                          {selectedTutor.selectedSubject?.subject || filters?.subject || 'Unknown Subject'}
+                          {selectedTutor.selectedSubject?.subject || filters?.subject || t('unknownSubject', 'Unknown Subject')}
                         </p>
                       </div>
 
-                      {/* Price in detail card */}
                       <div className="flex items-center mt-2">
                         <DollarSign className="h-4 w-4 text-primary mr-1" />
                         <span className="font-bold text-primary">{formatPrice(selectedTutor)}</span>
                       </div>
-                      
+
                       <div className="flex items-center mt-2 space-x-2">
                         <Star className="h-4 w-4 text-secondary fill-current" />
                         <span className="text-muted-foreground font-medium">
-                          {selectedTutor.rating ? selectedTutor.rating.toFixed(1) : 'N/A'}
+                          {selectedTutor.rating ? selectedTutor.rating.toFixed(1) : t('na', 'N/A')}
                         </span>
                       </div>
-                      
+
                       <div className="flex items-center mt-2 space-x-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">{selectedTutor.distance} away</span>
+                        <span className="text-xs text-muted-foreground">{`${selectedTutor.distance} ${t('away', 'away')}`}</span>
                       </div>
                     </div>
                   </div>
-                  
-                  <Button 
-                    asChild 
+
+                  <Button
+                    asChild
                     className="w-full mt-5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2 rounded-lg transition-all"
                   >
-                    <Link to={`/tutor/${selectedTutor.id}`}>View Profile</Link>
+                    <Link to={`/tutor/${selectedTutor.id}`}>{t('viewProfile', 'View Profile')}</Link>
                   </Button>
                 </CardContent>
               </Card>

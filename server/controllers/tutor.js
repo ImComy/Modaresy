@@ -313,16 +313,20 @@ export async function recommendTutorsController(req, res) {
     const page = parseInt(req.query.page || '1', 10);
     const limit = parseInt(req.query.limit || '12', 10);
 
+    console.debug(`[recommendTutorsController] incoming q="${q}", page=${page}, limit=${limit}, user=${user._id}`);
     const result = await recommendTutorsForStudent(user, { q, page, limit });
+    console.debug(`[recommendTutorsController] returned tutors=${(result.tutors || []).length}, total=${result.total}`);
+
     return res.status(200).json({
-      tutors: result.tutors || result,
-      total: result.total || (Array.isArray(result) ? result.length : 0),
+      tutors: result.tutors || [],
+      total: typeof result.total === 'number' ? result.total : (Array.isArray(result.tutors) ? result.tutors.length : 0)
     });
   } catch (error) {
     console.error('Error in recommendTutorsController:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message || String(error) });
   }
 }
+
 
 export async function createTutorController(req, res) {
   try {

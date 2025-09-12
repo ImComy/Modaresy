@@ -259,16 +259,31 @@ export async function filterTutors(filters) {
   }
 }
 
-export async function recommendTutorsForStudent(student, { q, page = 1, limit = 30 } = {}) {
+// services/recommendation.service.js (or wherever you keep it)
+export async function recommendTutorsForStudent(student, { q = '', page = 1, limit = 30 } = {}) {
   try {
     const studentEdu = student.education_system || null;
     const studentGrade = student.grade || null;
     const studentSector = student.sector || null;
     const governate = student.governate || null;
 
+    const studentSectorArr = studentSector
+      ? (Array.isArray(studentSector) ? studentSector : [studentSector])
+      : null;
+
+    const skip = Math.max(0, (page - 1) * limit);
+
+    // Start pipeline
     const pipeline = [];
 
-    // Bring subject_profiles & subject_doc
+    // 1) Optional name search (apply early to reduce work)
+    if (q && typeof q === 'string' && q.trim().length > 0) {
+      pipeline.push({
+        $match: { name: { $regex: q.trim(), $options: 'i' } } // case-insensitive contains
+      });
+    }
+
+    // 2) Lookup subject_profiles and subject_docs (same as your code)
     pipeline.push({
       $lookup: {
         from: 'subjectprofiles',
@@ -289,48 +304,59 @@ export async function recommendTutorsForStudent(student, { q, page = 1, limit = 
     });
     pipeline.push({ $unwind: { path: '$subject_doc', preserveNullAndEmptyArrays: true } });
 
-    // Sector match (safe default = 0 if missing)
-    const matchSectorExpr = studentSector
+    // 3) Normalize subject_doc.sector to array
+    pipeline.push({
+      $addFields: {
+        subjectSectorArray: {
+          $cond: [
+            { $isArray: '$subject_doc.sector' },
+            '$subject_doc.sector',
+            { $cond: [{ $ifNull: ['$subject_doc.sector', false] }, ['$subject_doc.sector'], []] }
+          ]
+        }
+      }
+    });
+
+    // 4) Compute match pieces (use numeric scores; keep as consistent as possible)
+    const matchSectorExpr = studentSectorArr
       ? {
           $cond: [
-            { $and: [
-              { $ifNull: ['$subject_doc.sector', false] },
-              { $in: [ studentSector, { $ifNull: ['$subject_doc.sector', []] } ] }
-            ] },
+            {
+              $gt: [
+                { $size: { $setIntersection: [studentSectorArr, '$subjectSectorArray'] } },
+                0
+              ]
+            },
             1,
             0
           ]
         }
       : 0;
 
-    // Add scoring fields
     pipeline.push({
       $addFields: {
-        matchSubject: studentGrade
-          ? { $cond: [ { $eq: ['$subject_doc.grade', studentGrade] }, 2, 0 ] }
-          : 0,
-        matchEdu: studentEdu
-          ? { $cond: [ { $eq: ['$subject_doc.education_system', studentEdu] }, 2, 0 ] }
-          : 0,
+        matchSubject: studentGrade ? { $cond: [{ $eq: ['$subject_doc.grade', studentGrade] }, 2, 0] } : 0,
+        matchEdu: studentEdu ? { $cond: [{ $eq: ['$subject_doc.education_system', studentEdu] }, 2, 0] } : 0,
         matchSector: matchSectorExpr,
         profileRatingScore: { $ifNull: ['$subject_profiles.rating', 0] }
       }
     });
 
-    // Sum scores per tutor
+    // 5) group back to one document per tutor, summing scores
     pipeline.push({
       $group: {
         _id: '$_id',
-        doc: { $first: '$$ROOT' },
+        doc: { $first: '$$ROOT' }, // pick first representative doc fields
         totalScore: {
-          $sum: { $add: [ '$matchSubject', '$matchEdu', '$matchSector', '$profileRatingScore' ] }
+          $sum: { $add: ['$matchSubject', '$matchEdu', '$matchSector', '$profileRatingScore'] }
         },
         subject_profiles: {
-          $push: { $mergeObjects: [ '$subject_profiles', { subject_doc: '$subject_doc' } ] }
+          $push: { $mergeObjects: ['$subject_profiles', { subject_doc: '$subject_doc' }] }
         }
       }
     });
 
+    // 6) rebuild document: merge original doc with computed score and subject_profiles array
     pipeline.push({
       $replaceRoot: {
         newRoot: {
@@ -342,22 +368,23 @@ export async function recommendTutorsForStudent(student, { q, page = 1, limit = 
       }
     });
 
-    // Location boost (optional)
+    // 7) optional location boost
     if (governate) {
       pipeline.push({
         $addFields: {
-          locationBoost: { $cond: [ { $eq: ['$governate', governate] }, 1, 0 ] }
+          locationBoost: { $cond: [{ $eq: ['$governate', governate] }, 1, 0] }
         }
       });
     }
 
+    // 8) finalScore (use rating fallback 0). Make sure fields exist and numeric.
     pipeline.push({
       $addFields: {
-        finalScore: { $add: [ '$score', { $ifNull: ['$locationBoost', 0] }, { $ifNull: ['$rating', 0] } ] }
+        finalScore: { $add: ['$score', { $ifNull: ['$locationBoost', 0] }, { $ifNull: ['$rating', 0] }] }
       }
     });
 
-    // Add coordinates if exist
+    // 9) standardize coordinates
     pipeline.push({
       $addFields: {
         coordinates: {
@@ -373,22 +400,48 @@ export async function recommendTutorsForStudent(student, { q, page = 1, limit = 
       }
     });
 
-    // Sorting by score (high to low)
-    pipeline.push({ $sort: { finalScore: -1, rating: -1 } });
+    // 10) stable sort: finalScore desc, rating desc, then tie-breaker _id asc (stable ordering)
+    pipeline.push({ $sort: { finalScore: -1, rating: -1, _id: 1 } });
 
-    // Pagination
-    const skip = Math.max(0, (page - 1) * limit);
-    pipeline.push(
-      { $skip: skip },
-      { $limit: limit },
-      { $project: { password: 0, __v: 0, 'subject_profiles.__v': 0 } }
-    );
+    // 11) Use $facet to compute total distinct count and to page results in a single aggregation.
+    const facetPipeline = [
+      {
+        $facet: {
+          data: [
+            { $skip: skip },
+            { $limit: limit },
+            { $project: { password: 0, __v: 0, 'subject_profiles.__v': 0 } }
+          ],
+          total: [
+            { $count: 'count' }
+          ]
+        }
+      }
+    ];
 
-    const tutors = await Teacher.aggregate(pipeline).exec();
-    const total = await Teacher.countDocuments();
+    const agg = await Teacher.aggregate([...pipeline, ...facetPipeline]).exec();
+
+    // normalize result
+    const data = (agg && agg[0] && Array.isArray(agg[0].data)) ? agg[0].data : [];
+    const total = (agg && agg[0] && Array.isArray(agg[0].total) && agg[0].total[0] && agg[0].total[0].count)
+      ? agg[0].total[0].count
+      : 0;
+
+    // Optional: convert _id to string id (makes frontend logic simpler)
+    const tutors = data.map(t => ({ ...t, id: t._id ? String(t._id) : (t.id || undefined) }));
+
+    // Debug: log pagination info to help diagnose missing pages
+    try {
+      console.debug(`[recommendTutorsForStudent] q="${q}", page=${page}, limit=${limit}, skip=${skip}, returned=${tutors.length}, total=${total}`);
+    } catch (e) {
+      // ignore logging errors
+    }
+
     return { tutors, total };
   } catch (err) {
     console.error('recommendTutorsForStudent error:', err);
-    throw new Error('recommend error: ' + err.message);
+    throw new Error('recommend error: ' + (err.message || err));
   }
 }
+
+

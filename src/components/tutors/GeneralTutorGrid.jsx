@@ -10,9 +10,9 @@ import debounce from 'lodash/debounce';
 import { apiFetch } from '@/api/apiService';
 import Loader from '@/components/ui/loader';
 
-const INITIAL_TUTORS_COUNT = 12;
+const INITIAL_TUTORS_COUNT = 8;
 const LOAD_MORE_COUNT = 8;
-const MAX_SUGGESTIONS = 10;
+const MAX_SUGGESTIONS = 200;
 const DEBOUNCE_DELAY = 300;
 
 const ErrorBanner = ({ message }) => (
@@ -53,12 +53,14 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showSkeletons, setShowSkeletons] = useState(true);
+  const isFetchingRef = useRef(false);
 
   const searchRef = useRef(null);
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
   const abortControllerRef = useRef(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const sentinelRef = useRef(null);
 
   // read "filters" from localStorage but treat them as SORT PREFERENCES (not filters)
   const filters = useMemo(() => {
@@ -242,6 +244,9 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
   const fetchRecommendations = useCallback(async (search = '', pageNum = 1, { signal } = {}) => {
     if (!authState?.isLoggedIn) return;
 
+    // prevent concurrent fetches which can abort each other and leave pagination stuck
+    if (isFetchingRef.current) return;
+
     if (abortControllerRef.current) {
       try { abortControllerRef.current.abort(); } catch (e) { /* no-op */ }
     }
@@ -257,12 +262,19 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
       setLoadingMore(true);
     }
 
+    isFetchingRef.current = true;
+
     try {
       // NOTE: We intentionally do NOT send client-side filter preferences to server here
       // because those preferences are only used locally for sorting.
       const url = `/tutors/recommend?q=${encodeURIComponent(search || '')}&page=${pageNum}&limit=${INITIAL_TUTORS_COUNT}`;
       const res = await apiFetch(url, { signal: s });
       let tutorsArr = (res && res.tutors) || [];
+
+      // debug log to correlate with server logs
+      try {
+        console.debug(`[fetchRecommendations] page=${pageNum}, requested=${INITIAL_TUTORS_COUNT}, returned=${(tutorsArr||[]).length}, total=${res && res.total}`);
+      } catch (e) {}
 
       if ((!tutorsArr || tutorsArr.length === 0) && pageNum === 1) {
         try {
@@ -288,18 +300,25 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
       if (pageNum === 1) {
         setRecommended(tutorsArr);
         setPage(1);
+        // ensure initial visible count shows the first page
+        setVisibleCount(prev => Math.max(prev, Math.min(INITIAL_TUTORS_COUNT, (tutorsArr || []).length)));
       } else {
         setRecommended(prev => {
           const prevIds = new Set(prev.map(x => x.id || x._id));
           const filtered = tutorsArr.filter(x => !prevIds.has(x.id || x._id));
-          return [...prev, ...filtered];
+          // append new unique items
+          const merged = [...prev, ...filtered];
+          // increase visible count by number of newly added items so they become visible
+          if (filtered.length > 0) setVisibleCount(v => v + filtered.length);
+          setPage(pageNum);
+          return merged;
         });
-        setPage(pageNum);
       }
 
-      const total = res && (res.total || 0);
+      const total = (res && typeof res.total === 'number') ? res.total : undefined;
       setHasMoreServer(() => {
-        if (typeof total === 'number' && total > 0) return (pageNum * INITIAL_TUTORS_COUNT) < total;
+        if (typeof total === 'number' && total >= 0) return (pageNum * INITIAL_TUTORS_COUNT) < total;
+        // fallback: assume more if we received a full page
         return (tutorsArr && tutorsArr.length) === INITIAL_TUTORS_COUNT;
       });
 
@@ -313,6 +332,7 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
       if (abortControllerRef.current && abortControllerRef.current.signal === (signal || controller.signal)) {
         abortControllerRef.current = null;
       }
+      isFetchingRef.current = false;
       setLoadingInitial(false);
       setLoadingMore(false);
     }
@@ -336,11 +356,12 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
     };
   }, [authState?.isLoggedIn, searchQuery, fetchRecommendations]);
 
-  const loadMoreServer = () => {
+  const loadMoreServer = useCallback(() => {
     if (!authState?.isLoggedIn) return;
+    if (loadingInitial || loadingMore) return;
     const next = page + 1;
     fetchRecommendations(searchQuery, next, {});
-  };
+  }, [authState?.isLoggedIn, page, fetchRecommendations, loadingInitial, loadingMore, searchQuery]);
 
   // Hide skeletons after a short delay when data is loaded
   useEffect(() => {
@@ -354,13 +375,36 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
     }
   }, [loadingInitial, tutorsToShow.length]);
 
+  // Infinite scroll: observe sentinel at the end of the grid
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return undefined;
+
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          if (!hasMore || loading || isFetchingRef.current) return;
+          if (authState?.isLoggedIn) {
+            loadMoreServer();
+          } else {
+            setVisibleCount(prev => prev + LOAD_MORE_COUNT);
+          }
+        }
+      });
+    }, { root: null, rootMargin: '300px', threshold: 0.1 });
+
+    obs.observe(el);
+    return () => obs.disconnect();
+    // keep dependencies minimal to avoid re-creating observer too often
+  }, [hasMore, loading, authState?.isLoggedIn, loadMoreServer]);
+
   return (
     <div className="max-w-full mx-auto">
       {(error || fetchError) && <ErrorBanner message={error || fetchError} />}
 
       <div className="relative mb-8" ref={searchRef}>
-        <div className="relative flex gap-4 items-center bg-[color:hsl(var(--background))] border border-[color:hsl(var(--input))] rounded-lg h-12 sm:h-14 shadow-md focus-within:ring-2 focus-within:ring-[color:hsl(var(--ring))] transition-all duration-300 hover:shadow-lg">
-          <Search className="w-5 h-5 text-[color:hsl(var(--muted-foreground))] ml-4" />
+        <div className="p-3 relative flex gap-4 justify-between items-center bg-[color:hsl(var(--background))] border border-[color:hsl(var(--input))] rounded-lg h-12 sm:h-14 shadow-md focus-within:ring-2 focus-within:ring-[color:hsl(var(--ring))] transition-all duration-300 hover:shadow-lg">
+          <Search className="w-5 h-5 text-[color:hsl(var(--muted-foreground))]" />
           <Input
             ref={inputRef}
             value={inputValue}
@@ -420,7 +464,7 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
       </div>
 
       {/* Pinterest-style masonry grid */}
-      <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {/* Show skeletons while loading or if no tutors yet */}
         {showSkeletons && Array.from({ length: INITIAL_TUTORS_COUNT }).map((_, index) => (
           <div key={`skeleton-${index}`} className="mb-4 break-inside-avoid">
@@ -433,7 +477,6 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
           {tutorsToShow.map((tutor, index) => (
             <motion.div
               key={tutor.id || tutor._id || tutor.name}
-              layout
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
@@ -451,6 +494,9 @@ export const GeneralTutorGrid = ({ tutors = [], error = null }) => {
             <SkeletonCard />
           </div>
         ))}
+
+        {/* Sentinel observed by IntersectionObserver to trigger auto-load */}
+        <div ref={sentinelRef} className="h-1 w-full col-span-full" />
       </div>
 
       {hasMore && (

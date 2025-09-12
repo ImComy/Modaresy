@@ -720,21 +720,18 @@
 
 // export default ChatPage;
 
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { MessageSquare, Sparkles, Clock, Bot } from 'lucide-react';
-
-// Modaresy-styled "Coming Soon" page component
-// - Uses the project's CSS color variables (e.g. --primary, --popover, --background)
-// - Tailwind utility classes assumed to be available
-// - Framer Motion for simple entrance animations
+import { useTranslation } from 'react-i18next';
 
 export default function ModaresyComingSoon() {
+  const { t, i18n } = useTranslation();
+  const dir = typeof i18n?.dir === 'function' ? i18n.dir() : 'ltr';
+
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[color:hsl(var(--background))] py-12 px-6">
+    <main dir={dir} className="min-h-screen flex items-center justify-center bg-[color:hsl(var(--background))] py-12 px-6">
       <div className="w-full max-w-6xl flex justify-center items-center">
-        {/* Left: Hero + CTA */}
         <section className="space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -748,10 +745,13 @@ export default function ModaresyComingSoon() {
               </div>
               <div>
                 <h1 className="text-2xl lg:text-3xl font-extrabold leading-tight text-[color:hsl(var(--foreground))]">
-                  Modaresy — Coming soon
+                  {t('modaresy.comingSoon.title', 'Modaresy — Coming soon')}
                 </h1>
                 <p className="text-sm text-[color:hsl(var(--muted-foreground))] mt-1">
-                  We're building smarter chats and an AI assistant to help tutors & students connect
+                  {t(
+                    'modaresy.comingSoon.description',
+                    "We're building smarter chats and an AI assistant to help tutors & students connect"
+                  )}
                 </p>
               </div>
             </div>
@@ -763,8 +763,12 @@ export default function ModaresyComingSoon() {
                     <MessageSquare className="w-5 h-5 text-[color:hsl(var(--primary))]" />
                   </div>
                   <div>
-                    <div className="font-semibold text-sm text-[color:hsl(var(--foreground))]">Chats</div>
-                    <div className="text-xs text-[color:hsl(var(--muted-foreground))] mt-1">Group & 1:1 chats with tutors, history, and media.</div>
+                    <div className="font-semibold text-sm text-[color:hsl(var(--foreground))]">
+                      {t('modaresy.features.chats.title', 'Chats')}
+                    </div>
+                    <div className="text-xs text-[color:hsl(var(--muted-foreground))] mt-1">
+                      {t('modaresy.features.chats.desc', 'Group & 1:1 chats with tutors, history, and media.')}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -775,19 +779,22 @@ export default function ModaresyComingSoon() {
                     <Bot className="w-5 h-5 text-[color:hsl(var(--primary))]" />
                   </div>
                   <div>
-                    <div className="font-semibold text-sm text-[color:hsl(var(--foreground))]">AI Bot</div>
-                    <div className="text-xs text-[color:hsl(var(--muted-foreground))] mt-1">Tutoring assistant: explain, summarize, create lesson snippets.</div>
+                    <div className="font-semibold text-sm text-[color:hsl(var(--foreground))]">
+                      {t('modaresy.features.ai.title', 'AI Bot')}
+                    </div>
+                    <div className="text-xs text-[color:hsl(var(--muted-foreground))] mt-1">
+                      {t('modaresy.features.ai.desc', 'Tutoring assistant: explain, summarize, create lesson snippets.')}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </motion.div>
 
-          {/* Feature grid or roadmap */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <FeatureCard icon={<Clock className="w-5 h-5" />} title="Beta" desc="Early access for tutors" />
-            <FeatureCard icon={<MessageSquare className="w-5 h-5" />} title="Chats" desc="Persistent conversations" />
-            <FeatureCard icon={<Bot className="w-5 h-5" />} title="AI" desc="Smart lesson generator" />
+            <FeatureCard icon={<Clock className="w-5 h-5" />} title={t('feature.beta.title', 'Beta')} desc={t('feature.beta.desc', 'Early access for tutors')} />
+            <FeatureCard icon={<MessageSquare className="w-5 h-5" />} title={t('feature.chats.title', 'Chats')} desc={t('feature.chats.desc', 'Persistent conversations')} />
+            <FeatureCard icon={<Bot className="w-5 h-5" />} title={t('feature.ai.title', 'AI')} desc={t('feature.ai.desc', 'Smart lesson generator')} />
           </motion.div>
         </section>
       </div>

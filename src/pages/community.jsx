@@ -265,17 +265,15 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Users, MessageSquare, ThumbsUp, Tag, Calendar, Sparkles } from 'lucide-react';
-
-// Modaresy-styled "Community — Coming Soon" page component
-// - Uses the project's CSS color variables (e.g. --primary, --popover, --background)
-// - Tailwind utility classes assumed to be available
-// - Framer Motion for subtle entrance animations
+import { useTranslation } from 'react-i18next';
 
 export default function ModaresyCommunityPage() {
+  const { t, i18n } = useTranslation();
+  const dir = typeof i18n?.dir === 'function' ? i18n.dir() : 'ltr';
+
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[color:hsl(var(--background))] py-12 px-6">
+    <main dir={dir} className="min-h-screen flex items-center justify-center bg-[color:hsl(var(--background))] py-12 px-6">
       <div className="w-full max-w-6xl flex justify-center items-center">
-        {/* Left: Hero + CTA */}
         <section className="space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -289,10 +287,13 @@ export default function ModaresyCommunityPage() {
               </div>
               <div>
                 <h1 className="text-2xl lg:text-3xl font-extrabold leading-tight text-[color:hsl(var(--foreground))]">
-                  Modaresy Community — Coming soon
+                  {t('communityComponent.comingSoon.title', 'Modaresy Community — Coming soon')}
                 </h1>
                 <p className="text-sm text-[color:hsl(var(--muted-foreground))] mt-1">
-                  A place where tutors & students post questions, share resources, and get fast, reliable answers — moderated and trusted.
+                  {t(
+                    'communityComponent.comingSoon.description',
+                    'A place where tutors & students post questions, share resources, and get fast, reliable answers — moderated and trusted.'
+                  )}
                 </p>
               </div>
             </div>
@@ -304,8 +305,12 @@ export default function ModaresyCommunityPage() {
                     <MessageSquare className="w-5 h-5 text-[color:hsl(var(--primary))]" />
                   </div>
                   <div>
-                    <div className="font-semibold text-sm text-[color:hsl(var(--foreground))]">Posts & Q&A</div>
-                    <div className="text-xs text-[color:hsl(var(--muted-foreground))] mt-1">Ask questions, share notes, and get expert answers from tutors & peers.</div>
+                    <div className="font-semibold text-sm text-[color:hsl(var(--foreground))]">
+                      {t('communityComponent.features.posts.title', 'Posts & Q&A')}
+                    </div>
+                    <div className="text-xs text-[color:hsl(var(--muted-foreground))] mt-1">
+                      {t('communityComponent.features.posts.desc', 'Ask questions, share notes, and get expert answers from tutors & peers.')}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -316,19 +321,22 @@ export default function ModaresyCommunityPage() {
                     <ThumbsUp className="w-5 h-5 text-[color:hsl(var(--primary))]" />
                   </div>
                   <div>
-                    <div className="font-semibold text-sm text-[color:hsl(var(--foreground))]">Voting & Reputation</div>
-                    <div className="text-xs text-[color:hsl(var(--muted-foreground))] mt-1">High-quality answers rise to the top. Tutors build reputation and trust.</div>
+                    <div className="font-semibold text-sm text-[color:hsl(var(--foreground))]">
+                      {t('communityComponent.features.voting.title', 'Voting & Reputation')}
+                    </div>
+                    <div className="text-xs text-[color:hsl(var(--muted-foreground))] mt-1">
+                      {t('communityComponent.features.voting.desc', 'High-quality answers rise to the top. Tutors build reputation and trust.')}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </motion.div>
 
-          {/* Feature grid */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <FeatureCard icon={<Tag className="w-5 h-5" />} title="Tags & Topics" desc="Organize content by subject, grade, and curriculum." />
-            <FeatureCard icon={<Users className="w-5 h-5" />} title="Mentors" desc="Verified tutors help answer tough questions." />
-            <FeatureCard icon={<Calendar className="w-5 h-5" />} title="Events" desc="Study groups, live Q&A sessions, and community events." />
+            <FeatureCard icon={<Tag className="w-5 h-5" />} title={t('communityComponent.featureGrid.tags.title', 'Tags & Topics')} desc={t('communityComponent.featureGrid.tags.desc', 'Organize content by subject, grade, and curriculum.')} />
+            <FeatureCard icon={<Users className="w-5 h-5" />} title={t('communityComponent.featureGrid.mentors.title', 'Mentors')} desc={t('communityComponent.featureGrid.mentors.desc', 'Verified tutors help answer tough questions.')} />
+            <FeatureCard icon={<Calendar className="w-5 h-5" />} title={t('communityComponent.featureGrid.events.title', 'Events')} desc={t('communityComponent.featureGrid.events.desc', 'Study groups, live Q&A sessions, and community events.')} />
           </motion.div>
         </section>
       </div>
@@ -348,14 +356,15 @@ function FeatureCard({ icon, title, desc }) {
   );
 }
 
-function PostCard({ author, time, title, excerpt, votes, answers, isBot = false }) {
+export function PostCard({ author, time, title, excerpt, votes, answers, isBot = false }) {
+  const { t, i18n } = require('react-i18next')?.useTranslation ? require('react-i18next') : { t: (k, d) => d };
   return (
     <div className="p-3 rounded-xl bg-white/80 border shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs text-[color:hsl(var(--muted-foreground))] mb-1">
             <span className="font-medium text-[color:hsl(var(--foreground))]">{author}</span>
-            {isBot && <span className="px-2 py-0.5 text-[color:hsl(var(--primary))] text-[10px] rounded-full bg-[color:hsl(var(--primary))/0.08]">BOT</span>}
+            {isBot && <span className="px-2 py-0.5 text-[color:hsl(var(--primary))] text-[10px] rounded-full bg-[color:hsl(var(--primary))/0.08]">{t('postss.botLabel', 'BOT')}</span>}
             <span>•</span>
             <span>{time}</span>
           </div>
@@ -364,8 +373,8 @@ function PostCard({ author, time, title, excerpt, votes, answers, isBot = false 
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <div className="text-xs text-[color:hsl(var(--muted-foreground))]">{votes} votes</div>
-          <div className="text-xs font-semibold text-[color:hsl(var(--foreground))]">{answers} answers</div>
+          <div className="text-xs text-[color:hsl(var(--muted-foreground))]">{votes} {t('postss.votes', 'votes')}</div>
+          <div className="text-xs font-semibold text-[color:hsl(var(--foreground))]">{answers} {t('postss.answers', 'answers')}</div>
         </div>
       </div>
     </div>

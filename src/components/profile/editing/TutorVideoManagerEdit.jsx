@@ -1,156 +1,177 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash } from 'lucide-react';
+import { Youtube, Plus, Trash, ExternalLink, Play } from 'lucide-react';
 
-const getThumbnailUrl = (url) => {
+const getThumbnailId = (url) => {
+  if (!url) return null;
   try {
-    const parsedUrl = new URL(url.startsWith('http') ? url : `https://${url}`);
-    const hostname = parsedUrl.hostname;
-    if (hostname === 'youtu.be') return parsedUrl.pathname.slice(1);
-    if (hostname.includes('youtube.com')) {
-      const videoId = parsedUrl.searchParams.get('v') || 
-                     parsedUrl.pathname.split('/').pop();
-      return videoId;
-    }
+    const safe = url.startsWith('http') ? url : `https://${url}`;
+    const parsed = new URL(safe);
+    const host = parsed.hostname.replace('www.', '');
+    if (host === 'youtu.be') return parsed.pathname.slice(1);
+    if (host.includes('youtube.com')) return parsed.searchParams.get('v') || parsed.pathname.split('/').filter(Boolean).pop();
   } catch {
-    return null;
+    const m = url.match(/[a-zA-Z0-9_-]{11}/);
+    return m ? m[0] : null;
   }
   return null;
 };
 
-const TutorVideoManagerEdit = ({ videos: initialVideos = [], onChange }) => {
+export default function TutorVideoManagerEdit({ videos: initialVideos = [], onChange }) {
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir && i18n.dir() === 'rtl';
+
   const [videos, setVideos] = useState(initialVideos);
   const [newVideo, setNewVideo] = useState({ title: '', url: '' });
 
-  // Sync with parent when initialVideos changes
   useEffect(() => {
-    setVideos(initialVideos);
+    setVideos(initialVideos || []);
   }, [initialVideos]);
 
-  const handleAddVideo = () => {
+  const sync = (next) => {
+    setVideos(next);
+    onChange?.(next);
+  };
+
+  const handleAdd = () => {
     if (!newVideo.url.trim()) return;
-    const newList = [...videos, { ...newVideo }];
-    setVideos(newList);
-    onChange?.(newList);
+    const next = [...videos, { ...newVideo }];
+    sync(next);
     setNewVideo({ title: '', url: '' });
   };
-  const { t } = useTranslation();
 
-  const handleRemove = (index) => {
-    const updated = videos.filter((_, i) => i !== index);
-    setVideos(updated);
-    onChange?.(updated);
+  const handleRemove = (idx) => {
+    const next = videos.filter((_, i) => i !== idx);
+    sync(next);
   };
 
-  const handleChange = (index, field, value) => {
-    const updated = videos.map((v, i) => 
-      i === index ? { ...v, [field]: value } : v
-    );
-    setVideos(updated);
-    onChange?.(updated);
+  const handleChange = (idx, field, value) => {
+    const next = videos.map((v, i) => (i === idx ? { ...v, [field]: value } : v));
+    sync(next);
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="w-full"
-    >
+    <div className="w-full" dir={i18n.dir()}>
       <Card className="overflow-hidden shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg sm:text-xl">{t('videoManager.videosTitle')}</CardTitle>
-          <CardDescription className="text-sm">{t('videoManager.videosDesc')}</CardDescription>
+        <CardHeader className="py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className={isRTL ? 'text-right' : 'text-left'}>
+              <CardTitle className="text-base sm:text-lg">{t('videoManager.videosTitle')}</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">{t('videoManager.videosDesc')}</CardDescription>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+              <Youtube size={20} />
+              <span>{t('videoManager.count', { count: videos.length })}</span>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-6 px-4 sm:px-6">
-          {videos.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              {videos.map((video, index) => {
-                const videoId = getThumbnailUrl(video.url);
-                return (
-                  <div
-                    key={index}
-                    className="rounded-xl border border-primary/30 shadow-sm p-4 flex flex-col gap-3 bg-background"
-                  >
-                    <div className="aspect-video rounded overflow-hidden border">
-                      {videoId ? (
-                        <img 
-                          src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
-                          alt={video.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center text-sm text-destructive">
-                          {t('videoManager.invalidVideoUrl')}
-                        </div>
-                      )}
-                    </div>
-                    <Input
-                      value={video.title}
-                      placeholder={t('videoManager.videoTitle')}
-                      onChange={(e) => handleChange(index, 'title', e.target.value)}
-                      className="border-primary/30 h-9 text-sm"
-                    />
-                    <Input
-                      value={video.url}
-                      placeholder={t('videoManager.videoUrl')}
-                      onChange={(e) => handleChange(index, 'url', e.target.value)}
-                      className="border-primary/30 h-9 text-sm"
-                    />
-                    <Button
-                      variant="ghost"
-                      className="self-end text-red-500 hover:text-red-700 h-9 w-9 sm:w-auto"
-                      onClick={() => handleRemove(index)}
-                    >
-                      <Trash className="w-4 h-4 mr-2 sm:mr-2 rtl:ml-2 rtl:ml-2" />
-                      <span className="hidden sm:inline">{t('delete')}</span>
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
 
-          {/* Add New Video */}
-          <div className="pt-6 border-t border-border space-y-4">
-            <h4 className="font-semibold text-sm sm:text-base">{t('videoManager.addNewVideo')}</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                value={newVideo.title}
-                onChange={(e) => setNewVideo(v => ({ ...v, title: e.target.value }))}
-                placeholder={t('videoManager.videoTitle')}
-                className="border-primary/30 h-9 text-sm"
-              />
-              <Input
-                value={newVideo.url}
-                onChange={(e) => setNewVideo(v => ({ ...v, url: e.target.value }))}
-                placeholder={t('videoManager.videoUrl')}
-                className="border-primary/30 h-9 text-sm"
-              />
-            </div>
+        <CardContent className="px-3 py-4 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {videos.map((v, idx) => {
+              const thumbId = getThumbnailId(v.url);
+
+              return (
+                <div
+                  key={v.url + idx}
+                  className="relative rounded-2xl overflow-hidden shadow-sm border border-border bg-card hover:shadow-lg"
+                >
+                  <div className="relative w-full h-40 bg-muted flex items-center justify-center">
+                    {thumbId ? (
+                      <img
+                        src={`https://img.youtube.com/vi/${thumbId}/hqdefault.jpg`}
+                        alt={v.title || t('videoManager.untitled')}
+                        className="object-cover w-full h-full"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className={`flex items-center justify-center w-full h-full text-xs text-destructive ${isRTL ? 'text-right' : 'text-left'}`}>
+                        {t('videoManager.invalidVideoUrl')}
+                      </div>
+                    )}
+
+                    {thumbId && (
+                      <a
+                        href={`https://youtu.be/${thumbId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="absolute right-3 top-3 inline-flex items-center gap-1 text-xs underline text-white/90"
+                        aria-label={t('videoManager.openOnYoutube')}
+                        title={t('videoManager.openOnYoutube')}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="p-3 flex flex-col gap-2 min-h-[110px]">
+                    <div className="flex flex-col gap-2">
+                      <Input
+                        value={v.title || ''}
+                        onChange={(e) => handleChange(idx, 'title', e.target.value)}
+                        placeholder={t('videoManager.videoTitle')}
+                        className="h-9 text-sm"
+                        aria-label={t('videoManager.videoTitle')}
+                      />
+                      <div className="flex flex-nowrap">
+                        <Input
+                          value={v.url || ''}
+                          onChange={(e) => handleChange(idx, 'url', e.target.value)}
+                          placeholder={t('videoManager.videoUrl')}
+                          className="h-9 text-sm"
+                          aria-label={t('videoManager.videoUrl')}
+                        />
+
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleRemove(idx)}
+                            className="inline-flex items-center gap-2 px-2 py-1 rounded text-destructive text-sm"
+                            aria-label={t('videoManager.delete')}
+                          >
+                            <Trash className="w-4 h-4" />
+                            <span className="hidden sm:inline">{t('videoManager.delete')}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-center gap-2 p-2 rounded-lg border border-dashed border-border">
+            <Input
+              value={newVideo.title}
+              onChange={(e) => setNewVideo((s) => ({ ...s, title: e.target.value }))}
+              placeholder={t('videoManager.videoTitle')}
+              className="h-9 text-sm flex-1 md:flex-[2]"
+              aria-label={t('videoManager.videoTitle')}
+            />
+
+            <Input
+              value={newVideo.url}
+              onChange={(e) => setNewVideo((s) => ({ ...s, url: e.target.value }))}
+              placeholder={t('videoManager.videoUrl')}
+              className="h-9 text-sm flex-1 md:flex-[1]"
+              aria-label={t('videoManager.videoUrl')}
+            />
+
             <Button
-              onClick={handleAddVideo}
-              className="mt-2 w-full sm:w-fit bg-primary hover:bg-primary/90 h-9 text-sm"
+              onClick={handleAdd}
               disabled={!newVideo.url.trim()}
+              className="inline-flex items-center gap-2 h-9 md:self-auto"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              {t('videoManager.addVideo')}
+              <Plus className="w-4 h-4" />
+              <span className="text-sm">{t('videoManager.addVideo')}</span>
             </Button>
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   );
-};
-
-export default TutorVideoManagerEdit;
+}

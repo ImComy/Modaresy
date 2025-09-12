@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/api/apiService';
+import { useTranslation } from 'react-i18next';
 import {
   Image as ImageIcon,
   FileText,
@@ -18,7 +19,6 @@ import { getAvatarSrc as resolveAvatar, getImageUrl } from '@/api/imageService';
 import Heart from '@/components/ui/heart';
 import Loader from '@/components/ui/loader';
 
-// --- helpers ---
 const getDisplayName = (user) => {
   if (!user) return null;
   return (
@@ -56,17 +56,17 @@ const InvisibleFileInput = ({ label, Icon, accept, multiple = false, onChange })
   );
 };
 
-// --- ImagePreview Component ---
 const ImagePreview = ({ files, onRemove }) => {
+  const { t } = useTranslation();
   if (!files || files.length === 0) return null;
 
   return (
     <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
       {files.map((file, index) => (
         <div key={index} className="relative group rounded-md overflow-hidden border" style={{ borderColor: 'hsl(var(--border))' }}>
-          <img 
-            src={typeof file === 'object' ? URL.createObjectURL(file) : getImageUrl(file)} 
-            alt={`Preview ${index}`}
+          <img
+            src={typeof file === 'object' ? URL.createObjectURL(file) : getImageUrl(file)}
+            alt={t('previewAlt', { index, defaultValue: `Preview ${index}` })}
             className="w-full h-32 object-cover"
           />
           {onRemove && (
@@ -85,8 +85,8 @@ const ImagePreview = ({ files, onRemove }) => {
   );
 };
 
-// --- CommentsList ---
 const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const [editing, setEditing] = useState(null);
   const [editText, setEditText] = useState('');
@@ -128,9 +128,7 @@ const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
   const handleConfirmDelete = async (commentId) => {
     try {
       setBusy(true);
-  console.log('Deleting comment', post._id, commentId);
-  const res = await apiFetch(`/blogs/${post._id}/comment/${commentId}`, { method: 'DELETE' });
-  console.log('delete comment response', res);
+      const res = await apiFetch(`/blogs/${post._id}/comment/${commentId}`, { method: 'DELETE' });
       refreshParent && refreshParent();
       window.dispatchEvent(new CustomEvent('refetchPosts'));
       setDeleting(null);
@@ -147,10 +145,10 @@ const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
       <div className="space-y-2 overflow-auto pr-2 max-h-40 sm:max-h-60">
         {(post.comments || []).map((c) => {
           const rawUser = c.user;
-          const user = typeof rawUser === 'object' ? rawUser : null
+          const user = typeof rawUser === 'object' ? rawUser : null;
           const isRawUserMe = typeof rawUser === 'string' && String(rawUser) === String(me);
           const resolvedUser = user || (isRawUserMe ? myUser : null);
-          const displayName = getDisplayName(resolvedUser) || (typeof rawUser === 'string' ? rawUser : 'Anonymous');
+          const displayName = getDisplayName(resolvedUser) || (typeof rawUser === 'string' ? rawUser : t('anonymous', 'Anonymous'));
           const avatarSrc = getAvatarSrc(resolvedUser);
           const isMine = me && ((user && String(user._id) === String(me)) || isRawUserMe);
 
@@ -197,10 +195,10 @@ const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
                           border: 'none',
                         }}
                         disabled={busy}
-                        title="Save edit"
+                        title={t('saveEdit', 'Save edit')}
                       >
                         <Send size={14} />
-                        Save
+                        {t('save', 'Save')}
                       </button>
                       <button
                         onClick={handleCancelEdit}
@@ -211,9 +209,9 @@ const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
                           color: 'hsl(var(--muted-foreground))',
                         }}
                         disabled={busy}
-                        title="Cancel edit"
+                        title={t('cancel', 'Cancel')}
                       >
-                        Cancel
+                        {t('cancel', 'Cancel')}
                       </button>
                     </div>
                   ) : (
@@ -229,7 +227,7 @@ const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
                       type="button"
                       onClick={() => handleStartEdit(c)}
                       className="p-1 rounded hover:bg-[hsl(var(--input))]"
-                      title="Edit comment"
+                      title={t('editComment', 'Edit comment')}
                       style={{ color: 'hsl(var(--primary))' }}
                     >
                       <Edit3 size={16} />
@@ -239,7 +237,7 @@ const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
                       type="button"
                       onClick={() => handleRequestDelete(c._id)}
                       className="p-1 rounded hover:bg-[hsl(var(--input))]"
-                      title="Delete comment"
+                      title={t('deleteComment', 'Delete comment')}
                       style={{ color: 'hsl(var(--destructive))' }}
                     >
                       <Trash2 size={16} />
@@ -249,7 +247,7 @@ const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
 
                 {deleting === c._id && (
                   <div className="flex items-center gap-2 mt-1">
-                    <div className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>Confirm?</div>
+                    <div className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>{t('confirm', 'Confirm?')}</div>
                     <button
                       onClick={() => handleConfirmDelete(c._id)}
                       className="px-2 py-1 rounded-md"
@@ -260,7 +258,7 @@ const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
                       }}
                       disabled={busy}
                     >
-                      Delete
+                      {t('delete', 'Delete')}
                     </button>
                     <button
                       onClick={() => setDeleting(null)}
@@ -272,7 +270,7 @@ const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
                       }}
                       disabled={busy}
                     >
-                      Cancel
+                      {t('cancel', 'Cancel')}
                     </button>
                   </div>
                 )}
@@ -287,8 +285,8 @@ const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
           value={text}
           onChange={(e) => setText(e.target.value)}
           className="flex-1 rounded-full px-3 py-2 text-sm"
-          placeholder="Write a comment..."
-          aria-label="Write a comment"
+          placeholder={t('writeCommentPlaceholder', 'Write a comment...')}
+          aria-label={t('writeCommentAria', 'Write a comment')}
           style={{
             border: '1px solid hsl(var(--border))',
             background: 'hsl(var(--input))',
@@ -313,7 +311,8 @@ const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
             color: 'hsl(var(--primary-foreground))',
             border: 'none',
           }}
-          aria-label="Send comment"
+          aria-label={t('sendCommentAria', 'Send comment')}
+          title={t('sendCommentAria', 'Send comment')}
         >
           <Send size={16} />
         </button>
@@ -322,8 +321,8 @@ const CommentsList = ({ post, onComment, me, refreshParent, myUser }) => {
   );
 };
 
-// --- BlogSection ---
 const BlogSection = ({ tutorId, isOwner }) => {
+  const { t } = useTranslation();
   const { authState } = useAuth();
   const me = authState?.userId;
 
@@ -427,7 +426,7 @@ const BlogSection = ({ tutorId, isOwner }) => {
         content,
         createdAt: new Date().toISOString(),
         author: {
-          name: authState?.userData?.name || authState?.userData?.fullName || 'Me',
+          name: authState?.userData?.name || authState?.userData?.fullName || t('me', 'Me'),
           _id: me,
           img: getAvatarSrc(authState?.userData),
         },
@@ -444,7 +443,6 @@ const BlogSection = ({ tutorId, isOwner }) => {
       setTitle('');
       setContent('');
 
-      // upload selected images first (if any)
       let uploadedImages = [];
       try {
         for (const f of selectedFiles) {
@@ -471,27 +469,25 @@ const BlogSection = ({ tutorId, isOwner }) => {
 
       const res = await apiFetch('/blogs', {
         method: 'POST',
-        body: JSON.stringify({ 
-          title: tempPost.title, 
-          content: tempPost.content, 
-          images: uploadedImages 
+        body: JSON.stringify({
+          title: tempPost.title,
+          content: tempPost.content,
+          images: uploadedImages
         }),
       });
 
       const created = res?.post || res?.blog || res?.data || null;
       if (created && created._id) {
-        // Clean up temporary image URLs
         tempPost.images.forEach(img => {
           if (img.isTemp && img.url.startsWith('blob:')) {
             URL.revokeObjectURL(img.url);
           }
         });
-        
+
         setPosts((prev) => prev.map((pp) => (pp._id === tempId ? created : pp)));
       } else {
         fetchPosts(1);
       }
-      // clear selected files
       setSelectedFiles([]);
     } catch (err) {
       console.error('create post error', err);
@@ -502,7 +498,7 @@ const BlogSection = ({ tutorId, isOwner }) => {
   };
 
   const handleDelete = async (postId) => {
-    if (!confirm('Delete this post?')) return;
+    if (!confirm(t('deletePostConfirm', 'Delete this post?'))) return;
     try {
       setPosts((p) => p.filter((x) => x._id !== postId));
       await apiFetch(`/blogs/${postId}`, { method: 'DELETE' });
@@ -545,7 +541,7 @@ const BlogSection = ({ tutorId, isOwner }) => {
         _id: `temp-c-${Date.now()}`,
         text,
         createdAt: new Date().toISOString(),
-        user: { _id: me, name: authState?.userData?.name || authState?.userData?.fullName || 'Me', img: getAvatarSrc(authState?.userData) },
+        user: { _id: me, name: authState?.userData?.name || authState?.userData?.fullName || t('me', 'Me'), img: getAvatarSrc(authState?.userData) },
       };
 
       setPosts((prev) => prev.map((p) => (p._id === postId ? { ...p, comments: [...(p.comments || []), tempC] } : p)));
@@ -570,29 +566,28 @@ const BlogSection = ({ tutorId, isOwner }) => {
 
   return (
     <div className="space-y-5">
-      {/* Composer */}
       {isOwner && (
         <div className="w-full rounded-2xl shadow-sm transition-shadow p-4" style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="w-12 flex-shrink-0">
               <Avatar>
                 {getAvatarSrc(authState?.userData) ? (
-                  <AvatarImage src={getAvatarSrc(authState?.userData)} alt={getDisplayName(authState?.userData) || 'Me'} />
+                  <AvatarImage src={getAvatarSrc(authState?.userData)} alt={getDisplayName(authState?.userData) || t('me', 'Me')} />
                 ) : (
-                  <AvatarFallback>{getInitials(getDisplayName(authState?.userData) || 'M')}</AvatarFallback>
+                  <AvatarFallback>{getInitials(getDisplayName(authState?.userData) || t('me', 'Me'))}</AvatarFallback>
                 )}
               </Avatar>
             </div>
 
             <div className="flex-1">
               <label className="block text-sm font-medium mb-1" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                Title (optional)
+                {t('titleOptional', 'Title (optional)')}
               </label>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Give your post a short title (optional)"
-                aria-label="Post title"
+                placeholder={t('postTitlePlaceholder', 'Give your post a short title (optional)')}
+                aria-label={t('postTitleAria', 'Post title')}
                 className="w-full rounded-md px-3 py-2 mb-2"
                 style={{
                   background: 'hsl(var(--input))',
@@ -610,7 +605,7 @@ const BlogSection = ({ tutorId, isOwner }) => {
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Share an update, resource, or tip for your students..."
+                placeholder={t('postContentPlaceholder', 'Share an update, resource, or tip for your students...')}
                 rows={3}
                 className="w-full resize-none rounded-md px-3 py-2 focus:outline-none"
                 style={{
@@ -626,13 +621,12 @@ const BlogSection = ({ tutorId, isOwner }) => {
                 }}
               />
 
-              {/* Image preview in composer */}
               <ImagePreview files={selectedFiles} onRemove={handleRemoveImage} />
 
               <div className="mt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <InvisibleFileInput
-                    label="Photo"
+                    label={t('photo', 'Photo')}
                     Icon={ImageIcon}
                     accept="image/*"
                     multiple
@@ -658,7 +652,7 @@ const BlogSection = ({ tutorId, isOwner }) => {
                       color: 'hsl(var(--muted-foreground))',
                     }}
                   >
-                    Cancel
+                    {t('cancel', 'Cancel')}
                   </button>
 
                   <button
@@ -674,7 +668,7 @@ const BlogSection = ({ tutorId, isOwner }) => {
                     }}
                     aria-disabled={submitting}
                   >
-                    {submitting ? 'Posting...' : 'Post'}
+                    {submitting ? t('posting', 'Posting...') : t('post', 'Post')}
                     <Send size={16} />
                   </button>
                 </div>
@@ -684,26 +678,22 @@ const BlogSection = ({ tutorId, isOwner }) => {
         </div>
       )}
 
-      {/* Posts */}
       <div className="space-y-4">
         {loading && posts.length === 0 ? (
-          <>
-
-            <div className="flex justify-center items-center gap-4 text-center py-10 rounded" style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}>
-              <Loader showLoadingText={false} size={40}/> Loading posts...
-            </div>
-          </>
+          <div className="flex justify-center items-center gap-4 text-center py-10 rounded" style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}>
+            <Loader showLoadingText={false} size={40} /> {t('loadingPosts', 'Loading posts...')}
+          </div>
         ) : posts.length === 0 ? (
           <div className="text-center py-10 rounded" style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}>
-            No posts yet.
+            {t('noPostsYet', 'No posts yet.')}
           </div>
         ) : (
           posts.map((post) => {
             const author = post.author || post.user || null;
-            const authorName = getDisplayName(author) || getDisplayName(post.teacher) || 'Tutor';
+            const authorName = getDisplayName(author) || getDisplayName(post.teacher) || t('tutor', 'Tutor');
             const authorAvatar = getAvatarSrc(author) || getAvatarSrc(post.teacher) || null;
             const likedByMe = (post.likes || []).map((l) => String(l)).includes(String(me));
-            
+
             return (
               <article
                 key={post._id}
@@ -728,14 +718,13 @@ const BlogSection = ({ tutorId, isOwner }) => {
                         {post.content}
                       </div>
 
-                      {/* Image display in posts */}
                       {post.images && post.images.length > 0 && (
                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {post.images.map((img, idx) => (
                             <div key={idx} className="rounded-md overflow-hidden border" style={{ borderColor: 'hsl(var(--border))' }}>
                               <img
                                 src={img.isTemp ? img.url : getImageUrl(img.url || img.path || img)}
-                                alt={img.originalname || img.filename || `image-${idx}`}
+                                alt={img.originalname || img.filename || t('imageAlt', { idx, defaultValue: `image-${idx}` })}
                                 className="w-full h-48 object-cover"
                               />
                             </div>
@@ -747,17 +736,16 @@ const BlogSection = ({ tutorId, isOwner }) => {
 
                   <div className="flex items-start gap-2 mt-2 sm:mt-0">
                     {isOwner && (
-                      <button type="button" onClick={() => handleDelete(post._id)} title="Delete" aria-label="Delete post" className="p-2 rounded-md" style={{ color: 'hsl(var(--destructive))', background: 'transparent', border: 'none' }}>
+                      <button type="button" onClick={() => handleDelete(post._id)} title={t('delete', 'Delete')} aria-label={t('delete', 'Delete post')} className="p-2 rounded-md" style={{ color: 'hsl(var(--destructive))', background: 'transparent', border: 'none' }}>
                         <Trash2 size={18} />
                       </button>
                     )}
-                    <button type="button" className="p-2 rounded-md" title="More" style={{ background: 'transparent', border: 'none', color: 'hsl(var(--muted-foreground))' }}>
+                    <button type="button" className="p-2 rounded-md" title={t('more', 'More')} style={{ background: 'transparent', border: 'none', color: 'hsl(var(--muted-foreground))' }}>
                       <MoreHorizontal size={18} />
                     </button>
                   </div>
                 </div>
 
-                {/* action row */}
                 <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between border-t pt-3" style={{ borderColor: 'hsl(var(--border))' }}>
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center justify-center text-sm gap-2">
@@ -765,25 +753,27 @@ const BlogSection = ({ tutorId, isOwner }) => {
                         type="button"
                         onClick={() => handleLike(post._id)}
                         aria-pressed={likedByMe}
-                        title="Like"
+                        title={t('like', 'Like')}
                         className="rounded hover:bg-[hsl(var(--input))] mt-1"
                         style={{ background: 'transparent', border: 'none', color: likedByMe ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
                       >
-                        <Heart isLiked={likedByMe} size={18} ariaLabel="Like post" />
+                        <Heart isLiked={likedByMe} size={18} ariaLabel={t('like', 'Like post')} />
                       </button>
-                      <span className="text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>{(post.likes || []).length ? ` ${(post.likes || []).length}` : ''} Likes</span>
+                      <span className="text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                        {(post.likes || []).length ? ` ${(post.likes || []).length} ${t('likes', 'Likes')}` : ''}
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-2 px-3 py-1 rounded-md text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>
                       <MessageSquare size={18} />
-                      <span>{(post.comments || []).length} comments</span>
+                      <span>{(post.comments || []).length} {t('comments', 'comments')}</span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 mt-3 sm:mt-0">
-                    <button type="button" className="flex items-center gap-1 text-sm px-3 py-1 rounded-md" onClick={() => { /* UI-only share action */ }} style={{ color: 'hsl(var(--muted-foreground))' }} title="Share">
+                    <button type="button" className="flex items-center gap-1 text-sm px-3 py-1 rounded-md" onClick={() => {}} style={{ color: 'hsl(var(--muted-foreground))' }} title={t('share', 'Share')}>
                       <Share2 size={16} />
-                      <span className="hidden sm:inline">Share</span>
+                      <span className="hidden sm:inline">{t('share', 'Share')}</span>
                     </button>
                   </div>
                 </div>
@@ -795,16 +785,14 @@ const BlogSection = ({ tutorId, isOwner }) => {
         )}
       </div>
 
-      {/* sentinel for infinite scroll (observed by IntersectionObserver) */}
       <div ref={sentinelRef} style={{ height: 1 }} />
 
-      {/* small loading indicator while fetching more */}
       {loading && posts.length > 0 && (
-        <div className="text-center py-6" style={{ color: 'hsl(var(--muted-foreground))' }}>Loading more...</div>
+        <div className="text-center py-6" style={{ color: 'hsl(var(--muted-foreground))' }}>{t('loadingMore', 'Loading more...')}</div>
       )}
-      {/* end message when no more posts */}
+
       {!hasMore && posts.length > 0 && (
-        <div className="text-center py-6" style={{ color: 'hsl(var(--muted-foreground))' }}>You've reached the end.</div>
+        <div className="text-center py-6" style={{ color: 'hsl(var(--muted-foreground))' }}>{t('endReached', "You've reached the end.")}</div>
       )}
     </div>
   );

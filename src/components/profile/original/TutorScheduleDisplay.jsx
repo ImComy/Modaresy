@@ -14,7 +14,7 @@ const TutorScheduleDisplay = ({ subject, tutor }) => {
           <h2 className="text-2xl font-bold tracking-tight">{t("bookingSchedule")}</h2>
         </div>
         <p className="text-lg text-foreground font-medium">
-          {subject?.name} – {t("grade")} {subject?.grade}
+          {t(`constants.Subjects.${subject?.name}`, { defaultValue: subject?.name })} – {t("grade")} {t(`constants.EducationStructure.National.grades.${subject?.grade}`, { defaultValue: subject?.grade })}
         </p>
       </div>
 
@@ -54,8 +54,12 @@ const TutorScheduleDisplay = ({ subject, tutor }) => {
                 <div className="flex items-center gap-2">
                   <CalendarDays className="w-4 h-4 text-muted-foreground" />
                   <span>
-                    <strong>{t("days")}:</strong> 
-                    {group.Days?.join(", ") || t("tba")}
+                    <strong>{t("days")}:</strong>{" "}
+                    {group.Days?.length
+                      ? group.Days.map((day) =>
+                          t(`constants.weekDays.${day}`, { defaultValue: day })
+                        ).join(", ")
+                      : t("tba")}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -94,15 +98,27 @@ const TutorScheduleDisplay = ({ subject, tutor }) => {
           {tutor.availability.times?.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {tutor.availability.times.map((time, index) => {
-                let displayText = "Invalid time format";
-                
-                if (typeof time === 'string') {
+                let displayText = t("invalidTimeFormat");
+
+                if (typeof time === "string") {
                   displayText = time;
-                } else if (time && typeof time === 'object' && time.days && time.hours) {
-                  const days = Array.isArray(time.days) ? time.days.join(", ") : time.days;
+                } else if (
+                  time &&
+                  typeof time === "object" &&
+                  time.days &&
+                  time.hours
+                ) {
+                  const days = Array.isArray(time.days)
+                    ? time.days
+                        .map((day) =>
+                          t(`constants.weekDays.${day}`, { defaultValue: day })
+                        )
+                        .join(", ")
+                    : t(`constants.weekDays.${time.days}`, { defaultValue: time.days });
+
                   displayText = `${days}: ${time.hours}`;
                 }
-                
+
                 return (
                   <span
                     key={index}

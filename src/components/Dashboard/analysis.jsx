@@ -16,6 +16,7 @@ import StudentSaaSDashboard from './saas'
 
 const AnalysisSection = () => {
   const { t, i18n } = useTranslation();
+  const dir = typeof i18n?.dir === 'function' ? i18n.dir() : 'ltr';
 
   // // Debug: Log current language
   // console.log('Current language:', i18n.language);
@@ -169,6 +170,7 @@ const AnalysisSection = () => {
 
 
     <motion.div
+      dir={dir}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -181,7 +183,10 @@ const AnalysisSection = () => {
             {t('comingSoon.title', 'Coming Soon')}
           </h2>
           <p className="text-muted-foreground text-base leading-relaxed">
-            {t('comingSoon.description', 'This section is still under development. We’re working hard to bring you powerful analytics and insights.')}
+            {t(
+              'comingSoon.description',
+              "This section is still under development. We’re working hard to bring you powerful analytics and insights."
+            )}
           </p>
           <Loader2 className="h-6 w-6 text-muted-foreground animate-spin mt-4" />
         </div>

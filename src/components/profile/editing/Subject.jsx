@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 import { getPaymentIcon } from '@/data/payment';
 import { getConstants, getConstantsSync } from "@/api/constantsFetch";
 
-const OfferForm = ({ offer, onChange}) => {
+const OfferForm = ({ offer, onChange }) => {
   const { t } = useTranslation();
 
   const safeOffer = useMemo(() => {
@@ -44,7 +44,7 @@ const OfferForm = ({ offer, onChange}) => {
       description: offer?.description || ""
     };
   }, [offer]);
-  
+
   return (
     <div className="mt-4 p-4 border border-green-300 bg-lime-100/30 rounded-lg">
       <div className="flex justify-between items-center mb-3">
@@ -52,18 +52,8 @@ const OfferForm = ({ offer, onChange}) => {
           <BadgePercent size={16} />
           <span>{t("offer", "Offer")}</span>
         </div>
-        {/* {onRemove && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-destructive hover:bg-destructive/10 h-8 w-8"
-            onClick={onRemove}
-          >
-            <Trash size={16} />
-          </Button>
-        )} */}
       </div>
-      
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Input
           type="number"
@@ -97,10 +87,10 @@ const OfferForm = ({ offer, onChange}) => {
   );
 };
 
-const SubjectPricingInfoEdit = ({ subject, onChange }) => {
-  const { t } = useTranslation();
+const SubjectPricingInfoEdit = ({ subject, onChange}) => {
+  const { t, i18n } = useTranslation();
+  const dir = typeof i18n?.dir === 'function' ? i18n.dir() : 'ltr';
 
-  // Initialize constants
   const [paymentTimings, setPaymentTimings] = useState(() => {
     try {
       const sync = getConstantsSync?.();
@@ -109,7 +99,7 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
       return ["Prepaid", "Postpaid"];
     }
   });
-  
+
   const [pricePeriods, setPricePeriods] = useState(() => {
     try {
       const sync = getConstantsSync?.();
@@ -118,23 +108,22 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
       return ["Session", "Month"];
     }
   });
-  
+
   const [paymentMethods, setPaymentMethods] = useState(() => {
     try {
       const sync = getConstantsSync?.();
       return (sync && sync.PaymentMethods) || [
-        "Cash", "Vodafone Cash", "Etisalat Cash", "Orange Money", 
+        "Cash", "Vodafone Cash", "Etisalat Cash", "Orange Money",
         "Bank Transfer", "Meeza", "Instapay", "ValU", "Credit Card", "Fawry"
       ];
     } catch {
       return [
-        "Cash", "Vodafone Cash", "Etisalat Cash", "Orange Money", 
+        "Cash", "Vodafone Cash", "Etisalat Cash", "Orange Money",
         "Bank Transfer", "Meeza", "Instapay", "ValU", "Credit Card", "Fawry"
       ];
     }
   });
 
-  // Fetch constants
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -149,21 +138,19 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
       }
     })();
     return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Convert legacy period values
   const convertLegacyPeriod = (val) => {
-    if (!val && val !== 0) return pricePeriods[0] || "Session";
+    if (!val && val !== 0) return pricePeriods[0] || t("session", "Session");
     if (pricePeriods.includes(val)) return val;
     if (String(val) === "1") return pricePeriods.find(p => /month/i.test(p)) || pricePeriods[0];
     if (String(val) === "2") return pricePeriods.find(p => /session/i.test(p)) || pricePeriods[0];
     return pricePeriods.find(p => p.toLowerCase().includes(String(val).toLowerCase())) || pricePeriods[0];
   };
 
-  // Initialize subject data
   const subjectData = subject || {};
-  
-  // Pricing data with offers
+
   const group_pricing = useMemo(() => {
     const gp = subjectData.group_pricing || {};
     return {
@@ -212,35 +199,30 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
     }));
   }, [subjectData, pricePeriods]);
 
-  // Other fields
   const description = subjectData.description || "";
   const payment_timing = subjectData.payment_timing || paymentTimings[1] || "Postpaid";
   const selected_payment_methods = subjectData.payment_methods || [];
   const subjectRating = subjectData.subjectRating;
 
-  // Prepare options
   const periodOptions = pricePeriods.map((p) => ({
     value: p,
-    label: /month/i.test(p) ? t("month", "month") : 
-           /session/i.test(p) ? t("session", "session") : p
+    label: t(`constants.PricePeriod.${p}`, { defaultValue: p })
   }));
 
   const timingOptions = paymentTimings.map((tval) => ({
     value: tval,
-    label: /pre/i.test(tval) ? t("paidUpfront", "Paid Upfront") : 
-           /post/i.test(tval) ? t("paidAfter", "Paid After") : tval
+    label: t(`constants.PaymentTimings.${tval}`, { defaultValue: tval })
   }));
 
   const paymentOptions = paymentMethods.map((method) => {
     const IconComponent = getPaymentIcon(method);
     return {
       value: method,
-      label: method,
+      label: t(`constants.PaymentMethods.${method}`, { defaultValue: method }),
       icon: <IconComponent className="w-4 h-4" />,
     };
   });
 
-  // Handler functions
   const handleDescriptionChange = (value) => {
     onChange('description', value);
   };
@@ -261,7 +243,7 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
 
   const handleGroupOfferChange = (field, value) => {
     const formattedValue = field === 'percentage' ? Number(value) : value;
-    
+
     onChange('group_pricing', {
       ...group_pricing,
       offer: {
@@ -273,7 +255,7 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
 
   const handlePrivateOfferChange = (field, value) => {
     const formattedValue = field === 'percentage' ? Number(value) : value;
-    
+
     onChange('private_pricing', {
       ...private_pricing,
       offer: {
@@ -291,7 +273,7 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
 
   const handleAdditionalOfferChange = (index, field, value) => {
     const formattedValue = field === 'percentage' ? Number(value) : value;
-    
+
     const updated = [...additional_pricing];
     updated[index] = {
       ...updated[index],
@@ -300,15 +282,15 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
         [field]: formattedValue
       }
     };
-    
+
     onChange('additional_pricing', updated);
   };
 
   const handleAddAdditionalPricing = () => {
-    const newItem = { 
-      name: "", 
-      price: 0, 
-      period: pricePeriods[0] || "Session", 
+    const newItem = {
+      name: "",
+      price: 0,
+      period: pricePeriods[0] || t("session", "Session"),
       description: "",
       offer: {
         percentage: "",
@@ -336,11 +318,10 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
     onChange('payment_methods', updated);
   };
 
-  // Star rating renderer
   const renderStars = (rating) => {
     const fullStars = Math.floor(rating || 0);
     const halfStar = (rating || 0) % 1 >= 0.5;
-    
+
     return (
       <>
         {[...Array(fullStars)].map((_, i) => (
@@ -357,7 +338,7 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div dir={dir} style={{ direction: dir }} className="w-full max-w-3xl mx-auto">
       <Card className="border-primary/30 shadow-lg rounded-xl relative overflow-visible bg-gradient-to-br from-primary/5 to-primary/10">
         {typeof subjectRating === "number" && (
           <div className="absolute -top-3 right-4 bg-background px-3 py-1 border border-primary/30 rounded-full shadow-md flex items-center gap-1 text-sm">
@@ -385,7 +366,6 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
               </TabsTrigger>
             </TabsList>
 
-            {/* Overview Tab */}
             <TabsContent value="overview">
               <div className="space-y-3 p-4 sm:p-5 bg-muted/20 rounded-xl border border-primary/30 transition-all hover:shadow-md">
                 <div className="flex items-center gap-2 text-primary">
@@ -401,10 +381,8 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
               </div>
             </TabsContent>
 
-            {/* Pricing Tab */}
             <TabsContent value="pricing">
               <div className="flex flex-col gap-5">
-                {/* Group Pricing */}
                 <div className="bg-muted/20 rounded-lg p-4 sm:p-5 transition-all hover:shadow-md border border-primary/30">
                   <div className="flex items-start gap-3">
                     <Banknote size={20} className="text-green-500 mt-0.5" />
@@ -443,17 +421,15 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
                           </SelectContent>
                         </Select>
                       </div>
-                      
-                      {/* Group Offer */}
-                      <OfferForm 
-                        offer={group_pricing.offer} 
+
+                      <OfferForm
+                        offer={group_pricing.offer}
                         onChange={(field, value) => handleGroupOfferChange(field, value)}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Private Pricing */}
                 <div className="bg-muted/20 rounded-lg p-4 sm:p-5 transition-all hover:shadow-md border border-primary/30">
                   <div className="flex items-start gap-3">
                     <div className="flex flex-col">
@@ -514,10 +490,9 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
                           placeholder={t("note", "Add a note...")}
                           className="w-full h-9 text-sm border-primary/30 focus:border-primary focus:ring-primary/20 transition-colors shadow-sm hidden sm:block"
                         />
-                        
-                        {/* Private Offer */}
-                        <OfferForm 
-                          offer={private_pricing.offer} 
+
+                        <OfferForm
+                          offer={private_pricing.offer}
                           onChange={(field, value) => handlePrivateOfferChange(field, value)}
                         />
                       </div>
@@ -525,7 +500,6 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
                   </div>
                 </div>
 
-                {/* Additional Pricing */}
                 <section className="space-y-6">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="rounded-full bg-primary/10 text-primary p-2">
@@ -590,10 +564,9 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
                             placeholder={t("description", "Description")}
                             className="w-full min-h-[80px] text-sm border-primary/30 focus:border-primary focus:ring-primary/20 transition-colors shadow-sm"
                           />
-                          
-                          {/* Additional Pricing Offer */}
-                          <OfferForm 
-                            offer={item.offer} 
+
+                          <OfferForm
+                            offer={item.offer}
                             onChange={(field, value) => handleAdditionalOfferChange(index, field, value)}
                           />
                         </div>
@@ -617,7 +590,6 @@ const SubjectPricingInfoEdit = ({ subject, onChange }) => {
               </div>
             </TabsContent>
 
-            {/* Payment Tab */}
             <TabsContent value="payment">
               <div className="p-4 sm:p-5 bg-muted/20 rounded-xl border border-primary/30 space-y-4 transition-all hover:shadow-md">
                 <div className="flex items-center gap-2 text-primary font-medium mb-2">

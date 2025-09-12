@@ -26,50 +26,58 @@ const SORT_OPTIONS = [
   { value: 'nameDesc', icon: <ArrowUpAZ className="w-5 h-5" />, label: 'sortByNameDesc' },
 ];
 
-const FloatingSubjectTooltip = ({ educationSystem, grade, sector, onResetCombo }) => (
-  <motion.div
-    initial={{ opacity: 0, y: -6, scale: 0.98 }}
-    animate={{ opacity: 1, y: 0, scale: 1 }}
-    exit={{ opacity: 0, y: -6, scale: 0.98 }}
-    transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-    role="dialog"
-    aria-live="polite"
-    className="
-      absolute
-      left-0 sm:left-1/2
-      sm:-translate-x-1/2
-      mt-2
-      z-50
-      w-full sm:w-[20rem] md:w-[28rem]
-      rounded-lg shadow-lg border border-border/40 bg-card p-3
-      sm:translate-y-0
-    "
-  >
-    <div className="flex items-start gap-3">
-      <div className="flex-shrink-0 mt-1">
-        <BookOpen size={22} className="opacity-80" />
-      </div>
+const FloatingSubjectTooltip = ({ educationSystem, grade, sector, onResetCombo }) => {
+  const { t } = useTranslation();
 
-      <div className="flex-1">
-        <div className="font-semibold text-sm">No subjects available</div>
-        <div className="text-xs text-muted-foreground mt-1">
-          This grade doesn’t have subjects for the selected sector: <strong>{educationSystem}</strong> / <strong>{grade}</strong>{sector && sector !== 'all' ? ` / <strong>{sector}</strong>` : ''}.
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -6, scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+      role="dialog"
+      aria-live="polite"
+      className="
+        absolute
+        left-0 sm:left-1/2
+        sm:-translate-x-1/2
+        mt-2
+        z-50
+        w-full sm:w-[20rem] md:w-[28rem]
+        rounded-lg shadow-lg border border-border/40 bg-card p-3
+        sm:translate-y-0
+      "
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 mt-1">
+          <BookOpen size={22} className="opacity-80" />
         </div>
 
-        <div className="mt-3 flex justify-end">
-          <button
-            onClick={onResetCombo}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-600 text-white text-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300"
-            aria-label="Reset education combo"
-          >
-            <RefreshCw size={14} />
-            Reset combo
-          </button>
+        <div className="flex-1">
+          <div className="font-semibold text-sm">{t('noSubjectsAvailable')}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {t('noSubjectsDescription', {
+              educationSystem,
+              grade,
+              sector: sector && sector !== 'all' ? sector : '',
+            })}
+          </div>
+
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={onResetCombo}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-600 text-white text-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300"
+              aria-label={t('resetEducationCombo')}
+            >
+              <RefreshCw size={14} />
+              {t('resetEducationCombo')}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 const HorizontalFilters = (props) => {
   const {
@@ -107,7 +115,6 @@ const HorizontalFilters = (props) => {
   const [constants, setConstants] = useState(null);
   const [loadingLocalConstants, setLoadingLocalConstants] = useState(false);
 
-  // tolerant helpers
   const normalize = (s) => String(s ?? 'all').trim().toLowerCase();
   const comboEqual = (a,b) => normalize(a) === normalize(b);
   const comboStartsWithSystem = (comboVal, systemVal) => normalize(comboVal).startsWith(normalize(systemVal));
@@ -125,7 +132,6 @@ const HorizontalFilters = (props) => {
     return [bySpace[0]||'all', bySpace[1]||'all', bySpace[2]||'all'];
   };
 
-  // fetch constants if parent didn't supply them
   useEffect(() => {
     let cancelled = false;
     async function tryFetch() {
@@ -145,17 +151,15 @@ const HorizontalFilters = (props) => {
       ];
       for (const p of triedPaths) {
         try {
-          // eslint-disable-next-line no-await-in-loop
           const mod = await import(/* @vite-ignore */ p);
           if (mod && typeof mod.getConstants === 'function') {
-            // eslint-disable-next-line no-await-in-loop
             fetched = await mod.getConstants();
             break;
           }
-        } catch (e) { /* ignore */ }
+        } catch (e) { }
       }
       if (!fetched && typeof window !== 'undefined' && typeof window.getConstants === 'function') {
-        try { fetched = await window.getConstants(); } catch(e) { /* ignore */ }
+        try { fetched = await window.getConstants(); } catch(e) { }
       }
       if (!cancelled) {
         setConstants(fetched || null);
@@ -168,10 +172,18 @@ const HorizontalFilters = (props) => {
 
   const effectiveLoadingConstants = loadingConstants || loadingLocalConstants;
 
-  // builders (strict rules)
+  const trSystem = (sys) => t(`constants.Education_Systems.${sys}`, { defaultValue: sys });
+  const trSector = (sys, sec) => t(`constants.EducationStructure.${sys}.sectors.${sec}`, { defaultValue: sec });
+  const trLang = (lang) => t(`constants.Languages.${lang}`, { defaultValue: lang });
+  const trSubject = (s) => t(`constants.Subjects.${s}`, { defaultValue: s });
+  const trGrade = (sys, g) => t(`constants.EducationStructure.${sys}.grades.${g}`, { defaultValue: g });
+  const trGovernate = (g) => t(`constants.Governates.${g}`, { defaultValue: g });
+  const trDistrict = (d) => t(`constants.Districts.${d}`, { defaultValue: d });
+  const trWeekDay = (d) => t(`constants.weekDays.${d}`, { defaultValue: d });
+
   const buildCombosFromConstants = (c) => {
-    if (!c) return [{ value: 'all', label: 'All' }];
-    const combos = [{ value: 'all', label: t('All') || 'All' }];
+    if (!c) return [{ value: 'all', label: t('all') }];
+    const combos = [{ value: 'all', label: t('all') }];
     const systems = c.Education_Systems || c.EducationSystems || [];
     const languagesGlobal = c.Languages || [];
     systems.forEach(sys => {
@@ -193,7 +205,7 @@ const HorizontalFilters = (props) => {
       const languages = (struct.languages && struct.languages.length) ? struct.languages : (languagesGlobal && languagesGlobal.length ? languagesGlobal : ['Arabic']);
       sectors.forEach(sec => {
         languages.forEach(lang => {
-          combos.push({ value: `${sys}||${sec}||${lang}`, label: `${sys} - ${sec} - ${lang}` });
+          combos.push({ value: `${sys}||${sec}||${lang}`, label: `${trSystem(sys)} - ${trSector(sys, sec)} - ${trLang(lang)}` });
         });
       });
     });
@@ -297,7 +309,7 @@ const HorizontalFilters = (props) => {
           prefs.language = parsed.language || parsed.lang || undefined;
           prefs.grade = parsed.grade || parsed.selectedGrade || undefined;
           prefs.sector = parsed.sector || parsed.selectedSector || undefined;
-        } catch (e) { /* ignore */ }
+        } catch (e) { }
       }
 
       if (!prefs.educationSystem && storedSystem) prefs.educationSystem = storedSystem;
@@ -371,7 +383,7 @@ const HorizontalFilters = (props) => {
     updateFilter('subject', 'none');
 
     if (typeof setEducationFromCombo === 'function') {
-      try { setEducationFromCombo(comboValue); } catch (e) { /* ignore */ }
+      try { setEducationFromCombo(comboValue); } catch (e) { }
     }
 
     try {
@@ -411,12 +423,11 @@ const HorizontalFilters = (props) => {
     setLocalFilters(updated);
 
     if (key === 'subject') {
-      try { ignoreNextResetRef.current = true; } catch (e) { /* ignore */ }
+      try { ignoreNextResetRef.current = true; } catch (e) { }
     }
 
     updateFilter(key, value);
 
-    // persist grade immediately
     if (key === 'grade') {
       try {
         localStorage.setItem('selectedGrade', value);
@@ -485,7 +496,6 @@ const HorizontalFilters = (props) => {
     triggerFilterUpdate?.();
   };
 
-  // effective values
   const effectiveEducationSystem = (filters?.educationSystem ?? localFilters.educationSystem);
   const effectiveGrade = (filters?.grade ?? localFilters.grade);
   const effectiveSector = (filters?.sector ?? localFilters.sector);
@@ -528,7 +538,7 @@ const HorizontalFilters = (props) => {
   const gradeSelectDisabled = effectiveLoadingConstants || !effectiveEducationSystem || effectiveEducationSystem === 'all' || !hasGradesToShow;
 
   let gradeItems = [{ value: 'none', label: t('none') }];
-  gradeItems = [...gradeItems, ...availableGrades.map(g => ({ value: g, label: g }))];
+  gradeItems = [...gradeItems, ...availableGrades.map(g => ({ value: g, label: effectiveEducationSystem ? trGrade(effectiveEducationSystem, g) : g }))];
 
   if (isInvalidSelectedGrade) {
     gradeItems.push({ value: effectiveGrade, label: effectiveGrade, disabled: true });
@@ -538,52 +548,56 @@ const HorizontalFilters = (props) => {
 
   const effectiveSubjectsList = subjectsOptions ?? [];
 
+  const mapEducationComboToItem = (c) => {
+    const parts = splitComboValue(c.value);
+    const sys = parts[0] || 'all';
+    const sec = parts[1] || 'all';
+    const lang = parts[2] || 'all';
+    const label = sys === 'all' ? t('all') : `${trSystem(sys)} - ${trSector(sys, sec)} - ${trLang(lang)}`;
+    return { value: c.value, label };
+  };
+
+  const gradePlaceholder = effectiveLoadingConstants ? t('loading') : (effectiveEducationSystem === 'all' ? t('selectEducationComboFirst') : (hasGradesToShow ? t('searchByGrade') : t('noGradesAvailable')));
+  const subjectPlaceholder = !((filters?.educationSystem) ?? localFilters.educationSystem) || ((filters?.educationSystem) ?? localFilters.educationSystem) === 'all'
+    ? t('selectEducationComboFirst')
+    : (!((filters?.grade) ?? localFilters.grade) || ((filters?.grade) ?? localFilters.grade) === 'none')
+      ? t('selectGradeFirst')
+      : (effectiveSubjectsList.length ? t('searchBySubject') : t('noSubjectsAvailable'));
+
   return (
     <>
       <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 100, damping: 10, delay: 0.1 }} className="mb-6 p-4 rounded-xl shadow-sm bg-card/80 backdrop-blur-sm border border-border/20">
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
-
-            {/* Education combo */}
             <motion.div className="col-span-1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
               <LabelWithIcon icon={BookText} text={t('educationCombo') || 'System - Sector - Language'} />
               <Select value={selectedComboValue} onValueChange={handleComboChange} disabled={effectiveLoadingConstants}>
                 <SelectTrigger className="h-10 text-sm w-full">
                   <SelectValue placeholder={effectiveLoadingConstants ? t('loading') : t('selectEducationCombo')} />
                 </SelectTrigger>
-                <SearchableSelectContent items={educationCombos.map(c => ({ value: c.value, label: c.label }))} />
+                <SearchableSelectContent items={educationCombos.map(c => mapEducationComboToItem(c))} />
               </Select>
             </motion.div>
 
-            {/* Grade */}
             <motion.div className="col-span-1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
               <LabelWithIcon icon={Users} text={t('grade')} />
               <Select value={(filters?.grade ?? localFilters.grade) || 'none'} onValueChange={(value) => handleInputChange('grade', value)} disabled={gradeSelectDisabled}>
                 <SelectTrigger className={`h-10 text-sm w-full ${gradeSelectDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}>
-                  <SelectValue placeholder={effectiveLoadingConstants ? t('loading') : (effectiveEducationSystem === 'all' ? t('selectEducationComboFirst') : (hasGradesToShow ? t('searchByGrade') : t('noGradesAvailable')))} />
+                  <SelectValue placeholder={gradePlaceholder} />
                 </SelectTrigger>
-                {/* only show available grades for the current combo, plus invalid selected if applicable (disabled) */}
-                <SearchableSelectContent items={gradeItems} />
+                <SearchableSelectContent items={gradeItems.map(it => ({ value: it.value, label: it.label, disabled: it.disabled }))} />
               </Select>
             </motion.div>
 
-            {/* Subject (relative container for tooltip) */}
             <motion.div className="relative" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
               <LabelWithIcon icon={BookText} text={t('subject')} />
               <Select value={(filters?.subject ?? localFilters.subject) || 'none'} onValueChange={(value) => { handleInputChange('subject', value); }} disabled={!canPickSubject}>
                 <SelectTrigger className={`h-10 text-sm w-full ${!canPickSubject ? 'opacity-60 cursor-not-allowed' : ''}`}>
-                  <SelectValue placeholder={
-                    !((filters?.educationSystem) ?? localFilters.educationSystem) || ((filters?.educationSystem) ?? localFilters.educationSystem) === 'all'
-                    ? t('selectEducationComboFirst')
-                    : (!((filters?.grade) ?? localFilters.grade) || ((filters?.grade) ?? localFilters.grade) === 'none')
-                    ? t('selectGradeFirst')
-                    : (effectiveSubjectsList.length ? t('searchBySubject') : t('noSubjectsAvailable'))
-                  } />
+                  <SelectValue placeholder={subjectPlaceholder} />
                 </SelectTrigger>
-                <SearchableSelectContent items={[{ value: 'none', label: t('none') }, ...effectiveSubjectsList.map(s => ({ value: s, label: s }))]} />
+                <SearchableSelectContent items={[{ value: 'none', label: t('none') }, ...effectiveSubjectsList.map(s => ({ value: s, label: trSubject(s) }))]} />
               </Select>
 
-              {/* Floating tooltip when user can pick subject but there are no subjects (strict case) */}
               {canPickSubject && (effectiveSubjectsList.length === 0) && (
                 <AnimatePresence>
                   <FloatingSubjectTooltip
@@ -596,7 +610,6 @@ const HorizontalFilters = (props) => {
               )}
             </motion.div>
 
-            {/* Toggle */}
             <motion.div className="col-span-1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }}>
               <button onClick={() => setShowAdditional(prev => !prev)} className={`group inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 md:py-3 transition-all duration-300 border text-sm font-medium shadow-sm w-full ${showAdditional ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted hover:bg-muted/80 text-muted-foreground border-border'}`}>
                 <motion.span animate={{ rotate: showAdditional ? 180 : 0 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="inline-flex"><Filter className="w-4 h-4" /></motion.span>
@@ -624,7 +637,7 @@ const HorizontalFilters = (props) => {
                         <SelectTrigger className="h-10 text-sm">
                           <SelectValue placeholder={t('selectGovernate')} />
                         </SelectTrigger>
-                        <SearchableSelectContent items={[{ value: 'all', label: t('allGovernates') }, ...governatesOptions.map(g => ({ value: g, label: g }))]} />
+                        <SearchableSelectContent items={[{ value: 'all', label: t('allGovernates') }, ...governatesOptions.map(g => ({ value: g, label: trGovernate(g) }))]} />
                       </Select>
                     </motion.div>
 
@@ -634,7 +647,7 @@ const HorizontalFilters = (props) => {
                         <SelectTrigger className={`h-10 text-sm ${!(localFilters.governate && localFilters.governate !== 'all') ? 'opacity-60 cursor-not-allowed' : ''}`}>
                           <SelectValue placeholder={!localFilters.governate || localFilters.governate === 'all' ? t('selectGovernateFirst') : (districtsOptions.length ? t('selectDistrict') : t('noDistrictsForGovernate'))} />
                         </SelectTrigger>
-                        <SearchableSelectContent items={[{ value: 'all', label: t('allDistricts') }, ...districtsOptions.map(d => ({ value: d, label: d }))]} />
+                        <SearchableSelectContent items={[{ value: 'all', label: t('allDistricts') }, ...districtsOptions.map(d => ({ value: d, label: trDistrict(d) }))]} />
                       </Select>
                     </motion.div>
 
@@ -647,12 +660,6 @@ const HorizontalFilters = (props) => {
                         </SelectContent>
                       </Select>
                     </motion.div>
-{/* 
-                    <motion.div className="flex flex-col gap-2" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}>
-                      <LabelWithIcon icon={DollarSign} text={t('monthlyRateRange')} />
-                      <Slider min={50} max={2000} step={50} value={(filters?.rateRange ?? localFilters.rateRange) || [50,2000]} onValueChange={(v) => handleSliderChange(v)} className="w-full" />
-                      <div className="text-xs text-muted-foreground">{t('from')} {localFilters.rateRange?.[0] || 50} - {t('to')} {localFilters.rateRange?.[1] || 2000}</div>
-                    </motion.div> */}
                   </div>
                 </motion.div>
               </motion.div>
@@ -663,7 +670,7 @@ const HorizontalFilters = (props) => {
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-4 p-4 rounded-xl flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          <motion.span className="font-semibold text-2xl sm:text-3xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>{t('Results')}</motion.span>
+          <motion.span className="font-semibold text-2xl sm:text-3xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>{t('results', 'Results')}</motion.span>
           <motion.div className="flex items-center gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
             <Button variant="ghost" size="icon" className="rounded-full border border-border" onClick={handleSortCycle} title={t(SORT_OPTIONS[sortIndex].label)}>
               <motion.div key={sortIndex} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}>{SORT_OPTIONS[sortIndex].icon}</motion.div>

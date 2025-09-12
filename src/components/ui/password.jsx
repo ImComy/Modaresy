@@ -33,7 +33,11 @@ export const SinglePasswordInput = ({ value, onChange, error }) => {
         onClick={() => setShow((prev) => !prev)}
         className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 hover:bg-muted/50"
       >
-        {show ? <EyeOff className="w-4 h-4 text-primary" /> : <Eye className="w-4 h-4 text-primary" />}
+        {show ? (
+          <Eye className="w-4 h-4 text-primary" /> 
+        ) : (
+          <EyeOff className="w-4 h-4 text-primary" />
+        )}
       </Button>
       {error && <p className="text-sm text-destructive mt-1">{error}</p>}
     </div>
@@ -149,7 +153,11 @@ const PasswordInputs = ({
               onClick={() => toggleShow('current')}
               className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 hover:bg-muted/50"
             >
-              {show.current ? <EyeOff className="w-4 h-4 text-primary" /> : <Eye className="w-4 h-4 text-primary" />}
+              {show.current ? (
+                <Eye className="w-4 h-4 text-primary" />
+              ) : (
+                <EyeOff className="w-4 h-4 text-primary" />
+              )}
             </Button>
           </div>
           {errors.currentPassword && <p className="text-sm text-destructive">{errors.currentPassword}</p>}
@@ -186,7 +194,11 @@ const PasswordInputs = ({
             onClick={() => toggleShow('password')}
             className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 hover:bg-muted/50"
           >
-            {show.password ? <EyeOff className="w-4 h-4 text-primary" /> : <Eye className="w-4 h-4 text-primary" />}
+            {show.password ? (
+              <Eye className="w-4 h-4 text-primary" />
+            ) : (
+              <EyeOff className="w-4 h-4 text-primary" />
+            )}
           </Button>
         </motion.div>
 
@@ -210,7 +222,9 @@ const PasswordInputs = ({
       {/* Confirm Password */}
       <div className="space-y-1">
         <Label htmlFor="confirmPassword" className="text-sm font-semibold text-muted-foreground">
-          {variant === 'update' ? t('confirmNewPassword', 'Confirm New Password') : t('settings.form.confirmPassword', 'Confirm Password')}
+          {variant === 'update'
+            ? t('confirmNewPassword', 'Confirm New Password')
+            : t('settings.form.confirmPassword', 'Confirm Password')}
         </Label>
         <motion.div
           className="relative"
@@ -237,7 +251,11 @@ const PasswordInputs = ({
             onClick={() => toggleShow('confirm')}
             className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 hover:bg-muted/50"
           >
-            {show.confirm ? <EyeOff className="w-4 h-4 text-primary" /> : <Eye className="w-4 h-4 text-primary" />}
+            {show.confirm ? (
+              <Eye className="w-4 h-4 text-primary" />
+            ) : (
+              <EyeOff className="w-4 h-4 text-primary" />
+            )}
           </Button>
         </motion.div>
         {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}

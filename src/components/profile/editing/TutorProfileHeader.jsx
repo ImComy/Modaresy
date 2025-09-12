@@ -43,14 +43,14 @@ const socialIcons = {
   website: FaGlobe,
 };
 
-const TutorProfileHeaderEdit = ({ 
-  tutor, 
+const TutorProfileHeaderEdit = ({
+  tutor,
   onChange,
   onAddSubject,
   onUpdateSubject,
   onDeleteSubject,
   isSubjectMutating,
-  pendingFilesRef 
+  pendingFilesRef
 }) => {
   const { t } = useTranslation();
   const [constants, setConstants] = useState(null);
@@ -65,8 +65,8 @@ const TutorProfileHeaderEdit = ({
       name: tutorData?.name || '',
       img: getImageUrl(tutorData?.profile_picture?.url) || tutorData?.img || '',
       bannerimg: getImageUrl(tutorData?.banner?.url) || tutorData?.bannerimg || tutorData?.banner || '',
-      previewPfpUrl: '',   
-      previewBannerUrl: '', 
+      previewPfpUrl: '',
+      previewBannerUrl: '',
       pendingPfpFile: null,
       pendingBannerFile: null,
       pendingPfpDelete: false,
@@ -108,7 +108,6 @@ const TutorProfileHeaderEdit = ({
         const data = await getConstants();
         setConstants(data);
       } catch (error) {
-        console.error('Failed to load constants:', error);
       }
     };
     loadConstants();
@@ -117,7 +116,7 @@ const TutorProfileHeaderEdit = ({
   useEffect(() => {
     return () => {
       if (lastObjectUrl.current) {
-        try { URL.revokeObjectURL(lastObjectUrl.current); } catch {};
+        try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
         lastObjectUrl.current = null;
       }
     };
@@ -125,19 +124,15 @@ const TutorProfileHeaderEdit = ({
 
   const handleFieldChange = useCallback((field, value, options = { propagate: true }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-
-    // call parent AFTER scheduling our setState (do not call inside updater)
     if (options.propagate) {
       try {
         onChange?.(field, value);
       } catch (err) {
-        console.error('onChange handler threw', err);
       }
     }
   }, [onChange]);
 
   const handleSocialChange = useCallback((platform, url) => {
-    // use current formData snapshot to compute new socials
     const updatedSocials = { ...(formData.social_media || {}), [platform]: url };
     setFormData(prev => ({ ...prev, social_media: updatedSocials }));
     onChange?.('social_media', updatedSocials);
@@ -163,7 +158,7 @@ const TutorProfileHeaderEdit = ({
     if (file) {
       const imageUrl = URL.createObjectURL(file);
       if (lastObjectUrl.current) {
-        try { URL.revokeObjectURL(lastObjectUrl.current); } catch {};
+        try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
       }
       lastObjectUrl.current = imageUrl;
       setCropOverlay({ open: true, image: imageUrl, shape });
@@ -178,40 +173,31 @@ const TutorProfileHeaderEdit = ({
       const body = new FormData();
       if (shape === 'profile') body.append('profile_picture', file);
       else body.append('banner', file);
-
       const token = localStorage.getItem('token');
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body,
       });
-      console.log('uploadFile -> response status', res.status);
-
       if (!res.ok) {
         const txt = await res.text();
-        console.error('uploadFile -> non-ok body', txt);
         throw new Error(txt || 'Upload failed');
       }
-
       const parsed = await res.json();
       const returned = parsed.profile_picture || parsed.banner;
       let url = returned?.url || returned?.path || '';
       if (url && url.startsWith('/')) url = `${API_BASE}${url}`;
-
       if (shape === 'profile') {
         handleFieldChange('img', url);
       } else {
         handleFieldChange('bannerimg', url);
       }
-
       if (lastObjectUrl.current) {
-        try { URL.revokeObjectURL(lastObjectUrl.current); } catch {};
+        try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
         lastObjectUrl.current = null;
       }
-
       return returned;
     } catch (err) {
-      console.error('uploadFile error:', err);
       return null;
     }
   };
@@ -219,33 +205,27 @@ const TutorProfileHeaderEdit = ({
   const handleCrop = async (croppedFile) => {
     const shape = cropOverlay.shape === 'profile' ? 'profile' : 'banner';
     const previewUrl = URL.createObjectURL(croppedFile);
-
     if (lastObjectUrl.current) {
       try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
     }
     lastObjectUrl.current = previewUrl;
-
     if (shape === 'profile') {
       handleFieldChange('previewPfpUrl', previewUrl);
       handleFieldChange('pendingPfpFile', croppedFile);
       handleFieldChange('pendingPfpDelete', false);
       handleFieldChange('img', previewUrl);
-      console.log('handleCrop updated profile preview/pending', { previewUrl, pendingFileName: croppedFile?.name });
     } else {
       handleFieldChange('previewBannerUrl', previewUrl);
       handleFieldChange('pendingBannerFile', croppedFile);
       handleFieldChange('pendingBannerDelete', false);
-
       handleFieldChange('bannerimg', previewUrl);
-      console.log('handleCrop updated banner preview/pending', { previewUrl, pendingFileName: croppedFile?.name });
     }
-
     setCropOverlay({ open: false, image: null, shape: 'banner' });
   };
 
   const handleCancelCrop = () => {
     if (lastObjectUrl.current) {
-      try { URL.revokeObjectURL(lastObjectUrl.current); } catch {};
+      try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
       lastObjectUrl.current = null;
     }
     setCropOverlay({ open: false, image: null, shape: 'banner' });
@@ -273,7 +253,6 @@ const TutorProfileHeaderEdit = ({
       )}
 
       <Card className="shadow-xl bg-gradient-to-br from-primary/5 to-primary/10 border-0">
-        {/* Banner Image */}
         <div className="relative h-48 md:h-64 rounded-t-lg overflow-hidden">
           <label className="absolute top-4 right-4 z-20 bg-primary/90 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-primary transition-colors shadow-md hover:shadow-lg flex items-center gap-2">
             {t('changeBanner')}
@@ -285,14 +264,13 @@ const TutorProfileHeaderEdit = ({
             />
           </label>
 
-          {/* delete banner button for owner */}
           <button
             type="button"
             className="absolute top-4 left-4 z-20 bg-white/80 text-destructive px-2 py-1 rounded-lg shadow"
             onClick={async () => {
               if (!tutor?._id) return;
               if (lastObjectUrl.current) {
-                try { URL.revokeObjectURL(lastObjectUrl.current); } catch {};
+                try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
                 lastObjectUrl.current = null;
               }
               handleFieldChange('bannerimg', '', { propagate: false });
@@ -335,7 +313,7 @@ const TutorProfileHeaderEdit = ({
         </div>
 
         <CardContent className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-          <ProfileSection 
+          <ProfileSection
             tutor={tutor}
             formData={formData}
             handleFieldChange={handleFieldChange}
@@ -347,7 +325,6 @@ const TutorProfileHeaderEdit = ({
             lastObjectUrl={lastObjectUrl}
           />
 
-          {/* Right Column - Detailed Information */}
           <DetailsSection
             formData={formData}
             handleFieldChange={handleFieldChange}
@@ -361,7 +338,6 @@ const TutorProfileHeaderEdit = ({
         </CardContent>
       </Card>
 
-      {/* Social Media Edit Modal */}
       <SocialMediaModal
         open={socialEditOpen}
         onClose={() => setSocialEditOpen(false)}
@@ -378,7 +354,6 @@ const TutorProfileHeaderEdit = ({
   );
 };
 
-// Extracted sub-components
 const ProfileSection = ({ tutor, formData, handleFieldChange, handleFileSelect, setSocialEditOpen, socialMedia, constants, t, lastObjectUrl }) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
@@ -387,7 +362,7 @@ const ProfileSection = ({ tutor, formData, handleFieldChange, handleFileSelect, 
     className="flex flex-col items-center text-center"
   >
     <div className="flex flex-col items-center gap-4 text-center -mt-20 md:mt-0 z-10">
-      <AvatarUpload 
+      <AvatarUpload
         tutor={tutor}
         formData={formData}
         handleFileSelect={handleFileSelect}
@@ -395,7 +370,7 @@ const ProfileSection = ({ tutor, formData, handleFieldChange, handleFileSelect, 
         t={t}
         lastObjectUrl={lastObjectUrl}
       />
-      
+
       <div className="space-y-1 w-full">
         <Input
           value={formData.name}
@@ -403,8 +378,8 @@ const ProfileSection = ({ tutor, formData, handleFieldChange, handleFileSelect, 
           placeholder={t('yourName')}
           className="text-2xl font-bold text-center border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
         />
-        
-        <LocationSelect 
+
+        <LocationSelect
           governate={formData.governate}
           district={formData.district}
           onGovernateChange={(value) => {
@@ -417,7 +392,7 @@ const ProfileSection = ({ tutor, formData, handleFieldChange, handleFileSelect, 
         />
       </div>
 
-      <SocialButtons 
+      <SocialButtons
         setSocialEditOpen={setSocialEditOpen}
         socialMedia={socialMedia}
         t={t}
@@ -429,32 +404,31 @@ const ProfileSection = ({ tutor, formData, handleFieldChange, handleFileSelect, 
 const AvatarUpload = ({ tutor, formData, handleFileSelect, handleFieldChange, t, lastObjectUrl }) => {
   const [localPreview, setLocalPreview] = useState('');
 
-useEffect(() => {
-  if (formData.previewPfpUrl) {
-    setLocalPreview(formData.previewPfpUrl);
-    return;
-  }
+  useEffect(() => {
+    if (formData.previewPfpUrl) {
+      setLocalPreview(formData.previewPfpUrl);
+      return;
+    }
 
-  if (formData.pendingPfpFile instanceof File) {
-    try {
-      if (lastObjectUrl?.current) {
-        try { URL.revokeObjectURL(lastObjectUrl.current); } catch {};
+    if (formData.pendingPfpFile instanceof File) {
+      try {
+        if (lastObjectUrl?.current) {
+          try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
+        }
+        lastObjectUrl.current = URL.createObjectURL(formData.pendingPfpFile);
+        setLocalPreview(lastObjectUrl.current);
+      } catch (err) {
+        setLocalPreview('');
       }
-      lastObjectUrl.current = URL.createObjectURL(formData.pendingPfpFile);
-      setLocalPreview(lastObjectUrl.current);
-    } catch (err) {
-      console.error('AvatarUpload preview createObjectURL error', err);
+      return;
+    }
+
+    if (typeof formData.img === 'string' && formData.img) {
+      setLocalPreview(formData.img);
+    } else {
       setLocalPreview('');
     }
-    return;
-  }
-
-  if (typeof formData.img === 'string' && formData.img) {
-    setLocalPreview(formData.img);
-  } else {
-    setLocalPreview('');
-  }
-}, [formData.previewPfpUrl, formData.pendingPfpFile, formData.img, lastObjectUrl]);
+  }, [formData.previewPfpUrl, formData.pendingPfpFile, formData.img, lastObjectUrl]);
 
   return (
     <div className="relative w-40 h-40 border-2 border-primary rounded-md shadow-lg">
@@ -474,7 +448,7 @@ useEffect(() => {
         onClick={async () => {
           if (!tutor?._id) return;
           if (lastObjectUrl?.current) {
-            try { URL.revokeObjectURL(lastObjectUrl.current); } catch {};
+            try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
             lastObjectUrl.current = null;
           }
           handleFieldChange('img', '', { propagate: false });
@@ -511,25 +485,39 @@ const LocationSelect = ({
   constants,
   t,
 }) => {
-  const governateOptions = useMemo(() => (
-    constants?.Governates?.map((gov) => ({
-      value: gov,
-      label: gov,
-    })) || []
-  ), [constants?.Governates]);
+  const governateMap = useMemo(() => t('constants.Governates', { returnObjects: true }), [t]);
+  const governateOptions = useMemo(() => {
+    if (governateMap && typeof governateMap === 'object') {
+      return Object.keys(governateMap).map(key => ({ value: key, label: governateMap[key] || key }));
+    }
+    if (constants && Array.isArray(constants.Governates)) {
+      return constants.Governates.map(gov => ({ value: gov, label: gov }));
+    }
+    return [];
+  }, [governateMap, constants]);
 
-  const districtOptions = useMemo(() => (
-    governate && constants?.Districts?.[governate]
-      ? constants.Districts[governate].map((dist) => ({
-          value: dist,
-          label: dist,
-        }))
-      : []
-  ), [governate, constants?.Districts]);
+  const districtMap = useMemo(() => t('constants.Districts', { returnObjects: true }), [t]);
+  const districtOptions = useMemo(() => {
+    // If server constants provide districts grouped by governate, prefer them and translate labels via districtMap if available
+    if (constants && constants.Districts && governate && Array.isArray(constants.Districts[governate])) {
+      return constants.Districts[governate].map(distKey => ({ value: distKey, label: (districtMap && districtMap[distKey]) || distKey }));
+    }
+
+    // If the translation file provides districts grouped by governate (array), use those (labels already translated)
+    if (districtMap && typeof districtMap === 'object' && governate && Array.isArray(districtMap[governate])) {
+      return districtMap[governate].map(distKey => ({ value: distKey, label: districtMap[distKey] || distKey }));
+    }
+
+    // If the translation file provides a flat mapping of districtKey -> label, expose all entries (best-effort)
+    if (districtMap && typeof districtMap === 'object' && !Array.isArray(districtMap)) {
+      return Object.keys(districtMap).map(k => ({ value: k, label: districtMap[k] || k }));
+    }
+
+    return [];
+  }, [districtMap, constants, governate]);
 
   return (
     <div className="flex flex-col gap-2 w-full max-w-xs">
-      {/* Governate Select */}
       <div className="space-y-1">
         <Label htmlFor="governate-select" className="text-xs font-medium text-gray-600">
           {t('governate')}
@@ -538,7 +526,7 @@ const LocationSelect = ({
           value={governate || ''}
           onValueChange={onGovernateChange}
         >
-          <SelectTrigger 
+          <SelectTrigger
             id="governate-select"
             className="h-10 border border-primary rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           >
@@ -552,7 +540,6 @@ const LocationSelect = ({
         </Select>
       </div>
 
-      {/* District Select - Only shown when governate is selected */}
       {governate && (
         <div className="space-y-1">
           <Label htmlFor="district-select" className="text-xs font-medium text-gray-600">
@@ -563,12 +550,12 @@ const LocationSelect = ({
             onValueChange={onDistrictChange}
             disabled={!governate}
           >
-            <SelectTrigger 
+            <SelectTrigger
               id="district-select"
               className="h-10 border border-primary-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
-              <SelectValue 
-                placeholder={governate ? t('selectDistrict') : t('selectGovernateFirst')} 
+              <SelectValue
+                placeholder={governate ? t('selectDistrict') : t('selectGovernateFirst')}
               />
             </SelectTrigger>
             <SearchableSelectContent
@@ -619,14 +606,14 @@ const SocialButtons = ({ setSocialEditOpen, socialMedia, t }) => (
   </div>
 );
 
-const DetailsSection = ({ 
-  formData, 
-  handleFieldChange, 
-  onAddSubject, 
-  onUpdateSubject, 
-  onDeleteSubject, 
-  constants, 
-  t 
+const DetailsSection = ({
+  formData,
+  handleFieldChange,
+  onAddSubject,
+  onUpdateSubject,
+  onDeleteSubject,
+  constants,
+  t
 }) => (
   <motion.div
     initial={{ opacity: 0, x: 10 }}
@@ -635,12 +622,12 @@ const DetailsSection = ({
     className="md:col-span-2 space-y-4 flex flex-col items-center text-center md:items-start md:text-left"
   >
     <div className="flex flex-col md:flex-row w-full gap-6 justify-between">
-      <ExperienceLocationSection 
+      <ExperienceLocationSection
         formData={formData}
         handleFieldChange={handleFieldChange}
         t={t}
       />
-      
+
       <AddSubjectCard
         formData={formData}
         onAddSubject={onAddSubject}
@@ -651,7 +638,7 @@ const DetailsSection = ({
       />
     </div>
 
-    <AboutMeSection 
+    <AboutMeSection
       aboutMe={formData.about_me}
       onChange={(value) => handleFieldChange('about_me', value)}
       t={t}
@@ -660,14 +647,12 @@ const DetailsSection = ({
 );
 
 const ExperienceLocationSection = ({ formData, handleFieldChange, t }) => {
-
   return (
     <div className="space-y-4 w-full md:w-1/2">
-      {/* Overall Experience Section - NEW */}
       <div className="bg-muted/30 p-3 rounded-lg border border-primary/20">
         <div className="flex items-center gap-2 mb-1">
           <Award className="h-5 w-5 text-primary" />
-          <h3 className="font-medium">{t('overallExperience')}</h3>
+          <h3 className="font-medium">{t('experience')}</h3>
         </div>
         <div className="flex items-center gap-3">
           <Input
@@ -683,8 +668,7 @@ const ExperienceLocationSection = ({ formData, handleFieldChange, t }) => {
           </span>
         </div>
       </div>
-      
-      {/* Address Section */}
+
       <div>
         <div className="flex items-center gap-2 mb-2">
           <MapPin className="h-5 w-5 text-primary" />
@@ -757,7 +741,7 @@ const SocialMediaModal = ({ open, onClose, socialMedia, newSocial, setNewSocial,
               <SelectContent>
                 {Object.keys(socialIcons).map((platform) => (
                   <SelectItem key={platform} value={platform}>
-                    {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                    {t(`socialPlatforms.${platform}`, { defaultValue: platform.charAt(0).toUpperCase() + platform.slice(1) })}
                   </SelectItem>
                 ))}
               </SelectContent>

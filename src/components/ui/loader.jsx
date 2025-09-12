@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 // Loader (Tailwind + project color schema aware)
 //
@@ -31,9 +32,10 @@ export default function Loader({
   showLoadingText = true,
   size = 'responsive',
   textPosition = 'right',
-  loadingText = 'Loading...',
+  loadingText = 'loading',
   color = 'primary',
 }) {
+  const { t } = useTranslation();
   // prepare inline styles — keep component self-contained while using Tailwind for layout
   const style = {};
   // loader size
@@ -62,6 +64,18 @@ export default function Loader({
 
   // font-size for text — scale relative to loader size
   const textStyle = { fontSize: 'calc(var(--loader-size) * 0.16)', lineHeight: 1 };
+
+  // compute translated text (accepts key or already-translated string/node)
+  const renderLoadingText = () => {
+    if (!showLoadingText) return null;
+    if (React.isValidElement(loadingText)) return loadingText;
+    if (typeof loadingText === 'string') {
+      // try to translate the provided string as a key; fallback to the string itself
+      return t(loadingText, { defaultValue: loadingText });
+    }
+    // other types (number, etc.)
+    return String(loadingText ?? t('loading', { defaultValue: 'Loading...' }));
+  };
 
   return (
     <div className={containerClasses} role="status" aria-live="polite" style={style}>
@@ -145,7 +159,7 @@ export default function Loader({
 
       {showLoadingText && (
         <span className="font-semibold select-none text-[color:var(--loader-text-color)]" style={textStyle}>
-          {loadingText}
+          {renderLoadingText()}
         </span>
       )}
 

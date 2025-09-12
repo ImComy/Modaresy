@@ -18,6 +18,9 @@ const TutorCard = ({ tutor }) => {
   const { authState } = useAuth();
   const [openTypes, setOpenTypes] = useState({});
   const { isInWishlist, handleWishlistToggle } = useWishlistLogic(tutor);
+  const govLabel = tutor?.governate ? t(`constants.Governates.${tutor.governate}`, { defaultValue: tutor.governate }) : null;
+  const distLabel = tutor?.district ? t(`constants.Districts.${tutor.district}`, { defaultValue: tutor.district }) : null;
+  const translatedLocation = govLabel ? (distLabel ? `${govLabel} - ${distLabel}` : govLabel) : null;
 
   const subjectEntries = (() => {
     if (Array.isArray(tutor?.subject_profiles) && tutor.subject_profiles.length) {
@@ -66,7 +69,6 @@ const TutorCard = ({ tutor }) => {
   );
   const maxYearsExp = Math.max(computedMaxYears || 0, tutor?.experience_years || tutor?.experienceYears || tutor?.experience || 0);
 
-  // NEW: group by subject (subject is now the group tag)
   const groupedBySubject = subjectEntries.reduce((acc, subj) => {
     const subjName = subj?.name || subj?.subject || 'Unknown';
     const key = String(subjName);
@@ -87,11 +89,10 @@ const TutorCard = ({ tutor }) => {
     >
       <Link to={`/tutor/${tutor?.id}`} className="block h-full">
         <Card className="relative h-full flex flex-col rounded-xl overflow-hidden border bg-muted">
-          {/* Banner */}
           <div className="relative w-full h-32 rounded-t-xl">
             <img
               src={getBannerUrl(tutor) || getImageUrl(tutor?.bannerimg) || 'banner.png'}
-              alt="Banner"
+              alt={t('banner', 'Banner')}
               className="w-full h-full object-cover rounded-t-xl"
             />
             <div className="absolute left-1/2 transform -translate-x-1/2 top-full -mt-14">
@@ -107,12 +108,11 @@ const TutorCard = ({ tutor }) => {
           </div>
 
           <CardContent className="flex-1 pt-12 pb-4 px-4 flex flex-col justify-between">
-            {/* Info */}
             <div className="text-center space-y-1">
               <h3 className="font-bold text-lg text-foreground">
-                {tutor?.name || t('unknownTutor')}
+                {tutor?.name || t('unknownTutor', 'Unknown tutor')}
               </h3>
-              <div className="flex items-center justify-center gap-1 text-muted-foreground">
+              <div className="flex items-center justify-center gap-1 text-muted-foreground mb-2">
                 {averageRating && averageRating > 0 ? (
                   <>
                     {renderStars(averageRating)}
@@ -122,28 +122,26 @@ const TutorCard = ({ tutor }) => {
                   t('noReviews', 'No reviews yet')
                 )}
               </div>
-              <div className="flex items-center justify-center gap-3 text-muted-foreground text-sm">
+              <div className="flex flex-col items-center justify-center text-muted-foreground text-sm">
                 <div className="flex items-center gap-1">
                   <Calendar size={14} />
-                  <span>{maxYearsExp} {t('yearsOfExperience')}</span>
+                  <span>{maxYearsExp} {t('yearsOfExperience', 'years of experience')}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <MapPin size={14} />
                   <span>
-                    {tutor?.governate && tutor?.district
-                      ? `${tutor.governate} - ${tutor.district}`
-                      : t('locationNotSpecified')}
+                    {translatedLocation
+                      ? translatedLocation
+                      : t('locationNotSpecified', 'Location not specified')}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Subjects grouped by subject name (subject is the group tag). Inside each subject we show unique sector/grade/education_system combos */}
             {Object.entries(groupedBySubject).length > 0 ? (
               Object.entries(groupedBySubject).map(([subjectKey, subjects]) => {
                 const isOpen = openTypes[subjectKey] ?? Object.keys(groupedBySubject).length === 1;
 
-                // Build unique combos of sector/grade/education_system for this subject
                 const combosMap = {};
                 subjects.forEach(s => {
                   const edu = s?.education_system || s?.educationSystem || null;
@@ -169,7 +167,6 @@ const TutorCard = ({ tutor }) => {
                         : 'p-0 border-none mt-2'
                     )}
                   >
-                    {/* Header: now the subject is the tag */}
                     <div
                       className={clsx(
                         'flex items-center gap-2',
@@ -177,10 +174,9 @@ const TutorCard = ({ tutor }) => {
                       )}
                     >
                       <span className="px-3 py-0.5 text-[11px] font-semibold rounded-full shadow-sm border border-green-300 bg-green-100 text-green-700">
-                        {subjectKey}
+                        {t(`constants.Subjects.${subjectKey}`, { defaultValue: subjectKey })}
                       </span>
 
-                      {/* Language label (same as before) */}
                       {(() => {
                         const first = subjects[0] || {};
                         const lang =
@@ -191,7 +187,7 @@ const TutorCard = ({ tutor }) => {
                         if (lang)
                           return (
                             <span className="px-2 py-0.5 text-[11px] font-semibold rounded-full shadow-sm border border-blue-300 bg-blue-100 text-blue-700 ml-2">
-                              {Array.isArray(lang) ? lang[0] : lang}
+                              {Array.isArray(lang) ? t(`constants.Languages.${lang[0]}`, { defaultValue: lang[0] }) : t(`constants.Languages.${lang}`, { defaultValue: lang })}
                             </span>
                           );
                         return null;
@@ -214,7 +210,6 @@ const TutorCard = ({ tutor }) => {
                       </button>
                     </div>
 
-                    {/* Sector/Grade combos (grouped inside the subject) */}
                     <AnimatePresence initial={false}>
                       {isOpen && (
                         <motion.div
@@ -228,7 +223,15 @@ const TutorCard = ({ tutor }) => {
                           <div className="flex flex-wrap gap-2 -m-1">
                             {combos.map((c, idx) => {
                               const sectors = Array.isArray(c.sector) ? c.sector : [c.sector];
-                              const title = [sectors.join(", "), c.grade, c.education_system].filter(Boolean).join(" - ");
+                              const translateSector = (s, system) => t(`constants.EducationStructure.${system || 'National'}.sectors.${s}`, { defaultValue: s });
+                              const translateGrade = (g, system) => (g ? t(`constants.EducationStructure.${system || 'National'}.grades.${g}`, { defaultValue: g }) : '');
+                              const translateEducation = (e) => (e ? t(`constants.Education_Systems.${e}`, { defaultValue: e }) : '');
+
+                              const displaySectors = sectors.map((s) => translateSector(s, c.education_system));
+                              const gradeLabel = translateGrade(c.grade, c.education_system);
+                              const eduLabel = translateEducation(c.education_system);
+
+                              const title = [displaySectors.join(', '), gradeLabel, eduLabel].filter(Boolean).join(' - ');
 
                               return (
                                 <div
@@ -239,27 +242,24 @@ const TutorCard = ({ tutor }) => {
                                   <MapPin size={12} className="flex-shrink-0" />
 
                                   <div className="flex flex-wrap items-center gap-1 flex-1">
-                                    {/* Sectors */}
-                                    {sectors.map((s, i) => (
+                  {sectors.map((s, i) => (
                                       <span
                                         key={i}
                                         className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] leading-tight"
                                       >
-                                        {s}
+                    {translateSector(s, c.education_system)}
                                       </span>
                                     ))}
 
-                                    {/* Grade & Education */}
                                     {(c.grade || c.education_system) && (
                                       <span className="ml-auto text-muted-foreground text-[10px] italic">
-                                        {c.grade}{c.education_system ? ` - ${c.education_system}` : ''}
+                                        {gradeLabel}{eduLabel ? ` - ${eduLabel}` : ''}
                                       </span>
                                     )}
                                   </div>
                                 </div>
                               );
                             })}
-
                           </div>
                         </motion.div>
                       )}
@@ -268,13 +268,11 @@ const TutorCard = ({ tutor }) => {
                 );
               })
             ) : (
-              // No subjects recorded
               <div className="mt-4 text-center text-sm text-muted-foreground italic">
                 {t('noSubjectsRecorded', 'No subjects recorded')}
               </div>
             )}
 
-            {/* Actions */}
             <div className="mt-4 w-full flex justify-between items-center pt-4 border-t border-border text-sm">
               {authState.isLoggedIn && (
                 <Button
@@ -287,14 +285,14 @@ const TutorCard = ({ tutor }) => {
                   )}
                 >
                   <Heart size={14} fill={isInWishlist ? 'currentColor' : 'none'} />
-                  {isInWishlist ? t('remove') : t('addToWishlist')}
+                  {isInWishlist ? t('remove', 'Remove') : t('addToWishlist', 'Add to wishlist')}
                 </Button>
               )}
               <div className="flex items-center gap-2">
                 {Array.isArray(tutor?.languages) && tutor.languages.length > 0 && (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Globe size={14} />
-                    {tutor.languages.join(', ')}
+                    {tutor.languages.map(l => t(`constants.Languages.${l}`, { defaultValue: l })).join(', ')}
                   </span>
                 )}
                 <Button
@@ -305,7 +303,7 @@ const TutorCard = ({ tutor }) => {
                   className="border-primary text-primary hover:bg-primary hover:text-white transition-colors duration-200 px-3 py-1 rounded-md font-semibold"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {t('viewProfile')}
+                  {t('viewProfile', 'View profile')}
                 </Button>
               </div>
             </div>

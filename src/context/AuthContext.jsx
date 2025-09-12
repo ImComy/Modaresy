@@ -3,11 +3,13 @@ import { useToast } from '@/components/ui/use-toast';
 import { studentService } from '@/api/student';
 import { tutorService } from '@/api/tutor';
 import { apiFetch } from '@/api/apiService';
+import { useTranslation } from 'react-i18next';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [authState, setAuthState] = useState({
     isLoggedIn: false,
@@ -60,15 +62,18 @@ export const AuthProvider = ({ children }) => {
       };
       setAuthState(newState);
       console.log('Auth state updated:', newState);
+
       toast({
-        title: 'Login Successful',
-        description: `Welcome ${userData.name}`,
+        title: t('auth.loginSuccessTitle', 'Login Successful'),
+        description: t('auth.loginSuccessDescription', { name: userData?.name || '' }),
       });
     } catch (err) {
       console.error('Login failed:', err.message || 'Invalid credentials');
       toast({
-        title: 'Login Failed',
-        description: err.message || 'Invalid credentials',
+        title: t('auth.loginFailedTitle', 'Login Failed'),
+        description: err.message
+          ? t('auth.loginFailedDescription', { message: err.message })
+          : t('auth.invalidCredentials', 'Invalid credentials'),
         variant: 'destructive',
       });
       throw err;
@@ -86,8 +91,8 @@ export const AuthProvider = ({ children }) => {
     });
 
     toast({
-      title: 'Logged out',
-      description: 'You have been logged out',
+      title: t('auth.loggedOutTitle', 'Logged out'),
+      description: t('auth.loggedOutDescription', 'You have been logged out'),
     });
   };
 
@@ -102,15 +107,19 @@ export const AuthProvider = ({ children }) => {
       });
 
       toast({
-        title: 'Success',
-        description: response.message || 'Password updated successfully',
+        title: t('auth.passwordUpdateSuccessTitle', 'Success'),
+        description: response?.message
+          ? response.message
+          : t('auth.passwordUpdateSuccessDescription', 'Password updated successfully'),
       });
       return response;
     } catch (err) {
       console.error('Password update failed:', err.message);
       toast({
-        title: 'Password Update Failed',
-        description: err.message || 'Failed to update password',
+        title: t('auth.passwordUpdateFailedTitle', 'Password Update Failed'),
+        description: err.message
+          ? t('auth.passwordUpdateFailedDescription', { message: err.message })
+          : t('auth.passwordUpdateFailedDescription', 'Failed to update password'),
         variant: 'destructive',
       });
       throw err;

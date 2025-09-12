@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { useWishlist } from '@/context/WishlistContext';
 import TutorCard from '../components/tutors/GeneralTutorCard';
-import { HeartOff, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { HeartOff } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const WishlistPage = () => {
@@ -34,22 +33,6 @@ const WishlistPage = () => {
     loadWishlist();
   }, []);
 
-  const handleRefresh = async () => {
-    try {
-      await refreshWishlist();
-      toast({
-        title: t('success'),
-        description: t('wishlistRefreshed'),
-      });
-    } catch (error) {
-      toast({
-        title: t('error'),
-        description: t('failedToRefresh'),
-        variant: 'destructive'
-      });
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -64,14 +47,6 @@ const WishlistPage = () => {
             {t('wishlistDescription', { count: wishlistIds.length })}
           </p>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={handleRefresh}
-          className="gap-2"
-        >
-          <RefreshCw size={16} />
-          {t('refresh')}
-        </Button>
       </section>
 
       {wishlistTutors.length > 0 ? (

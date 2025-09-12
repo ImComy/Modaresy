@@ -10,14 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Listbox, Transition } from "@headlessui/react";
 import { Fragment } from "react";
-import { getConstants } from "@/api/constantsFetch";
 
 const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange }) => {
-  const { t } = useTranslation();
-  
-  const [daysOfWeek, setDaysOfWeek] = useState([
-    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
-  ]);
+  const { t, i18n } = useTranslation();
+
+  const [daysOfWeek, setDaysOfWeek] = useState([]);
 
   const timeSlots = Array.from({ length: 28 }, (_, i) => {
     const hour = Math.floor(i / 2) + 8;
@@ -35,23 +32,61 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
   const [editingIndex, setEditingIndex] = useState(null);
 
   useEffect(() => {
-    const fetchConstants = async () => {
-      try {
-        const constants = await getConstants();
-        if (constants?.weekDays?.length > 0) {
-          setDaysOfWeek(constants.weekDays);
-        }
-      } catch (error) {
-        console.error("Failed to fetch constants:", error);
+    // ensure daysOfWeek holds canonical keys (Monday..Sunday) so saved data uses stable keys
+    try {
+      const wd = t('constants.weekDays', { returnObjects: true });
+      const canonical = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      if (wd && typeof wd === 'object') {
+        // wd is an object mapping keys -> labels
+        const keys = Object.keys(wd).filter(k => canonical.includes(k));
+        setDaysOfWeek(keys.length ? keys : canonical);
+      } else {
+        // fallback to canonical keys
+        setDaysOfWeek(canonical);
       }
-    };
-    
-    fetchConstants();
-  }, []);
+    } catch (err) {
+      setDaysOfWeek(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']);
+    }
+  }, [i18n.language, t]);
 
   useEffect(() => {
-    setGroups(subject?.groups || []);
+    // normalize incoming groups' Days to canonical keys so translations work even if data was saved with localized labels
+    const incoming = subject?.groups || [];
+    const canonical = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const normalizeDay = (d) => {
+      if (!d) return d;
+      if (canonical.includes(d)) return d;
+      // try to find a key whose translated label matches d
+      const found = canonical.find(k => t(`constants.weekDays.${k}`, { defaultValue: k }) === d);
+      return found || d;
+    };
+    const normalizedGroups = (Array.isArray(incoming) ? incoming : []).map(g => ({
+      ...g,
+      Days: Array.isArray(g?.Days) ? g.Days.map(normalizeDay) : (g?.Days ? [normalizeDay(g.Days)] : [])
+    }));
+    setGroups(normalizedGroups);
   }, [subject]);
+
+  useEffect(() => {
+    // normalize incoming availability times from tutor prop to ensure days are canonical keys
+    const incoming = tutor?.availability || {};
+    const canonical = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const normalizeDay = (d) => {
+      if (!d) return d;
+      if (canonical.includes(d)) return d;
+      const found = canonical.find(k => t(`constants.weekDays.${k}`, { defaultValue: k }) === d);
+      return found || d;
+    };
+    const normalizedTimes = (Array.isArray(incoming.times) ? incoming.times : []).map(entry => {
+      if (typeof entry === 'string') return entry;
+      if (entry && typeof entry === 'object') {
+        const daysArr = Array.isArray(entry.days) ? entry.days : [entry.days];
+        return { ...entry, days: daysArr.map(normalizeDay) };
+      }
+      return entry;
+    });
+    setAvailability(prev => ({ ...prev, times: normalizedTimes, note: incoming.note || prev.note }));
+  }, [tutor, t]);
 
   const handleGroupChange = (index, field, value) => {
     const newGroups = [...groups];
@@ -140,7 +175,15 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
     const newDay = availability._tempNewDay;
     const newTime = availability._tempNewTime;
     const [startTime, endTime] = newTime ? newTime.split(" - ") : ["", ""];
-    const daysArray = Array.isArray(newDay) ? newDay : [newDay];
+    // normalize day selection to canonical keys found in daysOfWeek
+    const daysArrayRaw = Array.isArray(newDay) ? newDay : [newDay];
+    const daysArray = daysArrayRaw.map(d => {
+      // if daysOfWeek contains keys (like 'Monday'), keep as-is; if it contains translated labels, try to find the index
+      if (daysOfWeek.includes(d)) return d;
+      // try to match by translated label
+      const foundKey = daysOfWeek.find(k => t(`constants.weekDays.${k}`, { defaultValue: k }) === d);
+      return foundKey || d;
+    });
     
     if (!newDay || !startTime || !endTime) return;
     
@@ -285,7 +328,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                     <Listbox.Button className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary">
                       <span className="block truncate">
                         {group.Days?.length > 0
-                          ? group.Days.join(", ")
+                          ? group.Days.map(d => t(`constants.weekDays.${d}`, { defaultValue: d })).join(", ")
                           : t("selectDays")}
                       </span>
                       <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
@@ -318,7 +361,8 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                                     selected ? "font-medium" : "font-normal"
                                   )}
                                 >
-                                  {day}
+                                  {/* ✅ Wrap with t() */}
+                                  {t(`constants.weekDays.${day}`, { defaultValue: day })}
                                 </span>
                                 {selected ? (
                                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary">
@@ -344,7 +388,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                   >
                     <div className="relative flex-1">
                       <Listbox.Button className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary">
-                        <span className="block truncate">
+                        <span className="block truncate text-xs">
                           {startTime || t("startTime")}
                         </span>
                         <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
@@ -399,7 +443,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                   >
                     <div className="relative flex-1">
                       <Listbox.Button className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary">
-                        <span className="block truncate">
+                        <span className="block truncate text-xs">
                           {endTime || t("endTime")}
                         </span>
                         <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
@@ -513,7 +557,8 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                 if (typeof entry === 'string') {
                   displayText = entry;
                 } else if (typeof entry === 'object') {
-                  const days = Array.isArray(entry.days) ? entry.days.join(", ") : entry.days || "";
+                  const daysArr = Array.isArray(entry.days) ? entry.days : [entry.days];
+                  const days = daysArr.map(d => t(`constants.weekDays.${d}`, { defaultValue: d })).join(", ");
                   const hours = entry.hours || "";
                   displayText = `${days}: ${hours}`;
                 }
@@ -552,11 +597,11 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                 >
                   <div className="relative flex-1">
                     <Listbox.Button className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary">
-                      <span className="block truncate">
-                        {Array.isArray(availability._tempNewDay) && availability._tempNewDay.length > 0
-                          ? availability._tempNewDay.join(", ") 
-                          : t("selectDay")}
-                      </span>
+                          <span className="block truncate">
+                    {Array.isArray(availability._tempNewDay) && availability._tempNewDay.length > 0
+                      ? availability._tempNewDay.map(d => t(`constants.weekDays.${d}`, { defaultValue: d })).join(', ')
+                      : t("selectDay")}
+                          </span>
                       <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
                         <CalendarDays className="h-5 w-5 text-muted-foreground" />
                       </span>
@@ -568,7 +613,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                       leaveTo="opacity-0"
                     >
                       <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-background py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                        {daysOfWeek.map((day) => (
+                                        {daysOfWeek.map((day) => (
                           <Listbox.Option
                             key={day}
                             className={({ active }) =>
@@ -587,7 +632,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                                     selected ? "font-medium" : "font-normal"
                                   )}
                                 >
-                                  {day}
+                                                  {t(`constants.weekDays.${day}`, { defaultValue: day })}
                                 </span>
                                 {selected ? (
                                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary">
@@ -612,7 +657,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                   >
                     <div className="relative flex-1">
                       <Listbox.Button className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary">
-                        <span className="block truncate">
+                        <span className="block truncate text-xs">
                           {availability._tempNewTime?.split(" - ")[0] || t("startTime")}
                         </span>
                         <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
@@ -670,7 +715,7 @@ const TutorGroupsCardEdit = ({ subject, tutor, onSubjectChange, onTutorChange })
                   >
                     <div className="relative flex-1">
                       <Listbox.Button className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary">
-                        <span className="block truncate">
+                        <span className="block truncate text-xs">
                           {availability._tempNewTime?.split(" - ")[1] || t("endTime")}
                         </span>
                         <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
