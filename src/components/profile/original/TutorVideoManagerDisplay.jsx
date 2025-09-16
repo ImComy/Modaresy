@@ -121,9 +121,6 @@ export default function TutorVideoManagerDisplay({ videos = [], className = '' }
   useEffect(() => {
     if (containerRef.current && videos.length > 0) {
       const el = containerRef.current.querySelectorAll('button')[selectedIndex];
-      if (el && typeof el.scrollIntoView === 'function') {
-        el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-      }
     }
   }, [selectedIndex, videos]);
 
