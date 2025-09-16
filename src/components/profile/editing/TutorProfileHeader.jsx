@@ -27,21 +27,8 @@ import {
   FaEnvelope,
   FaGlobe,
 } from 'react-icons/fa';
-import { Label } from '../../ui/label';
+import { Label } from '../../ui/label'
 import AddSubjectCard from './SubjectSection';
-
-const socialIcons = {
-  facebook: FaFacebookF,
-  instagram: FaInstagram,
-  twitter: FaTwitter,
-  linkedin: FaLinkedinIn,
-  youtube: FaYoutube,
-  tiktok: FaTiktok,
-  telegram: FaTelegramPlane,
-  whatsapp: FaWhatsapp,
-  email: FaEnvelope,
-  website: FaGlobe,
-};
 
 const TutorProfileHeaderEdit = ({
   tutor,
@@ -57,6 +44,8 @@ const TutorProfileHeaderEdit = ({
   const [formData, setFormData] = useState(initializeFormData(tutor));
   const [cropOverlay, setCropOverlay] = useState({ open: false, image: null, shape: 'banner' });
   const lastObjectUrl = useRef(null);
+  const [bannerPreview, setBannerPreview] = useState('');
+  const bannerObjectUrlRef = useRef(null);
   const [socialEditOpen, setSocialEditOpen] = useState(false);
   const [newSocial, setNewSocial] = useState({ platform: '', url: '' });
 
@@ -115,12 +104,60 @@ const TutorProfileHeaderEdit = ({
 
   useEffect(() => {
     return () => {
+      // cleanup shared lastObjectUrl (used by avatar/crop flow)
       if (lastObjectUrl.current) {
         try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
         lastObjectUrl.current = null;
       }
+      // cleanup banner-specific object url
+      if (bannerObjectUrlRef.current) {
+        try { URL.revokeObjectURL(bannerObjectUrlRef.current); } catch {}
+        bannerObjectUrlRef.current = null;
+      }
     };
   }, []);
+
+  // Manage banner preview URL outside of render to avoid creating blob URLs during render
+  useEffect(() => {
+    // priority: explicit previewBannerUrl -> string bannerimg url -> File bannerimg -> default
+    if (typeof formData.previewBannerUrl === 'string' && formData.previewBannerUrl) {
+      // explicit preview (already a URL/string)
+      if (bannerObjectUrlRef.current) {
+        try { URL.revokeObjectURL(bannerObjectUrlRef.current); } catch {}
+        bannerObjectUrlRef.current = null;
+      }
+      setBannerPreview(formData.previewBannerUrl);
+      return;
+    }
+
+    // if bannerimg is string (already a URL)
+    if (typeof formData.bannerimg === 'string' && formData.bannerimg) {
+      if (bannerObjectUrlRef.current) {
+        try { URL.revokeObjectURL(bannerObjectUrlRef.current); } catch {}
+        bannerObjectUrlRef.current = null;
+      }
+      setBannerPreview(formData.bannerimg);
+      return;
+    }
+
+    // if bannerimg is a File, create an object URL once and keep it in ref
+    if (formData.bannerimg instanceof File) {
+      try {
+        // if we already created one for this file, keep it
+        if (!bannerObjectUrlRef.current) {
+          bannerObjectUrlRef.current = URL.createObjectURL(formData.bannerimg);
+        }
+        setBannerPreview(bannerObjectUrlRef.current);
+        return;
+      } catch (err) {
+        setBannerPreview('/banner.png');
+        return;
+      }
+    }
+
+    // fallback
+    setBannerPreview('/banner.png');
+  }, [formData.previewBannerUrl, formData.bannerimg]);
 
   const handleFieldChange = useCallback((field, value, options = { propagate: true }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -133,27 +170,34 @@ const TutorProfileHeaderEdit = ({
   }, [onChange]);
 
   const handleSocialChange = useCallback((platform, url) => {
-    const updatedSocials = { ...(formData.social_media || {}), [platform]: url };
-    setFormData(prev => ({ ...prev, social_media: updatedSocials }));
-    onChange?.('social_media', updatedSocials);
-  }, [formData.social_media, onChange]);
+    setFormData(prev => {
+      const updatedSocials = { ...(prev?.social_media || {}), [platform]: url };
+      // propagate to parent
+      try { onChange?.('social_media', updatedSocials); } catch (e) {}
+      return { ...prev, social_media: updatedSocials };
+    });
+  }, [onChange]);
 
   const removeSocial = useCallback((platform) => {
-    const current = formData.social_media || {};
-    const { [platform]: _, ...updated } = current;
-    setFormData(prev => ({ ...prev, social_media: updated }));
-    onChange?.('social_media', updated);
-  }, [formData.social_media, onChange]);
+    setFormData(prev => {
+      const current = prev?.social_media || {};
+      const { [platform]: _, ...updated } = current;
+      try { onChange?.('social_media', updated); } catch (e) {}
+      return { ...prev, social_media: updated };
+    });
+  }, [onChange]);
 
   const addSocial = useCallback(() => {
     if (!newSocial.platform || !newSocial.url) return;
-    const updatedSocials = { ...(formData.social_media || {}), [newSocial.platform]: newSocial.url };
-    setFormData(prev => ({ ...prev, social_media: updatedSocials }));
-    onChange?.('social_media', updatedSocials);
+    setFormData(prev => {
+      const updatedSocials = { ...(prev?.social_media || {}), [newSocial.platform]: newSocial.url };
+      try { onChange?.('social_media', updatedSocials); } catch (e) {}
+      return { ...prev, social_media: updatedSocials };
+    });
     setNewSocial({ platform: '', url: '' });
-  }, [formData.social_media, newSocial, onChange]);
+  }, [newSocial, onChange]);
 
-  const handleFileSelect = (e, shape) => {
+  const handleFileSelect = useCallback((e, shape) => {
     const file = e.target.files?.[0];
     if (file) {
       const imageUrl = URL.createObjectURL(file);
@@ -163,7 +207,7 @@ const TutorProfileHeaderEdit = ({
       lastObjectUrl.current = imageUrl;
       setCropOverlay({ open: true, image: imageUrl, shape });
     }
-  };
+  }, []);
 
   const uploadFile = async (file, shape) => {
     try {
@@ -202,7 +246,7 @@ const TutorProfileHeaderEdit = ({
     }
   };
 
-  const handleCrop = async (croppedFile) => {
+  const handleCrop = useCallback(async (croppedFile) => {
     const shape = cropOverlay.shape === 'profile' ? 'profile' : 'banner';
     const previewUrl = URL.createObjectURL(croppedFile);
     if (lastObjectUrl.current) {
@@ -213,23 +257,21 @@ const TutorProfileHeaderEdit = ({
       handleFieldChange('previewPfpUrl', previewUrl);
       handleFieldChange('pendingPfpFile', croppedFile);
       handleFieldChange('pendingPfpDelete', false);
-      handleFieldChange('img', previewUrl);
     } else {
       handleFieldChange('previewBannerUrl', previewUrl);
       handleFieldChange('pendingBannerFile', croppedFile);
       handleFieldChange('pendingBannerDelete', false);
-      handleFieldChange('bannerimg', previewUrl);
     }
     setCropOverlay({ open: false, image: null, shape: 'banner' });
-  };
+  }, [cropOverlay.shape, handleFieldChange]);
 
-  const handleCancelCrop = () => {
+  const handleCancelCrop = useCallback(() => {
     if (lastObjectUrl.current) {
       try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
       lastObjectUrl.current = null;
     }
     setCropOverlay({ open: false, image: null, shape: 'banner' });
-  };
+  }, []);
 
   useEffect(() => {
     if (!pendingFilesRef) return;
@@ -284,25 +326,7 @@ const TutorProfileHeaderEdit = ({
           </button>
 
           <img
-            src={
-              (typeof formData.previewBannerUrl === 'string' && formData.previewBannerUrl)
-                ? formData.previewBannerUrl
-                : (typeof formData.bannerimg === 'string' && formData.bannerimg)
-                  ? formData.bannerimg
-                  : (formData.bannerimg instanceof File
-                      ? (() => {
-                          if (lastObjectUrl.current && lastObjectUrl.current.startsWith('blob:')) return lastObjectUrl.current;
-                          try {
-                            if (lastObjectUrl.current) URL.revokeObjectURL(lastObjectUrl.current);
-                            lastObjectUrl.current = URL.createObjectURL(formData.bannerimg);
-                            return lastObjectUrl.current;
-                          } catch {
-                            return '/banner.png';
-                          }
-                        })()
-                      : '/banner.png'
-                    )
-            }
+            src={bannerPreview}
             alt={formData.name}
             className="w-full h-full object-cover"
             onError={(e) => {
@@ -403,6 +427,7 @@ const ProfileSection = ({ tutor, formData, handleFieldChange, handleFileSelect, 
 
 const AvatarUpload = ({ tutor, formData, handleFileSelect, handleFieldChange, t, lastObjectUrl }) => {
   const [localPreview, setLocalPreview] = useState('');
+  const pfpPreviewRef = useRef(null);
 
   useEffect(() => {
     if (formData.previewPfpUrl) {
@@ -412,11 +437,13 @@ const AvatarUpload = ({ tutor, formData, handleFileSelect, handleFieldChange, t,
 
     if (formData.pendingPfpFile instanceof File) {
       try {
-        if (lastObjectUrl?.current) {
-          try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
+        // revoke previous pfp preview if any
+        if (pfpPreviewRef.current) {
+          try { URL.revokeObjectURL(pfpPreviewRef.current); } catch {}
+          pfpPreviewRef.current = null;
         }
-        lastObjectUrl.current = URL.createObjectURL(formData.pendingPfpFile);
-        setLocalPreview(lastObjectUrl.current);
+        pfpPreviewRef.current = URL.createObjectURL(formData.pendingPfpFile);
+        setLocalPreview(pfpPreviewRef.current);
       } catch (err) {
         setLocalPreview('');
       }
@@ -428,6 +455,12 @@ const AvatarUpload = ({ tutor, formData, handleFileSelect, handleFieldChange, t,
     } else {
       setLocalPreview('');
     }
+    return () => {
+      if (pfpPreviewRef.current) {
+        try { URL.revokeObjectURL(pfpPreviewRef.current); } catch {}
+        pfpPreviewRef.current = null;
+      }
+    };
   }, [formData.previewPfpUrl, formData.pendingPfpFile, formData.img, lastObjectUrl]);
 
   return (
@@ -451,6 +484,10 @@ const AvatarUpload = ({ tutor, formData, handleFileSelect, handleFieldChange, t,
             try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
             lastObjectUrl.current = null;
           }
+          if (pfpPreviewRef.current) {
+            try { URL.revokeObjectURL(pfpPreviewRef.current); } catch {}
+            pfpPreviewRef.current = null;
+          }
           handleFieldChange('img', '', { propagate: false });
           handleFieldChange('previewPfpUrl', '', { propagate: false });
           handleFieldChange('pendingPfpFile', null, { propagate: false });
@@ -473,11 +510,10 @@ const AvatarUpload = ({ tutor, formData, handleFileSelect, handleFieldChange, t,
           {formData.name?.split(' ').map(n => n[0]).join('')}
         </AvatarFallback>
       </Avatar>
-    </div>
-  );
+  </div>);
 };
 
-const LocationSelect = ({
+const LocationSelect = ({ 
   governate,
   district,
   onGovernateChange,
@@ -606,7 +642,7 @@ const SocialButtons = ({ setSocialEditOpen, socialMedia, t }) => (
   </div>
 );
 
-const DetailsSection = ({
+const DetailsSection = ({ 
   formData,
   handleFieldChange,
   onAddSubject,

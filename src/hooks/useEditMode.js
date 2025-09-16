@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 export default function useEditMode({ 
   onSaveCallback = () => {},
@@ -8,14 +8,23 @@ export default function useEditMode({
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [originalData, setOriginalData] = useState(initialData);
+  // Keep originalData in a ref to avoid rerenders when storing large snapshots
+  const originalDataRef = useRef(initialData);
   const [editedData, setEditedData] = useState(initialData);
 
   // Update internal state when initialData changes
   useEffect(() => {
-    if (initialData && JSON.stringify(initialData) !== JSON.stringify(originalData)) {
-      console.log('Initial data updated, resetting state');
-      setOriginalData(initialData);
+    try {
+      const changed = JSON.stringify(initialData) !== JSON.stringify(originalDataRef.current);
+      if (initialData && changed) {
+        console.log('Initial data updated, resetting state');
+        originalDataRef.current = initialData;
+        setEditedData(initialData);
+        setHasChanges(false);
+      }
+    } catch (e) {
+      // fallback conservative update
+      originalDataRef.current = initialData;
       setEditedData(initialData);
       setHasChanges(false);
     }
@@ -23,50 +32,53 @@ export default function useEditMode({
 
   const startEditing = useCallback(() => {
     console.log('Starting editing mode');
-    if (!originalData) {
+    if (!originalDataRef.current) {
       console.warn('Cannot start editing - originalData is null');
       return;
     }
 
     try {
       // Create a deep copy of the original data for editing
-      const dataCopy = JSON.parse(JSON.stringify(originalData));
+      const dataCopy = typeof structuredClone === 'function' ? structuredClone(originalDataRef.current) : JSON.parse(JSON.stringify(originalDataRef.current));
       setEditedData(dataCopy);
       setIsEditing(true);
       setHasChanges(false);
       console.log('Editing started with data copy:', dataCopy);
     } catch (error) {
       console.error('Error starting edit mode:', error);
-      setEditedData(originalData);
+      setEditedData(originalDataRef.current);
       setIsEditing(true);
       setHasChanges(false);
     }
-  }, [originalData]);
+  }, []);
 
   const cancelEditing = useCallback(() => {
     setIsEditing(false);
     setHasChanges(false);
-    setEditedData(originalData);
+    setEditedData(originalDataRef.current);
     if (onCancelCallback) {
       onCancelCallback();
     }
-  }, [originalData, onCancelCallback]);
+  }, [onCancelCallback]);
 
   const updateField = useCallback((field, value) => {
     setEditedData(prev => {
       if (!prev) {
         return prev;
       }
-      
-      const updated = { ...prev, [field]: value };
+
+      // Support functional updaters for value to enable safe concurrent updates
+      const newFieldValue = (typeof value === 'function') ? value(prev[field]) : value;
+
+      const updated = { ...prev, [field]: newFieldValue };
       // Check if the value actually changed
-      const changed = JSON.stringify(updated) !== JSON.stringify(originalData);
+    const changed = JSON.stringify(updated) !== JSON.stringify(originalDataRef.current);
       if (changed !== hasChanges) {
         setHasChanges(changed);
       }
       return updated;
     });
-  }, [originalData, hasChanges]);
+  }, [hasChanges]);
 
   const updateNestedField = useCallback((path, value) => {
     setEditedData(prev => {
@@ -96,13 +108,13 @@ export default function useEditMode({
       const lastKey = keys[keys.length - 1];
       current[lastKey] = value;
       
-      const changed = JSON.stringify(updated) !== JSON.stringify(originalData);
+    const changed = JSON.stringify(updated) !== JSON.stringify(originalDataRef.current);
       if (changed !== hasChanges) {
         setHasChanges(changed);
       }
       return updated;
     });
-  }, [originalData, hasChanges]);
+  }, [hasChanges]);
 
   const saveChanges = useCallback(async () => {
     if (!editedData) {
@@ -118,11 +130,11 @@ export default function useEditMode({
         
         // Update the original data with the response from the server
         const newOriginalData = {
-          ...originalData,
+          ...originalDataRef.current,
           ...(result?.user || result || editedData)
         };
         
-        setOriginalData(newOriginalData);
+        originalDataRef.current = newOriginalData;
         setIsEditing(false);
         setHasChanges(false);
         console.log('Edit mode closed after successful save');
@@ -136,20 +148,20 @@ export default function useEditMode({
     } finally {
       setIsSubmitting(false);
     }
-  }, [editedData, onSaveCallback, originalData]);
+  }, [editedData, onSaveCallback]);
 
   const reset = useCallback(() => {
     console.log('Resetting edited data to original');
-    setEditedData(originalData);
+  setEditedData(originalDataRef.current);
     setHasChanges(false);
-  }, [originalData]);
+  }, []);
 
   return {
     isEditing,
     isSubmitting,
     hasChanges,
     editedData,
-    originalData,
+  originalDataRef: originalDataRef.current,
     startEditing,
     cancelEditing,
     saveChanges,
@@ -163,7 +175,7 @@ export default function useEditMode({
     setEditedData: (data) => {
       console.log('Directly setting edited data:', data);
       setEditedData(data);
-      const changed = JSON.stringify(data) !== JSON.stringify(originalData);
+      const changed = JSON.stringify(data) !== JSON.stringify(originalDataRef.current);
       setHasChanges(changed);
     }
   };

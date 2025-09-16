@@ -1,190 +1,153 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Check, ChevronsUpDown, X } from "lucide-react";
-import Fuse from "fuse.js";
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { cn } from '@/lib/utils';
+import { CheckCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
+/**
+ * MultiSelect
+ * - options: array of values
+ * - selected: array of selected values
+ * - onToggle(opt): optional, toggles a single option
+ * - onChange(newArray): optional, called with updated array
+ * - placeholder: string
+ * - display(opt): function to render label
+ * - selectAllLabel, onSelectAll (optional)
+ * - renderTags: whether to render chips/tags below the control (default: true)
+ */
 export default function MultiSelect({
-  options,
-  selected,
+  options = [],
+  selected = [],
+  onToggle,
   onChange,
-  placeholder = "Select options...",
-  searchPlaceholder = "Search...",
-  emptyPlaceholder = "No options found.",
-  disabled = false,
-  error = false,
-  className = "",
-  triggerClassName = "",
-  contentClassName = "",
-  ...props
+  placeholder = 'Select...',
+  display = (v) => (v == null ? '' : String(v)),
+  selectAllLabel,
+  onSelectAll,
+  renderTags = true,
+  className
 }) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const triggerRef = useRef(null);
-  const contentRef = useRef(null);
-
-  const normalizedOptions = useMemo(
-    () =>
-      options.map((opt) =>
-        typeof opt === "string" ? { label: opt, value: opt } : opt
-      ),
-    [options]
-  );
-
-  // Initialize Fuse.js for fuzzy matching
-  const fuse = useMemo(
-    () =>
-      new Fuse(normalizedOptions, {
-        keys: ["label"],
-        threshold: 0.4,
-      }),
-    [normalizedOptions]
-  );
-
-  const filteredOptions = useMemo(() => {
-    if (!search.trim()) return normalizedOptions;
-    return fuse.search(search).map((res) => res.item);
-  }, [search, fuse, normalizedOptions]);
-
-  const toggleSelect = (value) => {
-    if (disabled) return;
-    const newSelected = selected.includes(value)
-      ? selected.filter((v) => v !== value)
-      : [...selected, value];
-    onChange(newSelected);
-  };
-
-  const removeSelected = (value, e) => {
-    e.stopPropagation();
-    toggleSelect(value);
-  };
+  const ref = useRef(null);
 
   useEffect(() => {
-    const onClickOutside = (e) => {
-      if (
-        triggerRef.current &&
-        !triggerRef.current.contains(e.target) &&
-        contentRef.current &&
-        !contentRef.current.contains(e.target)
-      ) {
-        setOpen(false);
-        setSearch("");
-      }
-    };
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
+    function handleClick(e) {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
   }, []);
 
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") {
-        setOpen(false);
-        setSearch("");
+  const isSelected = useCallback((opt) => {
+    return Array.isArray(selected) && selected.some(s => String(s) === String(opt));
+  }, [selected]);
+
+  const toggle = useCallback((opt) => {
+    if (typeof onToggle === 'function') return onToggle(opt);
+    if (typeof onChange === 'function') {
+      const exists = isSelected(opt);
+      const next = Array.isArray(selected) ? [...selected] : [];
+      if (exists) {
+        return onChange(next.filter(s => String(s) !== String(opt)));
       }
-    };
-    if (open) document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
+      return onChange([...next, opt]);
+    }
+  }, [onToggle, onChange, selected, isSelected]);
+
+  const displayText = Array.isArray(selected) && selected.length > 0
+    ? selected.map(s => display(s)).join(', ')
+    : '';
+
+  // small animation configs
+  const dropdownMotion = { initial: { opacity: 0, y: -6 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -6 } };
+  const itemHover = { scale: 1.02 };
 
   return (
-    <div className={`relative w-full ${className}`} {...props}>
+    <div ref={ref} className={cn('relative', className)}>
       <button
-        ref={triggerRef}
         type="button"
+        onClick={() => setOpen(v => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
-        className={`w-full min-h-10 px-3 py-2 flex items-center gap-1.5 flex-wrap rounded-md border ${
-          error ? "border-destructive" : "border-muted"
-        } bg-card text-sm text-muted-foreground transition focus:outline-none focus:ring-2 focus:ring-primary/50 ${
-          disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-        } ${triggerClassName}`}
+        className="relative w-full cursor-pointer rounded-md border border-border bg-background py-2 pl-3 pr-10 text-left focus:outline-none focus:ring-2 focus:ring-primary"
       >
-        <div className="flex flex-wrap gap-1 flex-grow">
-          {selected.length > 0 ? (
-            selected.map((value) => {
-              const label =
-                normalizedOptions.find((o) => o.value === value)?.label ||
-                value;
-              return (
-                <span
-                  key={value}
-                  className="bg-muted text-foreground text-xs px-2 py-0.5 rounded-full flex items-center gap-1 max-h-6"
-                >
-                  {label}
-                  <button
-                    type="button"
-                    aria-label={`Remove ${label}`}
-                    onClick={(e) => removeSelected(value, e)}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") removeSelected(value, e);
-                    }}
-                    className="p-0 text-muted-foreground hover:text-foreground"
-                  >
-                    <X size={14} />
-                  </button>
-                </span>
-              );
-            })
-          ) : (
-            <span className="text-sm text-muted-foreground">{placeholder}</span>
-          )}
-        </div>
-        <ChevronsUpDown size={16} className="opacity-50 shrink-0" />
+        <span className="block truncate">{displayText || placeholder}</span>
+        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-muted-foreground"><path d="M6 8L10 12L14 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </span>
       </button>
 
-      {open && (
-        <div
-          ref={contentRef}
-          role="listbox"
-          tabIndex={-1}
-          className={`absolute z-50 mt-1 w-full rounded-md border border-muted bg-popover shadow-md max-h-60 overflow-hidden animate-in fade-in-0 slide-in-from-top-1 ${contentClassName}`}
-        >
-          <input
-            type="search"
-            autoFocus
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={searchPlaceholder}
-            className="w-full px-3 py-2 text-sm border-b border-muted outline-none text-foreground bg-popover placeholder:text-muted-foreground"
-          />
-          <div className="max-h-48 overflow-y-auto">
-            {filteredOptions.length === 0 ? (
-              <p className="p-3 text-sm text-muted-foreground select-none">
-                {emptyPlaceholder}
-              </p>
-            ) : (
-              filteredOptions.map((option) => {
-                const isSelected = selected.includes(option.value);
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="dropdown"
+            className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-background py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5"
+            initial={dropdownMotion.initial}
+            animate={dropdownMotion.animate}
+            exit={dropdownMotion.exit}
+            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+          >
+            <div className="px-1">
+              {options.map(opt => {
+                const sel = isSelected(opt);
                 return (
-                  <div
-                    key={option.value}
-                    role="option"
-                    aria-selected={isSelected}
-                    tabIndex={0}
-                    onClick={() => toggleSelect(option.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        toggleSelect(option.value);
-                      }
-                    }}
-                    className={`cursor-pointer flex items-center gap-2 px-3 py-2 text-sm ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground font-semibold"
-                        : "text-foreground hover:bg-muted"
-                    }`}
+                  <motion.button
+                    layout
+                    key={String(opt)}
+                    type="button"
+                    onClick={() => toggle(opt)}
+                    whileHover={itemHover}
+                    whileTap={{ scale: 0.995 }}
+                    className={cn(
+                      'relative w-full text-left cursor-pointer select-none py-2 pl-10 pr-4 transition-colors rounded',
+                      sel ? 'bg-accent text-accent-foreground font-medium' : 'text-foreground hover:bg-gray-50 dark:hover:bg-gray-800'
+                    )}
+                    aria-pressed={sel}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(opt); } }}
                   >
-                    {isSelected && <Check size={16} />}
-                    <span>{option.label}</span>
-                  </div>
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary">
+                      {sel ? <CheckCircle className="h-5 w-5" /> : <span className="w-5 h-5" />}
+                    </span>
+                    <span className="block truncate">{display(opt)}</span>
+                  </motion.button>
                 );
-              })
-            )}
-          </div>
+              })}
+
+              {selectAllLabel && options.length > 1 && (
+                <div className="p-2">
+                  <button
+                    type="button"
+                    onClick={() => { if (typeof onSelectAll === 'function') onSelectAll(); }}
+                    className="w-full text-xs px-2 py-1 rounded-md border border-border bg-background hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    {selectAllLabel}
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* chips */}
+      {renderTags && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          <AnimatePresence mode="popLayout">
+            {Array.isArray(selected) && selected.map(s => (
+              <motion.div
+                layout
+                key={String(s)}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent text-accent-foreground text-xs shadow-sm"
+              >
+                <span className="truncate max-w-[10rem]">{display(s)}</span>
+                <button type="button" aria-label={`Remove ${display(s)}`} onClick={() => toggle(s)} className="opacity-80 hover:opacity-100">✕</button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>

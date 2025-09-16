@@ -132,22 +132,19 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
         const addedSubjects = updatedSubjects.filter(s => !s._id);
         const deletedSubjectIds = originalSubjects.filter(s => !updatedSubjectIds.has(s._id)).map(s => s._id);
         const existingSubjectsToUpdate = updatedSubjects.filter(s => s._id && originalSubjectIds.has(s._id));
-
-        // Split operations into phases to avoid race conditions:
-        // 1) create subjects, update subjects, update profiles
-        // 2) delete subjects (which may remove related profiles)
-        const createPromises = [];
         const updateSubjectPromises = [];
         const updateProfilePromises = [];
         const deletePromises = [];
 
-        addedSubjects.forEach(subject => {
-          createPromises.push(addSubjectToBackend(subject));
-        });
-
         deletedSubjectIds.forEach(subjectId => {
           deletePromises.push(deleteSubjectFromBackend(subjectId));
         });
+
+        const createdSubjects = [];
+        for (const subject of addedSubjects) {
+          const res = await addSubjectToBackend(subject);
+          createdSubjects.push(res);
+        }
 
         existingSubjectsToUpdate.forEach(subject => {
           const { profileId, ...coreData } = subject;
@@ -264,8 +261,8 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
           body: JSON.stringify({ updated_information: tutorProfileData })
         });
 
+        // creations already awaited serially above, run remaining updates in parallel
         await Promise.all([
-          ...createPromises,
           ...updateSubjectPromises,
           ...updateProfilePromises,
           tutorUpdatePromise
@@ -299,24 +296,28 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
   const [viewMode, setViewMode] = useState('subjects');
 
   const addSubject = (newSubject) => {
-    const updatedSubjects = [...(editedData?.subjects || []), { ...newSubject, tempId: Date.now() }];
-    updateField('subjects', updatedSubjects);
+    // Use functional updater to avoid stale editedData when multiple adds happen quickly
+    updateField('subjects', (prevSubjects) => {
+      const current = Array.isArray(prevSubjects) ? prevSubjects : (editedData?.subjects || []);
+      return [...current, { ...newSubject, tempId: Date.now() }];
+    });
   };
 
   const updateSubject = (index, subjectData) => {
-    const updatedSubjects = [...(editedData?.subjects || [])];
-    if (index < 0 || index >= updatedSubjects.length) return;
-    
-    updatedSubjects[index] = { ...updatedSubjects[index], ...subjectData };
-    updateField('subjects', updatedSubjects);
+    updateField('subjects', (prevSubjects) => {
+      const current = Array.isArray(prevSubjects) ? [...prevSubjects] : [...(editedData?.subjects || [])];
+      if (index < 0 || index >= current.length) return current;
+      current[index] = { ...current[index], ...subjectData };
+      return current;
+    });
   };
 
   const removeSubject = (index) => {
-    const subjectsToDelete = editedData?.subjects || [];
-    if (index < 0 || index >= subjectsToDelete.length) return;
-
-    const updatedSubjects = subjectsToDelete.filter((_, i) => i !== index);
-    updateField('subjects', updatedSubjects);
+    updateField('subjects', (prevSubjects) => {
+      const current = Array.isArray(prevSubjects) ? prevSubjects : (editedData?.subjects || []);
+      if (index < 0 || index >= current.length) return current;
+      return current.filter((_, i) => i !== index);
+    });
   };
 
   const handleSubmit = async (e) => {

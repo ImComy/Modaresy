@@ -7,7 +7,7 @@ const EditToggleButton = ({ isEditing, isSaving, startEditing, cancelEditing, on
   const { t } = useTranslation();
 
   return (
-    <div className="fixed top-20 right-6 z-50 flex gap-3 items-center">
+    <div className="fixed top-20 right-6 z-30 flex gap-3 items-center">
       {isEditing && (
         <button
           type="button"

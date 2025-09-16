@@ -1895,6 +1895,10 @@
     "passwordUpdateFailedDescription": "{{message}}"
   },
   "auth:invalidCredentials": "Invalid credentials",
-  "auth:genericError": "An error occurred"
+  "auth:genericError": "An error occurred",
+  "educationCombo": "Education System",
+  "selectSectorsForGrade": "Sectors for this grade",
+  "selectSectorsForSelectedGrades": "Sectors for selected grades",
+  "selectLanguages": "Languages for selected grades"
 }
 

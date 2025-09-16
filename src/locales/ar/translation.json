@@ -1350,7 +1350,7 @@
   "note": "ملاحظة",
   "videosTitle": "فيديوهاتك",
   "videosDesc": "قم بإدارة فيديو التعريف والفيديوهات الأخرى. الروابط المدعومة هي من YouTube فقط.",
-  "introVideo": "فيديو المقدمة",
+  "introVideo": "الفيديو التعريفي",
   "introVideoLabel": "هذا هو فيديو المقدمة الرئيسي الخاص بك.",
   "videoTitle": "عنوان الفيديو",
   "videoUrl": "رابط فيديو YouTube",
@@ -1915,7 +1915,7 @@
     "description": "إدارة معاينة تسجيلات المدرس.",
     "videosCount": "الفيديوهات: {{count}}",
     "invalidUrl": "رابط غير صالح",
-    "intro": "فيديو المقدمة",
+    "intro": "الفيديو التعريفي",
     "noVideosTitle": "لا توجد فيديوهات",
     "noVideosDesc": "لا توجد فيديوهات مرفوعة. أضف روابط يوتيوب للبدء.",
     "untitled": "فيديو بدون عنوان",
@@ -1957,5 +1957,9 @@
     "passwordUpdateFailedDescription": "{{message}}"
   },
   "auth:invalidCredentials": "بيانات اعتماد غير صحيحة",
-  "auth:genericError": "حدث خطأ"
+  "auth:genericError": "حدث خطأ",
+  "educationCombo": "النظام التعليمي",
+  "selectSectorsForGrade": "الشعب لهذا الصف",
+  "selectSectorsForSelectedGrades": "الشعب للصفوف المحددة",
+  "selectLanguages": "اللغات للصفوف المحددة"
 }

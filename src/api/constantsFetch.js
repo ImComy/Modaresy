@@ -12,6 +12,5 @@ export async function getConstants(forceRefresh = false) {
 }
 
 export function getConstantsSync() {
-  console.log("cachedConstants", cachedConstants);
   return cachedConstants;
 }

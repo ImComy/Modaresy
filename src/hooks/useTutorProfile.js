@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
@@ -16,7 +16,7 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
   
   const id = propTutorId ?? routeTutorId;
   const [tutor, setTutor] = useState(null);
-  const [originalTutor, setOriginalTutor] = useState(null);
+  const originalTutorRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(0);
   const [subjects, setSubjects] = useState([]);
@@ -73,8 +73,8 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
         availability: tutorData.availability || null
       };
       
-      setTutor(combinedData);
-      setOriginalTutor(structuredClone(combinedData));
+  setTutor(combinedData);
+  originalTutorRef.current = structuredClone(combinedData);
       setSubjects(mergedSubjects);  // Set subjects to merged array
 
       // Handle subject selection from URL params
@@ -123,7 +123,7 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
   } = useEditMode({
     onSaveCallback: handleSave,
     onCancelCallback: () => {
-      setTutor(structuredClone(originalTutor));
+  setTutor(structuredClone(originalTutorRef.current));
     },
   });
 
@@ -131,8 +131,8 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
 
   const cancelEditing = useCallback(() => {
     cancelEditingInternal();
-    setTutor(structuredClone(originalTutor));
-  }, [cancelEditingInternal, originalTutor]);
+    setTutor(structuredClone(originalTutorRef.current));
+  }, [cancelEditingInternal]);
 
   const handleSubjectSelectionFromURL = useCallback((subjects) => {
     const urlParams = new URLSearchParams(location.search);
@@ -216,7 +216,7 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
         setTutor(prev => {
           if (!prev) return prev;
           const nextTutor = { ...prev, subjects: (prev.subjects || []).filter(s => String(s._id) !== String(subjectId)) };
-          setOriginalTutor(structuredClone(nextTutor));
+          originalTutorRef.current = structuredClone(nextTutor);
           return nextTutor;
         });
 
@@ -241,7 +241,7 @@ const useTutorProfile = (propTutorId, externalEditing = null) => {
       setTutor(prev => {
         if (!prev) return prev;
         const nextTutor = { ...prev, subjects: (prev.subjects || []).filter(s => String(s._id) !== String(subjectId)) };
-        setOriginalTutor(structuredClone(nextTutor));
+        originalTutorRef.current = structuredClone(nextTutor);
         return nextTutor;
       });
 

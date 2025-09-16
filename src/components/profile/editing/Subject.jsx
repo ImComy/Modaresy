@@ -644,4 +644,4 @@ const SubjectPricingInfoEdit = ({ subject, onChange}) => {
   );
 };
 
-export default SubjectPricingInfoEdit;
+export default React.memo(SubjectPricingInfoEdit);

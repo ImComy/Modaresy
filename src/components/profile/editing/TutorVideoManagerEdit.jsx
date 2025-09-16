@@ -5,7 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Youtube, Plus, Trash, ExternalLink, Play } from 'lucide-react';
 
-const getThumbnailId = (url) => {
+
+// Utility: extract YouTube video id from common URL formats.
+function getThumbnailId(url) {
   if (!url) return null;
   try {
     const safe = url.startsWith('http') ? url : `https://${url}`;
@@ -18,7 +20,7 @@ const getThumbnailId = (url) => {
     return m ? m[0] : null;
   }
   return null;
-};
+}
 
 export default function TutorVideoManagerEdit({ videos: initialVideos = [], onChange }) {
   const { t, i18n } = useTranslation();

@@ -100,8 +100,12 @@ async function runWithRetry(fn, maxRetries = 3) {
       return result;
     } catch (err) {
       await session.abortTransaction();
-      if (err.codeName === "WriteConflict" && attempt < maxRetries - 1) {
-        console.warn(`Write conflict, retrying... (${attempt + 1})`);
+      const isWriteConflict = err && (err.codeName === "WriteConflict" || (err.code && String(err.code).toLowerCase().includes('writeconflict')));
+      if (isWriteConflict && attempt < maxRetries - 1) {
+        const backoffMs = Math.min(100 * Math.pow(2, attempt), 1000); // 100ms, 200ms, 400ms...
+        console.warn(`Write conflict detected, retrying after ${backoffMs}ms (attempt ${attempt + 1}/${maxRetries})`);
+        // small delay before retrying
+        await new Promise(res => setTimeout(res, backoffMs));
         continue;
       }
       throw err;
