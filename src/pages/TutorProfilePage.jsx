@@ -370,6 +370,7 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
 
         <TutorProfileHeader
           tutor={isEditing ? editedData : tutor}
+          editedData={isEditing ? editedData : null}
           onChange={updateField}
           onAddSubject={addSubject}
           onUpdateSubject={updateSubject}

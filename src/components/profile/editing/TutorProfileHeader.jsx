@@ -32,6 +32,8 @@ import AddSubjectCard from './SubjectSection';
 
 const TutorProfileHeaderEdit = ({
   tutor,
+  editedData = null,
+  isEditing = false,
   onChange,
   onAddSubject,
   onUpdateSubject,
@@ -40,6 +42,7 @@ const TutorProfileHeaderEdit = ({
   pendingFilesRef
 }) => {
   const { t } = useTranslation();
+  console.log('[TutorProfileHeaderEdit] render', { tutorId: tutor?._id, isEditing: !!tutor });
   const [constants, setConstants] = useState(null);
   const [formData, setFormData] = useState(initializeFormData(tutor));
   const [cropOverlay, setCropOverlay] = useState({ open: false, image: null, shape: 'banner' });
@@ -114,11 +117,13 @@ const TutorProfileHeaderEdit = ({
         try { URL.revokeObjectURL(bannerObjectUrlRef.current); } catch {}
         bannerObjectUrlRef.current = null;
       }
+      console.log('[TutorProfileHeaderEdit] unmount cleanup');
     };
   }, []);
 
   // Manage banner preview URL outside of render to avoid creating blob URLs during render
   useEffect(() => {
+  console.log('[TutorProfileHeaderEdit] banner preview effect run', { previewBannerUrl: formData.previewBannerUrl, bannerType: typeof formData.bannerimg });
     // priority: explicit previewBannerUrl -> string bannerimg url -> File bannerimg -> default
     if (typeof formData.previewBannerUrl === 'string' && formData.previewBannerUrl) {
       // explicit preview (already a URL/string)
@@ -160,7 +165,8 @@ const TutorProfileHeaderEdit = ({
   }, [formData.previewBannerUrl, formData.bannerimg]);
 
   const handleFieldChange = useCallback((field, value, options = { propagate: true }) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  console.log('[TutorProfileHeaderEdit] handleFieldChange', { field, value });
+  setFormData(prev => ({ ...prev, [field]: value }));
     if (options.propagate) {
       try {
         onChange?.(field, value);
@@ -170,7 +176,8 @@ const TutorProfileHeaderEdit = ({
   }, [onChange]);
 
   const handleSocialChange = useCallback((platform, url) => {
-    setFormData(prev => {
+  console.log('[TutorProfileHeaderEdit] handleSocialChange', { platform, url });
+  setFormData(prev => {
       const updatedSocials = { ...(prev?.social_media || {}), [platform]: url };
       // propagate to parent
       try { onChange?.('social_media', updatedSocials); } catch (e) {}
@@ -179,7 +186,8 @@ const TutorProfileHeaderEdit = ({
   }, [onChange]);
 
   const removeSocial = useCallback((platform) => {
-    setFormData(prev => {
+  console.log('[TutorProfileHeaderEdit] removeSocial', { platform });
+  setFormData(prev => {
       const current = prev?.social_media || {};
       const { [platform]: _, ...updated } = current;
       try { onChange?.('social_media', updated); } catch (e) {}
@@ -188,7 +196,8 @@ const TutorProfileHeaderEdit = ({
   }, [onChange]);
 
   const addSocial = useCallback(() => {
-    if (!newSocial.platform || !newSocial.url) return;
+  console.log('[TutorProfileHeaderEdit] addSocial', { newSocial });
+  if (!newSocial.platform || !newSocial.url) return;
     setFormData(prev => {
       const updatedSocials = { ...(prev?.social_media || {}), [newSocial.platform]: newSocial.url };
       try { onChange?.('social_media', updatedSocials); } catch (e) {}
@@ -200,7 +209,8 @@ const TutorProfileHeaderEdit = ({
   const handleFileSelect = useCallback((e, shape) => {
     const file = e.target.files?.[0];
     if (file) {
-      const imageUrl = URL.createObjectURL(file);
+  console.log('[TutorProfileHeaderEdit] handleFileSelect', { shape, fileName: file.name, size: file.size });
+  const imageUrl = URL.createObjectURL(file);
       if (lastObjectUrl.current) {
         try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
       }
@@ -247,8 +257,9 @@ const TutorProfileHeaderEdit = ({
   };
 
   const handleCrop = useCallback(async (croppedFile) => {
-    const shape = cropOverlay.shape === 'profile' ? 'profile' : 'banner';
-    const previewUrl = URL.createObjectURL(croppedFile);
+  const shape = cropOverlay.shape === 'profile' ? 'profile' : 'banner';
+  console.log('[TutorProfileHeaderEdit] handleCrop', { shape, size: croppedFile?.size });
+  const previewUrl = URL.createObjectURL(croppedFile);
     if (lastObjectUrl.current) {
       try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
     }
@@ -266,6 +277,7 @@ const TutorProfileHeaderEdit = ({
   }, [cropOverlay.shape, handleFieldChange]);
 
   const handleCancelCrop = useCallback(() => {
+    console.log('[TutorProfileHeaderEdit] handleCancelCrop');
     if (lastObjectUrl.current) {
       try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
       lastObjectUrl.current = null;
@@ -275,6 +287,7 @@ const TutorProfileHeaderEdit = ({
 
   useEffect(() => {
     if (!pendingFilesRef) return;
+  console.log('[TutorProfileHeaderEdit] syncing pendingFilesRef', { pendingPfp: formData.pendingPfpFile ? true : false, pendingBanner: formData.pendingBannerFile ? true : false });
     pendingFilesRef.current = {
       pendingPfpFile: formData.pendingPfpFile,
       pendingBannerFile: formData.pendingBannerFile,
@@ -351,6 +364,8 @@ const TutorProfileHeaderEdit = ({
 
           <DetailsSection
             formData={formData}
+            editedData={editedData}
+            isEditing={isEditing}
             handleFieldChange={handleFieldChange}
             onAddSubject={onAddSubject}
             onUpdateSubject={onUpdateSubject}
@@ -644,6 +659,8 @@ const SocialButtons = ({ setSocialEditOpen, socialMedia, t }) => (
 
 const DetailsSection = ({ 
   formData,
+  editedData = null,
+  isEditing = false,
   handleFieldChange,
   onAddSubject,
   onUpdateSubject,
@@ -666,6 +683,8 @@ const DetailsSection = ({
 
       <AddSubjectCard
         formData={formData}
+        editedData={editedData}
+        isEditing={isEditing}
         onAddSubject={onAddSubject}
         onUpdateSubject={onUpdateSubject}
         onDeleteSubject={onDeleteSubject}
@@ -808,6 +827,26 @@ const SocialMediaModal = ({ open, onClose, socialMedia, newSocial, setNewSocial,
 TutorProfileHeaderEdit.defaultProps = {
   tutor: {},
   onChange: () => {},
+  editedData: null,
 };
 
-export default TutorProfileHeaderEdit;
+// Comparator for TutorProfileHeaderEdit: re-render only when tutor identity or shallow important props change
+const areEqualTutorHeader = (prevProps, nextProps) => {
+  const pa = prevProps.tutor || {};
+  const pb = nextProps.tutor || {};
+  if (pa._id && pb._id) {
+    if (String(pa._id) !== String(pb._id)) return false;
+  } else {
+    // fallback to compare some identifying fields
+    if ((pa.name || '') !== (pb.name || '')) return false;
+  }
+  // avoid re-render when callbacks are stable (they usually are), but check subject mutation flag
+  if (prevProps.isSubjectMutating !== nextProps.isSubjectMutating) return false;
+  // if editedData reference changed, re-render so edits propagate
+  if (prevProps.editedData !== nextProps.editedData) return false;
+  // constants object reference change should trigger re-render
+  if (prevProps.constants !== nextProps.constants) return false;
+  return true;
+};
+
+export default React.memo(TutorProfileHeaderEdit, areEqualTutorHeader);

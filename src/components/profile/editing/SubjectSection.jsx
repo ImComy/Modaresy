@@ -24,6 +24,8 @@ const arrayJoin = (arr) => (Array.isArray(arr) ? arr.join(', ') : arr || '');
 
 const AddSubjectCard = ({
   formData = { subjects: [] },
+  editedData,
+  isEditing = false,
   onAddSubject,
   onUpdateSubject,
   onDeleteSubject,
@@ -31,6 +33,7 @@ const AddSubjectCard = ({
   isSubjectMutating
 }) => {
   const { t, i18n } = useTranslation();
+  // console.log('[AddSubjectCard] render', { subjectsCount: (formData && formData.subjects && formData.subjects.length) || 0 });
   const dir = (i18n && typeof i18n.dir === 'function') ? i18n.dir() : 'ltr';
   const textAlign = dir === 'rtl' ? 'right' : 'left';
 
@@ -208,7 +211,7 @@ const AddSubjectCard = ({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editingIndex, formData.subjects, educationStructure, systems, availableGrades, activeGrade]);
+  }, [editingIndex, editedData?.subjects, formData.subjects, educationStructure, systems, availableGrades, activeGrade]);
 
   // toggle handlers
   const toggleGrade = useCallback((grade) => {
@@ -383,11 +386,13 @@ const AddSubjectCard = ({
   ]);
 
   const handleDelete = useCallback((index) => {
+    // console.log('[AddSubjectCard] handleDelete', { index });
     onDeleteSubject(index);
     if (editingIndex === index) setEditingIndex(null);
   }, [onDeleteSubject, editingIndex]);
 
   const handleEditSubject = useCallback((index) => {
+    // console.log('[AddSubjectCard] handleEditSubject', { index });
     setEditingIndex(index);
   }, []);
 
@@ -487,12 +492,59 @@ const AddSubjectCard = ({
     infoTimeoutRef.current = setTimeout(() => setShowInfoPopup(false), 300);
   }, []);
 
+  /**
+   * displayedSubjects:
+   * - When editingIndex !== null, return a copy of formData.subjects with the editing index
+   *   replaced by a live preview object built from newSubject + existing subject values.
+   * - Otherwise return the original array (shallow copy).
+   */
+  // Choose data source for preview:
+  // - if we're in edit mode (`isEditing`), prefer `editedData.subjects` (the edit buffer)
+  // - otherwise fall back to `formData.subjects` so the preview shows live data when not editing
+  const effectiveSubjectsFromEdited = Array.isArray(editedData?.subjects) ? editedData.subjects : [];
+  const effectiveSubjectsFromForm = Array.isArray(formData?.subjects) ? formData.subjects : [];
+  const effectiveSubjects = isEditing ? effectiveSubjectsFromEdited : effectiveSubjectsFromForm;
+  console.log('[AddSubjectCard] effectiveSubjectsFromEdited:', effectiveSubjectsFromEdited);
+
+  // keep a debug log (user asked to keep logs) to help trace why preview might not update
+  // this is intentionally lightweight and will not flood the console because objects are small
+  // eslint-disable-next-line no-console
+  console.log('[AddSubjectCard] preview source', { isEditing, editedCount: effectiveSubjectsFromEdited.length, formCount: effectiveSubjectsFromForm.length, editingIndex });
+
+  const displayedSubjects = useMemo(() => {
+    // we copy to avoid accidental mutation of parent arrays
+    const orig = Array.isArray(effectiveSubjects) ? [...effectiveSubjects] : [];
+    if (editingIndex === null) return orig;
+
+    // guard: if editingIndex refers to an index past the array (can happen when switching sources), clamp
+    if (editingIndex < 0 || editingIndex >= orig.length) return orig;
+
+    const existing = orig[editingIndex];
+    if (!existing) return orig;
+
+    const preview = {
+      ...existing,
+      education_system: newSubject.education_system || existing.education_system,
+      grade: (singleGradeMode && activeGrade) ? activeGrade : (existing.grade || activeGrade),
+      name: newSubject.name || existing.name,
+      sector: normalizeArray(newSubject.sector).length ? normalizeArray(newSubject.sector) : (Array.isArray(existing.sector) ? existing.sector : normalizeArray(existing.sector)),
+      language: normalizeArray(newSubject.language).length ? normalizeArray(newSubject.language) : (Array.isArray(existing.language) ? existing.language : normalizeArray(existing.language)),
+      private_pricing: existing.private_pricing || { price: 0, currency: 'EGP', period: 'session' },
+      _id: existing._id
+    };
+
+    const copy = [...orig];
+    copy[editingIndex] = preview;
+    return copy;
+  // include editedData and isEditing in deps so memo recalculates when the edit buffer changes or mode toggles
+  }, [isEditing, editedData, formData, editingIndex, newSubject, singleGradeMode, activeGrade]);
+
   return (
     <div
       dir={dir}
       style={{ direction: dir }}
       className={cn(
-        "w-full bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 shadow-lg rounded-2xl p-4 z-30 border border-gray-200 dark:border-gray-700",
+        "w-full bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 shadow-lg rounded-2xl p-4 z-10 border border-gray-200 dark:border-gray-700",
         "max-h-[500px] overflow-y-auto flex-1 min-w-0 md:max-w-xs mt-0 md:-mt-32"
       )}
     >
@@ -528,7 +580,7 @@ const AddSubjectCard = ({
               <SelectTrigger className="h-10 bg-white dark:bg-gray-700">
                 <SelectValue placeholder={t('selectSystem','Select system')} />
               </SelectTrigger>
-              <SelectContent className="z-50" position="popper">
+              <SelectContent className="z-10" position="popper">
                 {systems.map(system => <SelectItem key={system} value={system}>{translateConst('constants.Education_Systems', system, system)}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -568,7 +620,7 @@ const AddSubjectCard = ({
               <SelectTrigger className="h-10 bg-white dark:bg-gray-700" aria-disabled={!newSubject.education_system || !selectedGrades.length || availableSubjects.length === 0}>
                 <SelectValue placeholder={!selectedGrades.length ? t('selectGradeFirst','Select a grade first') : (availableSubjects.length === 0 ? t('noSubjectsAvailable','No subjects available') : t('selectSubject','Select subject'))} />
               </SelectTrigger>
-              <SelectContent className="z-50" position="popper">
+              <SelectContent className="z-10" position="popper">
                 {availableSubjects.map(subject => <SelectItem key={subject} value={subject}>{translateConst('constants.Subjects', subject, subject)}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -667,15 +719,15 @@ const AddSubjectCard = ({
         )}
       </div>
 
-      {/* existing subjects */}
-      {formData.subjects?.length > 0 && (
+      {/* existing subjects (use displayedSubjects so editing preview shows live changes) */}
+      {displayedSubjects?.length > 0 && (
         <div className="mt-6">
           <h3 className="font-semibold mb-3 flex items-center gap-2" style={{ textAlign }}>
             <GraduationCap size={16} className="text-primary" />
             {t('yourSubjects','Your subjects')}
           </h3>
           <div className="flex flex-col gap-3">
-            {formData.subjects.map((subject, index) => renderSubjectDetails(subject, index))}
+            {displayedSubjects.map((subject, index) => renderSubjectDetails(subject, index))}
           </div>
         </div>
       )}
@@ -683,4 +735,48 @@ const AddSubjectCard = ({
   );
 };
 
-export default React.memo(AddSubjectCard);
+/**
+ * Safer comparator for memoization:
+ * - Quick-checks on props that affect rendering
+ * - Shallow, deterministic checks of subjects (id / name / grade / sector / language)
+ */
+const areEqualAddSubjectCard = (prevProps, nextProps) => {
+  // props that should force re-render when changed
+  if (prevProps.constants !== nextProps.constants) return false;
+  if (prevProps.isSubjectMutating !== nextProps.isSubjectMutating) return false;
+  // if edit mode toggles, re-render so preview source selection updates
+  if (prevProps.isEditing !== nextProps.isEditing) return false;
+
+  // choose which subjects array to compare depending on edit mode
+  const prevSubs = prevProps.isEditing ? (Array.isArray(prevProps.editedData?.subjects) ? prevProps.editedData.subjects : []) : (Array.isArray(prevProps.formData?.subjects) ? prevProps.formData.subjects : []);
+  const nextSubs = nextProps.isEditing ? (Array.isArray(nextProps.editedData?.subjects) ? nextProps.editedData.subjects : []) : (Array.isArray(nextProps.formData?.subjects) ? nextProps.formData.subjects : []);
+
+  // length change -> re-render
+  if (prevSubs.length !== nextSubs.length) return false;
+
+  // compare each subject shallowly and deterministically
+  for (let i = 0; i < prevSubs.length; i++) {
+    const a = prevSubs[i] || {};
+    const b = nextSubs[i] || {};
+
+    const aId = a._id || `${a.name || ''}-${a.grade || ''}`;
+    const bId = b._id || `${b.name || ''}-${b.grade || ''}`;
+    if (String(aId) !== String(bId)) return false;
+
+    if ((a.name || '') !== (b.name || '')) return false;
+    if ((a.grade || '') !== (b.grade || '')) return false;
+    if ((a.education_system || '') !== (b.education_system || '')) return false;
+
+    const sa = Array.isArray(a.sector) ? a.sector.map(String).sort().join('|') : String(a.sector || '');
+    const sb = Array.isArray(b.sector) ? b.sector.map(String).sort().join('|') : String(b.sector || '');
+    if (sa !== sb) return false;
+
+    const la = Array.isArray(a.language) ? a.language.map(String).sort().join('|') : String(a.language || '');
+    const lb = Array.isArray(b.language) ? b.language.map(String).sort().join('|') : String(b.language || '');
+    if (la !== lb) return false;
+  }
+
+  return true;
+};
+
+export default React.memo(AddSubjectCard, areEqualAddSubjectCard);

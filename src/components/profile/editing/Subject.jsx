@@ -30,6 +30,7 @@ import { getConstants, getConstantsSync } from "@/api/constantsFetch";
 
 const OfferForm = ({ offer, onChange }) => {
   const { t } = useTranslation();
+  console.log('[OfferForm] render', { offerProvided: !!offer });
 
   const safeOffer = useMemo(() => {
     const formatDate = (dateString) => {
@@ -89,6 +90,7 @@ const OfferForm = ({ offer, onChange }) => {
 
 const SubjectPricingInfoEdit = ({ subject, onChange}) => {
   const { t, i18n } = useTranslation();
+  console.log('[SubjectPricingInfoEdit] render', { subjectId: subject?._id });
   const dir = typeof i18n?.dir === 'function' ? i18n.dir() : 'ltr';
 
   const [paymentTimings, setPaymentTimings] = useState(() => {
@@ -644,4 +646,25 @@ const SubjectPricingInfoEdit = ({ subject, onChange}) => {
   );
 };
 
-export default React.memo(SubjectPricingInfoEdit);
+// Custom comparator: only re-render if subject._id or key pricing fields change
+const areEqualSubjectPricing = (prevProps, nextProps) => {
+  const pa = prevProps.subject || {};
+  const pb = nextProps.subject || {};
+  if (pa._id && pb._id) {
+    if (String(pa._id) !== String(pb._id)) return false;
+  } else {
+    // fallback shallow compare of name+grade
+    if ((pa.name || '') !== (pb.name || '')) return false;
+    if ((pa.grade || '') !== (pb.grade || '')) return false;
+  }
+  // check crucial nested pricing fields shallowly
+  const fields = ['private_pricing', 'group_pricing', 'additional_pricing', 'payment_timing', 'payment_methods'];
+  // include description as well so editing it updates the UI
+  if ((pa.description || '') !== (pb.description || '')) return false;
+  for (const f of fields) {
+    if (JSON.stringify(pa[f] || '') !== JSON.stringify(pb[f] || '')) return false;
+  }
+  return true;
+};
+
+export default React.memo(SubjectPricingInfoEdit, areEqualSubjectPricing);

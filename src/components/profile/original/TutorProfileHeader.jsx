@@ -320,7 +320,7 @@ function SubjectsDisplay({ tutor = {}, t }) {
       dir={dir}
       style={{ direction: dir }}
       className={cn(
-        'w-full bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 shadow-lg rounded-2xl p-4 z-30 border border-gray-200 dark:border-gray-700 rounded-l-md',
+        'w-full bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 shadow-lg rounded-2xl p-4 z-10 border border-gray-200 dark:border-gray-700 rounded-l-md',
         'max-h-[400px] overflow-y-auto flex-1 min-w-0 md:max-w-xs mt-0 md:-mt-32'
       )}
     >

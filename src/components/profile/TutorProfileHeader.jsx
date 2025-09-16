@@ -1,6 +1,7 @@
 import React from 'react';
 import TutorProfileHeaderDisplay from './original/TutorProfileHeader';
 import TutorProfileHeaderEdit from './editing/TutorProfileHeader';
+import { Edit } from 'lucide-react';
 
 const TutorProfileHeader = ({ 
   tutor, 
@@ -11,7 +12,8 @@ const TutorProfileHeader = ({
   isEditing,
   isOwner,
   isSubjectMutating,
-  pendingFilesRef
+  pendingFilesRef,
+  editedData
 }) => {
   if (!tutor) return null;
 
@@ -24,6 +26,7 @@ const TutorProfileHeader = ({
       onDeleteSubject={onDeleteSubject}
       isSubjectMutating={isSubjectMutating}
       pendingFilesRef={pendingFilesRef}
+      editedData={editedData}
     />
   ) : (
     <TutorProfileHeaderDisplay 
