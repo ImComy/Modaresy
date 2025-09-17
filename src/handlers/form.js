@@ -14,6 +14,7 @@ export const useFormLogic = (initialFormData, navigate, t, config = {}) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRTL, setIsRTL] = useState(i18next.dir() === 'rtl');
   const { login } = useAuth();
 
@@ -120,6 +121,7 @@ const handleSubmit = async (e) => {
     return;
   }
 
+  setIsSubmitting(true);
   try {
     if (isSignup) {
       const basePayload = {
@@ -184,6 +186,7 @@ const handleSubmit = async (e) => {
       variant: 'destructive',
     });
   }
+    setIsSubmitting(false);
 };
 
   return {
@@ -191,6 +194,7 @@ const handleSubmit = async (e) => {
     setFormData,
     errors,
     isRTL,
+    isSubmitting,
     handleChange,
     handleSelectChange,
     handleSubmit,

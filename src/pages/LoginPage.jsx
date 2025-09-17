@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useFormLogic } from '@/handlers/form';
 import { useAuth } from '@/context/AuthContext';
 import { SinglePasswordInput } from '@/components/ui/password'; // Import the reusable single input
+import Spinner from '@/components/ui/Spinner';
 
 const initialFormData = {
   email: '',
@@ -27,7 +28,7 @@ const LoginPage = () => {
     }
   }, [authState.isLoggedIn, authState.loading, navigate]);
 
-  const { formData, errors, handleChange, handleSubmit } = useFormLogic(initialFormData, navigate, t, { isLogin: true });
+  const { formData, errors, handleChange, handleSubmit, isSubmitting } = useFormLogic(initialFormData, navigate, t, { isLogin: true });
 
   return (
     <motion.div
@@ -73,14 +74,15 @@ const LoginPage = () => {
               />
             </div>
 
-            <Button type="submit" className="w-full">
-              {t('loginBtn')}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting && <Spinner size={16} color="var(--primary)" />} 
+              <span className="ml-2">{t('loginBtn')}</span>
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex justify-center text-sm">
           <p className="text-muted-foreground">
-            {t('noAccount')} 
+            {t('noAccount')}{' '}
             <Link to="/signup" className="text-primary hover:underline font-medium">
               {t('signup')}
             </Link>

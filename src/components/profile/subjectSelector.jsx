@@ -16,6 +16,7 @@ import TutorVideoManager from '@/components/profile/TutorVideoManager';
 import TutorScheduleManager from '@/components/profile/TutorScheduleManager';
 import TutorReviews from '@/components/profile/TutorReviews';
 import TutorLocationMap from './map';
+import { useAuth } from '@/context/AuthContext';
 
 const MENU_MAX_HEIGHT_PX = 18 * 16;
 
@@ -29,7 +30,9 @@ const SubjectSelector = ({
   onReviewUpdate,
 }) => {
   const { t } = useTranslation();
+  const { authState } = useAuth();
 
+  // selectedSubjectIndex refers to index inside `orderedSubjects`
   const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(subjects.length > 0 ? 0 : -1);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
@@ -40,28 +43,100 @@ const SubjectSelector = ({
 
   const [portalStyle, setPortalStyle] = useState(null);
 
+  // Build student profile if student is logged in
+  const studentProfile = useMemo(() => {
+    if (authState?.userData && String(authState?.userRole || '').toLowerCase() === 'student') {
+      return authState.userData;
+    }
+    return null;
+  }, [authState]);
+
+  // Create orderedSubjects as [{ subject, originalIndex }]
+  const orderedSubjects = useMemo(() => {
+    if (!subjects || subjects.length === 0) return [];
+
+    // If no student logged in, preserve original order
+    if (!studentProfile) return subjects.map((s, i) => ({ subject: s, originalIndex: i }));
+
+    const prefSystem = studentProfile.education_system || studentProfile.educationSystem;
+    const prefGrade = studentProfile.grade;
+    const prefSector = studentProfile.sector;
+    const prefLanguage = studentProfile.studying_language || studentProfile.language || studentProfile.studyingLanguage;
+
+    // scoring function: give 1 point per matched dimension (system, grade, sector, language)
+    function scoreFor(sub) {
+      const system = sub.education_system || sub.subject_id?.education_system;
+      const grade = sub.grade || sub.subject_id?.grade;
+      const sectors = Array.isArray(sub.sector) ? sub.sector : (sub.sector ? [sub.sector] : (sub.subject_id?.sector ? (Array.isArray(sub.subject_id.sector) ? sub.subject_id.sector : [sub.subject_id.sector]) : []));
+      const languages = Array.isArray(sub.language) ? sub.language : (sub.language ? [sub.language] : (sub.subject_id?.language ? (Array.isArray(sub.subject_id.language) ? sub.subject_id.language : [sub.subject_id.language]) : []));
+
+      let score = 0;
+      if (prefSystem && system && String(system) === String(prefSystem)) score += 1;
+      if (prefGrade && grade && String(grade) === String(prefGrade)) score += 1;
+      if (prefSector && sectors && sectors.map(s => String(s)).includes(String(prefSector))) score += 1;
+      if (prefLanguage && languages && languages.map(l => String(l)).includes(String(prefLanguage))) score += 1;
+
+      return score;
+    }
+
+    const withScores = subjects.map((s, i) => ({ subject: s, originalIndex: i, score: scoreFor(s) }));
+
+    // Sort by score desc, keep original order for ties (stable sort using index)
+    withScores.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.originalIndex - b.originalIndex;
+    });
+
+    // Return as required shape without score
+    return withScores.map(({ subject, originalIndex }) => ({ subject, originalIndex }));
+  }, [subjects, studentProfile]);
+
+  // Keep selectedSubjectIndex in range when orderedSubjects changes
   useEffect(() => {
-    if (!subjects || subjects.length === 0) {
+    if (!orderedSubjects || orderedSubjects.length === 0) {
       setSelectedSubjectIndex(-1);
       setHighlightIndex(-1);
       return;
     }
+
+    // If a student is logged in, prefer the top matching subject; otherwise preserve 0
+    if (studentProfile) {
+      // Try to keep previously selected subject (by originalIndex) if possible
+      const prevOriginalIndex = selectedSubjectIndex >= 0 && orderedSubjects[selectedSubjectIndex] ? orderedSubjects[selectedSubjectIndex].originalIndex : null;
+      const foundIdx = prevOriginalIndex != null ? orderedSubjects.findIndex(o => o.originalIndex === prevOriginalIndex) : -1;
+      if (foundIdx >= 0) {
+        setSelectedSubjectIndex(foundIdx);
+        return;
+      }
+
+      // default to the first item (which should be best match)
+      setSelectedSubjectIndex(0);
+      return;
+    }
+
+    // Not a student: keep index within bounds (preserve as much as possible)
     setSelectedSubjectIndex((idx) => {
-      if (idx < 0 || idx >= subjects.length) return 0;
+      if (idx < 0 || idx >= orderedSubjects.length) return 0;
       return idx;
     });
-  }, [subjects]);
+  }, [orderedSubjects, studentProfile]);
 
-  const selectedSubject = useMemo(() => (selectedSubjectIndex >= 0 ? subjects[selectedSubjectIndex] : null), [subjects, selectedSubjectIndex]);
+  // selectedSubject from orderedSubjects
+  const selectedSubject = useMemo(() => {
+    if (selectedSubjectIndex >= 0 && orderedSubjects[selectedSubjectIndex]) return orderedSubjects[selectedSubjectIndex].subject;
+    return null;
+  }, [orderedSubjects, selectedSubjectIndex]);
 
+  // wrapper to call onUpdateSubject with original index
   const handleNestedChange = useCallback(
     (path, value) => {
-      if (typeof onUpdateSubject === 'function' && selectedSubjectIndex >= 0) {
-        const updated = { ...(subjects[selectedSubjectIndex] || {}), [path]: value };
-        onUpdateSubject(selectedSubjectIndex, updated);
+      if (typeof onUpdateSubject === 'function' && selectedSubjectIndex >= 0 && orderedSubjects[selectedSubjectIndex]) {
+        const originalIndex = orderedSubjects[selectedSubjectIndex].originalIndex;
+        const updated = { ...(subjects[originalIndex] || {}), [path]: value };
+        onUpdateSubject(originalIndex, updated);
       }
     },
-    [onUpdateSubject, subjects, selectedSubjectIndex]
+    [onUpdateSubject, orderedSubjects, selectedSubjectIndex, subjects]
   );
 
   const toggleDropdown = useCallback(() => {
@@ -71,13 +146,13 @@ const SubjectSelector = ({
 
   const selectIndex = useCallback(
     (index) => {
-      if (index < 0 || index >= subjects.length) return;
+      if (index < 0 || index >= orderedSubjects.length) return;
       setSelectedSubjectIndex(index);
       setIsOpen(false);
       setHighlightIndex(-1);
       setExpandedSubjectId(null);
     },
-    [subjects.length]
+    [orderedSubjects.length]
   );
 
   const toggleExpandSubject = useCallback((subjectId, e) => {
@@ -104,7 +179,7 @@ const SubjectSelector = ({
   const handleKeyDown = useCallback(
     (e) => {
       if (!isOpen) return;
-      const len = subjects.length;
+      const len = orderedSubjects.length;
       if (!len) return;
 
       if (e.key === 'ArrowDown') {
@@ -122,7 +197,7 @@ const SubjectSelector = ({
         setHighlightIndex(-1);
       }
     },
-    [isOpen, subjects.length, highlightIndex, selectIndex]
+    [isOpen, orderedSubjects.length, highlightIndex, selectIndex]
   );
 
   useEffect(() => {
@@ -239,12 +314,13 @@ const SubjectSelector = ({
     return badges.slice(0, 4);
   };
 
-  const renderSubjectDetailsInDropdown = (subject) => {
+  const renderSubjectDetailsInDropdown = (subject, originalIndex) => {
     const system = subject.education_system || subject.subject_id?.education_system;
     const grade = subject.grade || subject.subject_id?.grade;
     const sectors = getDisplayValues(subject.sector || subject.subject_id?.sector);
     const languages = getDisplayValues(subject.language || subject.subject_id?.language);
-    const isExpanded = expandedSubjectId === (subject._id || subject.tempId);
+    const subjectId = subject._id || subject.tempId || `${originalIndex}`;
+    const isExpanded = expandedSubjectId === subjectId;
 
     return (
       <div className="min-w-0 flex-1">
@@ -405,10 +481,10 @@ const SubjectSelector = ({
                         }}
                         className="rounded-xl border bg-popover shadow-xl overflow-y-auto"
                       >
-                        {subjects.map((subject, idx) => {
+                        {orderedSubjects.map(({ subject, originalIndex }, idx) => {
                           const isSelected = idx === selectedSubjectIndex;
                           const isHighlighted = idx === highlightIndex;
-                          const subjectId = subject._id || subject.tempId || `${idx}`;
+                          const subjectId = subject._id || subject.tempId || `${originalIndex}`;
                           const isExpanded = expandedSubjectId === subjectId;
 
                           return (
@@ -424,7 +500,7 @@ const SubjectSelector = ({
                                   <BookOpen className="w-4 h-4" />
                                 </div>
 
-                                {renderSubjectDetailsInDropdown(subject)}
+                                {renderSubjectDetailsInDropdown(subject, originalIndex)}
 
                                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
                                   <div className="flex items-center gap-2">

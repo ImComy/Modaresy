@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
-import { locations } from '@/data/formData';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -62,8 +61,14 @@ const StudentProfilePage = () => {
   useEffect(() => {
     if (userData.governate && constants?.Districts) {
       const districts = constants.Districts[userData.governate] || [];
-      setAvailableDistricts(districts.map(d => ({ value: d, label: d })));
-      
+      // translate each district with constants key with fallback
+      setAvailableDistricts(
+        districts.map(d => ({
+          value: d,
+          label: t(`constants.Districts.${d}`, { defaultValue: d })
+        }))
+      );
+
       // Reset district if not available in new governate
       if (userData.district && !districts.includes(userData.district)) {
         setUserData(prev => ({ ...prev, district: '' }));
@@ -72,14 +77,19 @@ const StudentProfilePage = () => {
       setAvailableDistricts([]);
       setUserData(prev => ({ ...prev, district: '' }));
     }
-  }, [userData.governate, constants]);
+  }, [userData.governate, constants, t]);
 
   // Update grades when education system changes
   useEffect(() => {
     if (userData.education_system && constants?.EducationStructure) {
       const systemGrades = constants.EducationStructure[userData.education_system]?.grades || [];
-      setAvailableGrades(systemGrades.map(g => ({ value: g, label: g })));
-      
+      setAvailableGrades(
+        systemGrades.map(g => ({
+          value: g,
+          label: t(`constants.EducationStructure.${userData.education_system}.grades.${g}`, { defaultValue: g })
+        }))
+      );
+
       // Reset grade and sector if not compatible with new system
       if (userData.grade && !systemGrades.includes(userData.grade)) {
         setUserData(prev => ({ ...prev, grade: '', sector: '' }));
@@ -88,14 +98,23 @@ const StudentProfilePage = () => {
       setAvailableGrades([]);
       setUserData(prev => ({ ...prev, grade: '', sector: '' }));
     }
-  }, [userData.education_system, constants]);
+  }, [userData.education_system, constants, t]);
 
   // Update sectors when grade changes
   useEffect(() => {
     if (userData.grade && userData.education_system && constants?.EducationStructure) {
-      const gradeSectors = constants.EducationStructure[userData.education_system]?.sectors[userData.grade] || [];
-      setAvailableSectors(gradeSectors.map(s => ({ value: s, label: s })));
-      
+      const gradeSectors = constants.EducationStructure[userData.education_system]?.sectors?.[userData.grade] || [];
+      setAvailableSectors(
+        gradeSectors.map(s => ({
+          value: s,
+          // try structured path first, fallback to generic constant key and then the raw value
+          label:
+            t(`constants.EducationStructure.${userData.education_system}.sectors.${userData.grade}.${s}`, { defaultValue: '' }) ||
+            t(`constants.EducationStructure.${userData.education_system}.sectors.${s}`, { defaultValue: '' }) ||
+            t(`constants.sectors.${s}`, { defaultValue: s })
+        }))
+      );
+
       // Reset sector if not compatible with new grade
       if (userData.sector && !gradeSectors.includes(userData.sector)) {
         setUserData(prev => ({ ...prev, sector: '' }));
@@ -104,7 +123,7 @@ const StudentProfilePage = () => {
       setAvailableSectors([]);
       setUserData(prev => ({ ...prev, sector: '' }));
     }
-  }, [userData.grade, userData.education_system, constants]);
+  }, [userData.grade, userData.education_system, constants, t]);
 
   // Update languages when education system changes
   useEffect(() => {
@@ -113,8 +132,15 @@ const StudentProfilePage = () => {
       const systemLanguages = constants.EducationStructure[userData.education_system]?.languages || [];
       // Fallback to Arabic if no languages defined (for Azhar case)
       const languagesToShow = systemLanguages.length > 0 ? systemLanguages : ['Arabic'];
-      setAvailableLanguages(languagesToShow.map(l => ({ value: l, label: l })));
-      
+      setAvailableLanguages(
+        languagesToShow.map(l => ({
+          value: l,
+          label:
+            t(`constants.EducationStructure.${userData.education_system}.languages.${l}`, { defaultValue: '' }) ||
+            t(`constants.Languages.${l}`, { defaultValue: l })
+        }))
+      );
+
       // Reset language if not compatible with new system
       if (userData.language && !languagesToShow.includes(userData.language)) {
         setUserData(prev => ({ ...prev, language: '' }));
@@ -122,7 +148,7 @@ const StudentProfilePage = () => {
     } else {
       setAvailableLanguages([]);
     }
-  }, [userData.education_system, constants]);
+  }, [userData.education_system, constants, t]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -138,7 +164,6 @@ const StudentProfilePage = () => {
 
         const phone = profileData.phone || profileData.phone_number || '';
         const rawGovernate = profileData.governate || '';
-        const normalizedGovernate = rawGovernate ? rawGovernate.toLowerCase().trim().replace(/\s+/g, '-') : '';
         const validGovernate = constants?.Governates?.find(g => g === rawGovernate) ? rawGovernate : '';
 
         setUserData({
@@ -324,9 +349,9 @@ const StudentProfilePage = () => {
                 </SelectTrigger>
                 <SearchableSelectContent
                   searchPlaceholder={t('searchGovernate')}
-                  items={constants.Governates.map((gov) => ({
+                  items={(constants.Governates || []).map((gov) => ({
                     value: gov,
-                    label: gov,
+                    label: t(`constants.Governates.${gov}`, { defaultValue: gov }),
                   }))}
                 />
               </Select>
@@ -395,9 +420,9 @@ const StudentProfilePage = () => {
                 </SelectTrigger>
                 <SearchableSelectContent
                   searchPlaceholder={t('searchEducationSystem')}
-                  items={constants.Education_Systems.map((system) => ({
+                  items={(constants.Education_Systems || []).map((system) => ({
                     value: system,
-                    label: system,
+                    label: t(`constants.Education_Systems.${system}`, { defaultValue: system }),
                   }))}
                 />
               </Select>
@@ -502,35 +527,52 @@ const StudentProfilePage = () => {
             <div>
               <Label className="mb-2 text-muted-foreground">{t('governate')}</Label>
               <p className="font-medium text-foreground">
-                {userData.governate || t('notSet')}
+                {userData.governate
+                  ? t(`constants.Governates.${userData.governate}`, { defaultValue: userData.governate })
+                  : t('notSet')}
               </p>
             </div>
             <div>
               <Label className="mb-2 text-muted-foreground">{t('district')}</Label>
-              <p className="font-medium text-foreground">{userData.district || t('notSet')}</p>
+              <p className="font-medium text-foreground">
+                {userData.district
+                  ? t(`constants.Districts.${userData.district}`, { defaultValue: userData.district })
+                  : t('notSet')}
+              </p>
             </div>
             <div>
               <Label className="mb-2 text-muted-foreground">{t('educationSystem')}</Label>
               <p className="font-medium text-foreground">
-                {userData.education_system || t('notSet')}
+                {userData.education_system
+                  ? t(`constants.Education_Systems.${userData.education_system}`, { defaultValue: userData.education_system })
+                  : t('notSet')}
               </p>
             </div>
             <div>
               <Label className="mb-2 text-muted-foreground">{t('grade')}</Label>
               <p className="font-medium text-foreground">
-                {userData.grade || t('notSet')}
+                {userData.grade
+                  ? t(`constants.EducationStructure.${userData.education_system}.grades.${userData.grade}`, { defaultValue: userData.grade })
+                  : t('notSet')}
               </p>
             </div>
             <div>
               <Label className="mb-2 text-muted-foreground">{t('sector')}</Label>
               <p className="font-medium text-foreground">
-                {userData.sector || t('notSet')}
+                {userData.sector
+                  ? t(`constants.EducationStructure.${userData.education_system}.sectors.${userData.sector}`, { defaultValue: userData.sector })
+                  : t('notSet')}
               </p>
             </div>
             <div>
               <Label className="mb-2 text-muted-foreground">{t('language')}</Label>
               <p className="font-medium text-foreground">
-                {userData.language || t('notSet')}
+                {userData.language
+                  ? (
+                    t(`constants.EducationStructure.${userData.education_system}.languages.${userData.language}`, { defaultValue: '' }) ||
+                    t(`constants.Languages.${userData.language}`, { defaultValue: userData.language })
+                  )
+                  : t('notSet')}
               </p>
             </div>
           </CardContent>

@@ -13,6 +13,7 @@ import PasswordInputs from '@/components/ui/password';
 import PfpUploadWithCrop from '@/components/pfpSignup';
 import BannerUploadWithCrop from '@/components/bannerSignup';
 import { Link } from 'react-router-dom';
+import Spinner from '@/components/ui/Spinner';
 
 const SignupForm = ({
   formData,
@@ -27,7 +28,8 @@ const SignupForm = ({
   availableSectors,
   availableLanguages,
   isRTL,
-  isStudent
+  isStudent,
+  isSubmitting,
 }) => {
   const { t } = useTranslation();
 
@@ -374,8 +376,10 @@ const SignupForm = ({
             <Button 
               type="submit" 
               className="w-full h-12 text-base font-medium shadow-md hover:shadow-lg transition-shadow"
+              disabled={isSubmitting}
             >
-              {t('signup')}
+              {isSubmitting && <Spinner size={16} color="var(--primary)" />} 
+              <span className="ml-2">{t('signup')}</span>
             </Button>
           </motion.div>
         </form>

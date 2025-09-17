@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SearchableSelectContent } from '@/components/ui/searchSelect';
+import { useAuth } from '@/context/AuthContext';
+import { studentService } from '@/api/student';
 
 const LabelWithIcon = ({ icon: Icon, text, error = false }) => (
   <label className={`text-xs font-medium flex items-center gap-1 mb-1 ${error ? 'text-red-500' : 'text-muted-foreground'}`}>
@@ -28,6 +30,7 @@ const SORT_OPTIONS = [
 
 const FloatingSubjectTooltip = ({ educationSystem, grade, sector, onResetCombo }) => {
   const { t } = useTranslation();
+  const { authState } = useAuth();
 
   return (
     <motion.div
@@ -104,6 +107,7 @@ const HorizontalFilters = (props) => {
   } = props;
 
   const { t } = useTranslation();
+  const { authState } = useAuth();
   const [showAdditional, setShowAdditional] = useState(false);
   const [localFilters, setLocalFilters] = useState(filters || {});
   const [sortIndex, setSortIndex] = useState(SORT_OPTIONS.findIndex(opt => opt.value === sortBy));
@@ -131,6 +135,71 @@ const HorizontalFilters = (props) => {
     const bySpace = v.split(/\s+/).map(p => p.trim()).filter(Boolean);
     return [bySpace[0]||'all', bySpace[1]||'all', bySpace[2]||'all'];
   };
+
+  useEffect(() => {
+    // If a student is logged in, attempt to seed localStorage preferences from their profile
+    let cancelled = false;
+    async function applyStudentPrefs() {
+      try {
+        if (!authState?.isLoggedIn || authState?.userRole?.toLowerCase() !== 'student') return;
+
+        // prefer profile already stored in authState.userData
+        const profile = authState.userData || (await studentService.getProfile().catch(() => null));
+        if (!profile) return;
+
+        // do not overwrite if already applied during this session
+        if (appliedFromLocalStorageRef.current) return;
+
+        const prefs = {
+          education_system: profile.education_system || profile.educationSystem || undefined,
+          language: profile.studying_language || profile.language || profile.studyingLanguage || undefined,
+          grade: profile.grade || undefined,
+          sector: profile.sector || undefined,
+          governate: profile.governate || profile.governorate || profile.governorate_id || profile.governorateId || undefined,
+          district: profile.district || profile.district_id || profile.districtId || undefined,
+        };
+
+        // if no meaningful prefs, skip
+        if (!prefs.education_system && !prefs.language && !prefs.grade && !prefs.sector) return;
+
+        try {
+          const existingRaw = localStorage.getItem('userPreferences');
+          let existing = {};
+          if (existingRaw) {
+            try { existing = JSON.parse(existingRaw); } catch (e) { existing = {}; }
+          }
+
+          // Merge but prefer existing stored values (do not overwrite explicit previously saved prefs)
+          const merged = {
+            ...prefs,
+            ...existing,
+            // ensure keys are in camel_case expected by HorizontalFilters
+            education_system: existing.education_system || prefs.education_system,
+            language: existing.language || prefs.language,
+            grade: existing.grade || prefs.grade,
+            sector: existing.sector || prefs.sector,
+          };
+
+          localStorage.setItem('userPreferences', JSON.stringify(merged));
+          if (prefs.education_system) localStorage.setItem('selectedEducationSystem', prefs.education_system);
+          if (prefs.language) localStorage.setItem('selectedLanguage', prefs.language);
+          if (prefs.grade) localStorage.setItem('selectedGrade', prefs.grade);
+          if (prefs.sector) localStorage.setItem('selectedSector', prefs.sector);
+          if (prefs.governate) localStorage.setItem('selectedGovernate', prefs.governate);
+          if (prefs.district) localStorage.setItem('selectedDistrict', prefs.district);
+
+          appliedFromLocalStorageRef.current = true;
+        } catch (e) {
+          console.debug('[HorizontalFilters] failed to write student prefs to localStorage', e);
+        }
+      } catch (e) {
+        console.debug('[HorizontalFilters] applyStudentPrefs error', e);
+      }
+    }
+
+    applyStudentPrefs();
+    return () => { cancelled = true; };
+  }, [authState]);
 
   useEffect(() => {
     let cancelled = false;
@@ -300,6 +369,8 @@ const HorizontalFilters = (props) => {
       const storedLanguage = localStorage.getItem('selectedLanguage');
       const storedGrade = localStorage.getItem('selectedGrade');
       const storedSector = localStorage.getItem('selectedSector');
+      const storedGovernate = localStorage.getItem('selectedGovernate');
+      const storedDistrict = localStorage.getItem('selectedDistrict');
 
       let prefs = {};
       if (storageUserPrefs) {
@@ -312,10 +383,12 @@ const HorizontalFilters = (props) => {
         } catch (e) { }
       }
 
-      if (!prefs.educationSystem && storedSystem) prefs.educationSystem = storedSystem;
-      if (!prefs.language && storedLanguage) prefs.language = storedLanguage;
-      if (!prefs.grade && storedGrade) prefs.grade = storedGrade;
-      if (!prefs.sector && storedSector) prefs.sector = storedSector;
+  if (!prefs.educationSystem && storedSystem) prefs.educationSystem = storedSystem;
+  if (!prefs.language && storedLanguage) prefs.language = storedLanguage;
+  if (!prefs.grade && storedGrade) prefs.grade = storedGrade;
+  if (!prefs.sector && storedSector) prefs.sector = storedSector;
+  if (!prefs.governate && storedGovernate) prefs.governate = storedGovernate;
+  if (!prefs.district && storedDistrict) prefs.district = storedDistrict;
 
       if (!prefs.educationSystem && !prefs.language && !prefs.grade && !prefs.sector) return;
 
@@ -338,6 +411,15 @@ const HorizontalFilters = (props) => {
         updateFilter('sector', prefs.sector || 'all');
         updateFilter('language', prefs.language || 'all');
         setLocalFilters(prev => ({ ...prev, educationSystem: prefs.educationSystem, sector: prefs.sector || 'all', language: prefs.language || 'all' }));
+      }
+
+      if (prefs.governate) {
+        // apply governate first so district change is valid
+        handleInputChange('governate', prefs.governate);
+        if (prefs.district) {
+          // slight delay to ensure district options update after governate set
+          setTimeout(() => { handleInputChange('district', prefs.district); }, 40);
+        }
       }
 
       if (prefs.grade) {

@@ -40,6 +40,7 @@ const SignupPage = () => {
     handleSelectChange,
     handleSubmit,
     setFormData,
+    isSubmitting,
   } = useFormLogic(initialFormData, navigate, t, { isSignup: true });
 
   const [constants, setConstants] = useState(null);
@@ -153,6 +154,7 @@ const SignupPage = () => {
                 handleChange={handleChange}
                 handleSelectChange={handleSelectChange}
                 handleSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
                 setFormData={setFormData}
                 constants={constants}
                 availableDistricts={availableDistricts}

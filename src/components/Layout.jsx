@@ -80,7 +80,7 @@ const Layout = ({ children }) => {
     if (!openState) {
       setIsSignupPromptOpen(false);
       if (!localStorage.getItem('userPreferences')) {
-        setHasCheckedPreference(true);
+        setHasCheckedPreference(true); 
       }
     }
   };
