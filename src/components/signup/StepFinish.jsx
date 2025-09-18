@@ -181,7 +181,7 @@ export default function StepFinish() {
       }}
     >
       <div className="flex flex-col md:flex-row items-center gap-4 md:gap-5">
-        <div className="flex-shrink-0 mx-auto md:mx-0">
+        <div className="flex-shrink-0 mx-auto md:mx-0 px-5">
           <CelebrateCheckbox initialChecked={false} size={84} />
         </div>
 

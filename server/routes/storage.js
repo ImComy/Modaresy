@@ -1,210 +1,485 @@
 import express from "express";
-import multer from 'multer';
 import path from "path";
-import fs from "fs";
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+import { Storage } from "@google-cloud/storage";
+import fs from "fs/promises";
 
-const fsp = fs.promises;
-
-// Get __dirname equivalent for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-import { 
-    verifyToken
+import {
+  verifyToken
 } from "../services/authentication.service.js";
 
 import { Teacher } from "../models/teacher.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const router = express.Router();
 
-// Use a consistent path for uploads that works in both dev and production
-const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
+console.log("Initializing upload routes...");
+console.log("Current directory:", __dirname);
 
-// Ensure upload directory exists with proper permissions
-const ensureUploadDir = async () => {
+// Read config from env
+const {
+  GOOGLE_CLOUD_PROJECT,
+  GOOGLE_CREDENTIALS_FILENAME,
+  GOOGLE_APPLICATION_CREDENTIALS,
+  GOOGLE_APPLICATION_CREDENTIALS_JSON,
+  GC_BUCKET_PFPS,
+  GC_BUCKET_BANNERS,
+  GC_BUCKET_UPLOADS,
+  GCS_MAKE_PUBLIC = "true",
+} = process.env;
+
+// Validate and build storage options safely. Do NOT call path.join on undefined values.
+const storageOptions = {};
+if (GOOGLE_CLOUD_PROJECT) storageOptions.projectId = GOOGLE_CLOUD_PROJECT;
+
+if (GOOGLE_APPLICATION_CREDENTIALS_JSON) {
   try {
-    await fsp.access(UPLOAD_DIR);
-    console.log("Upload directory exists:", UPLOAD_DIR);
+    storageOptions.credentials = JSON.parse(GOOGLE_APPLICATION_CREDENTIALS_JSON);
+    console.log('Using credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON');
   } catch (err) {
-    console.log("Upload directory doesn't exist, creating it...");
-    try {
-      // Create directory with read/write/execute permissions
-      await fsp.mkdir(UPLOAD_DIR, { recursive: true });
-      console.log("Upload directory created successfully at:", UPLOAD_DIR);
-    } catch (mkdirErr) {
-      console.error("Failed to create upload directory:", mkdirErr.message);
-      throw new Error("Could not create upload directory");
-    }
+    console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', err.message);
   }
-};
+} else if (GOOGLE_APPLICATION_CREDENTIALS) {
+  // Path provided directly (absolute or relative). If relative, resolve against repo.
+  const credsPath = path.isAbsolute(GOOGLE_APPLICATION_CREDENTIALS)
+    ? GOOGLE_APPLICATION_CREDENTIALS
+    : path.join(__dirname, '..', GOOGLE_APPLICATION_CREDENTIALS);
+  storageOptions.keyFilename = credsPath;
+  console.log('Using credentials file from GOOGLE_APPLICATION_CREDENTIALS:', credsPath);
+} else if (GOOGLE_CREDENTIALS_FILENAME) {
+  // Old behavior: filename relative to server directory
+  const credsPath = path.join(__dirname, '..', GOOGLE_CREDENTIALS_FILENAME);
+  storageOptions.keyFilename = credsPath;
+  console.log('Using credentials file from GOOGLE_CREDENTIALS_FILENAME:', credsPath);
+} else {
+  console.warn('No explicit Google credentials provided via env. Falling back to Application Default Credentials (ADC) if available.');
+}
 
-// Initialize upload directory on server start
-ensureUploadDir().catch(console.error);
+console.log('Initializing GCS client with options:', Object.keys(storageOptions));
+const storage = new Storage(storageOptions);
 
-const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    try {
-      await ensureUploadDir();
-      cb(null, UPLOAD_DIR);
-    } catch (err) {
-      cb(err, null);
-    }
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9) + ext;
-    cb(null, uniqueName);
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  }
-});
-
-async function safeUnlink(filePath) {
+// Test GCS connection
+async function testGCSConnection() {
   try {
-    if (!filePath) return;
-    
-    // Handle both absolute and relative paths
-    let absolutePath;
-    if (path.isAbsolute(filePath)) {
-      absolutePath = filePath;
-    } else {
-      // If it's a relative path, check if it's relative to UPLOAD_DIR first
-      absolutePath = path.join(UPLOAD_DIR, filePath);
-    }
-    
-    if (fs.existsSync(absolutePath)) {
-      await fsp.unlink(absolutePath);
-      console.log("Successfully deleted file:", absolutePath);
-    }
-  } catch (err) {
-    console.error('safeUnlink error:', err.message);
+    console.log("Testing GCS connection...");
+    const [buckets] = await storage.getBuckets();
+    console.log("GCS connection successful. Available buckets:", buckets.map(b => b.name));
+    return true;
+  } catch (error) {
+    console.error("GCS connection failed:", error.message);
+    return false;
   }
 }
 
-// Simple upload endpoint for testing
-router.post("/uploadImage", upload.single("profile_picture"), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-    
-    // Return URL path instead of server path
-    return res.status(200).json({
-      filename: req.file.filename,
-      originalname: req.file.originalname,
-      url: `/uploads/${req.file.filename}`
-    });
-  } catch (err) {
-    console.error("Upload error:", err);
-    return res.status(500).json({ error: "File upload failed" });
+// Test connection on startup
+testGCSConnection().then(isConnected => {
+  if (isConnected) {
+    console.log("GCS client initialized successfully");
+  } else {
+    console.error("GCS client initialization failed");
   }
 });
 
-// Tutor profile picture upload
-router.post("/tutor/:tutorId/pfp", verifyToken, upload.single("profile_picture"), async (req, res) => {
+// Middleware to parse multipart form data without multer
+const handleMultipartForm = (req, res, next) => {
+  console.log("Handling multipart form data");
+
+  if (!req.headers['content-type'] || !req.headers['content-type'].startsWith('multipart/form-data')) {
+    console.log("Request is not multipart form data");
+    return next();
+  }
+
+  let body = [];
+  req.on('data', (chunk) => {
+    body.push(chunk);
+  });
+
+  req.on('end', () => {
+    console.log("Finished receiving form data");
+    next();
+  });
+
+  req.on('error', (err) => {
+    console.error("Error receiving form data:", err);
+    res.status(500).json({ error: "Error processing form data" });
+  });
+};
+
+// Helpers
+async function uploadBufferToGCS({ buffer, filename, destinationPath, contentType, bucketName }) {
+  console.log(`Uploading to GCS - Bucket: ${bucketName}, Destination: ${destinationPath}, ContentType: ${contentType}`);
+
+  const bucket = storage.bucket(bucketName);
+  const file = bucket.file(destinationPath);
+  console.log(`GCS file object created: ${file.name}`);
+
+  const streamOpts = { resumable: false, contentType, predefinedAcl: undefined };
+  console.log("Stream options:", streamOpts);
+
+  try {
+    await file.save(buffer, streamOpts);
+    console.log("File saved to GCS successfully");
+  } catch (error) {
+    console.error("Error saving file to GCS:", error);
+    throw error;
+  }
+
+  if (String(GCS_MAKE_PUBLIC).toLowerCase() === "true") {
+    try {
+      console.log("Making file public...");
+      await file.makePublic();
+      console.log("File made public successfully");
+    } catch (err) {
+      console.warn("Failed to make file public:", err.message);
+    }
+  } else {
+    console.log("Skipping makePublic (GCS_MAKE_PUBLIC is false)");
+  }
+
+  const publicUrl = `https://storage.googleapis.com/${bucket.name}/${encodeURIComponent(destinationPath)}`;
+  console.log("Generated public URL:", publicUrl);
+
+  return {
+    bucket: bucket.name,
+    name: destinationPath,
+    publicUrl,
+  };
+}
+
+async function deleteFromGCS(bucketName, objectName) {
+  console.log(`Deleting from GCS - Bucket: ${bucketName}, Object: ${objectName}`);
+
+  try {
+    if (!bucketName || !objectName) {
+      console.log("Skipping delete - missing bucketName or objectName");
+      return;
+    }
+
+    const bucket = storage.bucket(bucketName);
+    const file = bucket.file(objectName);
+
+    const [exists] = await file.exists();
+    if (!exists) {
+      console.log("File does not exist, skipping delete");
+      return true;
+    }
+
+    console.log("File exists, proceeding with delete");
+    await file.delete({ ignoreNotFound: true });
+    console.log("File deleted successfully");
+    return true;
+  } catch (err) {
+    console.error("GCS delete error:", err);
+    return false;
+  }
+}
+
+function buildDestination({ typeFolder, tutorId, originalName }) {
+  const ext = path.extname(originalName) || "";
+  const base = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+  const destination = `${typeFolder}/${tutorId}/${base}${ext}`;
+
+  console.log(`Built destination path: ${destination} for originalName: ${originalName}`);
+  return destination;
+}
+
+async function generateSignedUrl(bucketName, fileName, contentType) {
+  console.log(`Generating signed URL for bucket: ${bucketName}, file: ${fileName}`);
+
+  const options = {
+    version: 'v4',
+    action: 'write',
+    expires: Date.now() + 15 * 60 * 1000,
+    contentType: contentType,
+  };
+
+  try {
+    const [url] = await storage
+      .bucket(bucketName)
+      .file(fileName)
+      .getSignedUrl(options);
+
+    console.log("Generated signed URL:", url);
+    return url;
+  } catch (error) {
+    console.error("Error generating signed URL:", error);
+    throw error;
+  }
+}
+
+router.post("/generateUploadUrl", verifyToken, async (req, res) => {
+  console.log("Generate upload URL endpoint called");
+  console.log("Request body:", req.body);
+
+  try {
+    const { fileName, contentType, fileType } = req.body;
+
+    if (!fileName || !contentType || !fileType) {
+      console.log("Missing required parameters - returning 400");
+      return res.status(400).json({ error: "fileName, contentType, and fileType are required" });
+    }
+
+    let bucketName;
+    let folder;
+
+    switch (fileType) {
+      case 'pfp':
+        bucketName = GC_BUCKET_PFPS;
+        folder = 'pfps';
+        break;
+      case 'banner':
+        bucketName = GC_BUCKET_BANNERS;
+        folder = 'banners';
+        break;
+      case 'upload':
+        bucketName = GC_BUCKET_UPLOADS;
+        folder = 'uploads';
+        break;
+      default:
+        console.log("Invalid file type - returning 400");
+        return res.status(400).json({ error: "Invalid fileType. Must be 'pfp', 'banner', or 'upload'" });
+    }
+
+    if (!bucketName) {
+      console.log(`No ${fileType} bucket configured - returning 500`);
+      return res.status(500).json({ error: `No ${fileType.toUpperCase()} bucket configured in .env` });
+    }
+
+    const tutorId = req.user._id || req.user.id;
+    const destination = buildDestination({
+      typeFolder: folder,
+      tutorId,
+      originalName: fileName
+    });
+
+    const signedUrl = await generateSignedUrl(bucketName, destination, contentType);
+
+    return res.status(200).json({
+      signedUrl,
+      filePath: destination,
+      bucket: bucketName
+    });
+  } catch (err) {
+    console.error("Error generating signed URL:", err);
+    return res.status(500).json({ error: "Failed to generate upload URL" });
+  }
+});
+
+router.post("/tutor/:tutorId/pfp", verifyToken, async (req, res) => {
+  console.log("Tutor PFP update endpoint called");
+  console.log("Params:", req.params);
+  console.log("Request body:", req.body);
+
   try {
     const { tutorId } = req.params;
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const { filePath } = req.body;
+
+    if (!filePath) {
+      console.log("No file path provided - returning 400");
+      return res.status(400).json({ error: "filePath is required" });
+    }
 
     const userId = String(req.user?._id || req.user?.id);
+    console.log(`User ID: ${userId}, Tutor ID: ${tutorId}, User type: ${req.user?.type}`);
+
     if (String(userId) !== String(tutorId) && req.user?.type !== "Admin") {
-      await safeUnlink(req.file.filename);
+      console.log("Authorization failed - user not authorized");
       return res.status(403).json({ error: "Not authorized" });
     }
 
+    console.log("Looking up teacher in database...");
     const teacher = await Teacher.findById(tutorId);
     if (!teacher) {
-      await safeUnlink(req.file.filename);
+      console.log("Teacher not found - returning 404");
       return res.status(404).json({ error: "Teacher not found" });
     }
 
-    // Remove old file if exists
-    if (teacher.profile_picture && teacher.profile_picture.filename) {
-      await safeUnlink(teacher.profile_picture.filename);
+    const bucket = GC_BUCKET_PFPS;
+    console.log("PFP bucket:", bucket);
+
+    if (!bucket) {
+      console.log("No PFPS bucket configured - returning 500");
+      return res.status(500).json({ error: "No PFPS bucket configured in .env (GC_BUCKET_PFPS)" });
+    }
+
+    const publicUrl = `https://storage.googleapis.com/${bucket}/${encodeURIComponent(filePath)}`;
+    console.log("Generated public URL:", publicUrl);
+
+    console.log("Checking for old profile picture to delete...");
+    if (teacher.profile_picture && teacher.profile_picture.bucket && teacher.profile_picture.name) {
+      console.log("Deleting old GCS profile picture...");
+      await deleteFromGCS(teacher.profile_picture.bucket, teacher.profile_picture.name);
+    } else if (teacher.profile_picture && teacher.profile_picture.path) {
+      console.log("Deleting old local profile picture...");
+      try {
+        const localPath = path.isAbsolute(teacher.profile_picture.path)
+          ? teacher.profile_picture.path
+          : path.join(__dirname, "..", "uploads", teacher.profile_picture.filename || teacher.profile_picture.path);
+        console.log("Local path to delete:", localPath);
+        await fs.unlink(localPath).catch(() => {
+          console.log("Local file delete failed (might not exist)");
+        });
+      } catch (err) {
+        console.error("Error deleting local file:", err);
+      }
+    } else {
+      console.log("No old profile picture to delete");
     }
 
     teacher.profile_picture = {
-      filename: req.file.filename,
-      originalname: req.file.originalname,
-      path: req.file.path,
-      url: `/uploads/${req.file.filename}`
+      filename: path.basename(filePath),
+      originalname: path.basename(filePath),
+      bucket: bucket,
+      name: filePath,
+      url: publicUrl,
     };
 
+    console.log("Saving teacher with new profile picture...");
     await teacher.save();
-    return res.status(200).json({ 
-      message: "Profile picture updated", 
-      profile_picture: teacher.profile_picture 
+    console.log("Teacher saved successfully");
+
+    return res.status(200).json({
+      message: "Profile picture updated",
+      profile_picture: teacher.profile_picture,
     });
   } catch (err) {
-    console.error("Profile picture upload error:", err);
-    if (req.file) await safeUnlink(req.file.filename);
+    console.error("Profile picture update error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// Tutor banner upload
-router.post("/tutor/:tutorId/banner", verifyToken, upload.single("banner"), async (req, res) => {
+router.post("/tutor/:tutorId/banner", verifyToken, async (req, res) => {
+  console.log("Tutor banner update endpoint called");
+  console.log("Params:", req.params);
+  console.log("Request body:", req.body);
+
   try {
     const { tutorId } = req.params;
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const { filePath } = req.body;
+
+    if (!filePath) {
+      console.log("No file path provided - returning 400");
+      return res.status(400).json({ error: "filePath is required" });
+    }
 
     const userId = String(req.user?._id || req.user?.id);
+    console.log(`User ID: ${userId}, Tutor ID: ${tutorId}, User type: ${req.user?.type}`);
+
     if (String(userId) !== String(tutorId) && req.user?.type !== "Admin") {
-      await safeUnlink(req.file.filename);
+      console.log("Authorization failed - user not authorized");
       return res.status(403).json({ error: "Not authorized" });
     }
 
+    console.log("Looking up teacher in database...");
     const teacher = await Teacher.findById(tutorId);
     if (!teacher) {
-      await safeUnlink(req.file.filename);
+      console.log("Teacher not found - returning 404");
       return res.status(404).json({ error: "Teacher not found" });
     }
 
-    if (teacher.banner && teacher.banner.filename) {
-      await safeUnlink(teacher.banner.filename);
+    const bucket = GC_BUCKET_BANNERS;
+    console.log("Banner bucket:", bucket);
+
+    if (!bucket) {
+      console.log("No BANNERS bucket configured - returning 500");
+      return res.status(500).json({ error: "No BANNERS bucket configured in .env (GC_BUCKET_BANNERS)" });
+    }
+
+    const publicUrl = `https://storage.googleapis.com/${bucket}/${encodeURIComponent(filePath)}`;
+    console.log("Generated public URL:", publicUrl);
+
+    console.log("Checking for old banner to delete...");
+    if (teacher.banner && teacher.banner.bucket && teacher.banner.name) {
+      console.log("Deleting old GCS banner...");
+      await deleteFromGCS(teacher.banner.bucket, teacher.banner.name);
+    } else if (teacher.banner && teacher.banner.path) {
+      console.log("Deleting old local banner...");
+      try {
+        const localPath = path.isAbsolute(teacher.banner.path)
+          ? teacher.banner.path
+          : path.join(__dirname, "..", "uploads", teacher.banner.filename || teacher.banner.path);
+        console.log("Local path to delete:", localPath);
+        await fs.unlink(localPath).catch(() => {
+          console.log("Local file delete failed (might not exist)");
+        });
+      } catch (err) {
+        console.error("Error deleting local file:", err);
+      }
+    } else {
+      console.log("No old banner to delete");
     }
 
     teacher.banner = {
-      filename: req.file.filename,
-      originalname: req.file.originalname,
-      path: req.file.path,
-      url: `/uploads/${req.file.filename}`
+      filename: path.basename(filePath),
+      originalname: path.basename(filePath),
+      bucket: bucket,
+      name: filePath,
+      url: publicUrl,
     };
 
+    console.log("Saving teacher with new banner...");
     await teacher.save();
+    console.log("Teacher saved successfully");
+
     return res.status(200).json({ message: "Banner updated", banner: teacher.banner });
   } catch (err) {
-    console.error("Banner upload error:", err);
-    if (req.file) await safeUnlink(req.file.filename);
+    console.error("Banner update error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// Delete profile picture
 router.delete("/tutor/:tutorId/pfp", verifyToken, async (req, res) => {
+  console.log("Delete PFP endpoint called");
+  console.log("Params:", req.params);
+  console.log("User from token:", req.user);
+
   try {
     const { tutorId } = req.params;
     const userId = String(req.user?._id || req.user?.id);
+    console.log(`User ID: ${userId}, Tutor ID: ${tutorId}, User type: ${req.user?.type}`);
+
     if (String(userId) !== String(tutorId) && req.user?.type !== "Admin") {
+      console.log("Authorization failed - user not authorized");
       return res.status(403).json({ error: "Not authorized" });
     }
 
+    console.log("Looking up teacher in database...");
     const teacher = await Teacher.findById(tutorId);
-    if (!teacher) return res.status(404).json({ error: "Teacher not found" });
+    if (!teacher) {
+      console.log("Teacher not found - returning 404");
+      return res.status(404).json({ error: "Teacher not found" });
+    }
 
-    if (teacher.profile_picture && teacher.profile_picture.filename) {
-      await safeUnlink(teacher.profile_picture.filename);
+    console.log("Current profile picture:", teacher.profile_picture);
+
+    if (teacher.profile_picture && teacher.profile_picture.bucket && teacher.profile_picture.name) {
+      console.log("Deleting GCS profile picture...");
+      await deleteFromGCS(teacher.profile_picture.bucket, teacher.profile_picture.name);
+    } else if (teacher.profile_picture && teacher.profile_picture.path) {
+      console.log("Deleting old local profile picture...");
+      try {
+        const localPath = path.isAbsolute(teacher.profile_picture.path)
+          ? teacher.profile_picture.path
+          : path.join(__dirname, "..", "uploads", teacher.profile_picture.filename || teacher.profile_picture.path);
+        console.log("Local path to delete:", localPath);
+        await fs.unlink(localPath).catch(() => {
+          console.log("Local file delete failed (might not exist)");
+        });
+      } catch (err) {
+        console.error("Error deleting local file:", err);
+      }
+    } else {
+      console.log("No profile picture to delete");
     }
 
     teacher.profile_picture = null;
+    console.log("Saving teacher with null profile picture...");
     await teacher.save();
+    console.log("Teacher saved successfully");
+
     return res.status(200).json({ message: "Profile picture deleted" });
   } catch (err) {
     console.error("Delete profile picture error:", err);
@@ -212,24 +487,55 @@ router.delete("/tutor/:tutorId/pfp", verifyToken, async (req, res) => {
   }
 });
 
-// Delete banner
 router.delete("/tutor/:tutorId/banner", verifyToken, async (req, res) => {
+  console.log("Delete banner endpoint called");
+  console.log("Params:", req.params);
+  console.log("User from token:", req.user);
+
   try {
     const { tutorId } = req.params;
     const userId = String(req.user?._id || req.user?.id);
+    console.log(`User ID: ${userId}, Tutor ID: ${tutorId}, User type: ${req.user?.type}`);
+
     if (String(userId) !== String(tutorId) && req.user?.type !== "Admin") {
+      console.log("Authorization failed - user not authorized");
       return res.status(403).json({ error: "Not authorized" });
     }
 
+    console.log("Looking up teacher in database...");
     const teacher = await Teacher.findById(tutorId);
-    if (!teacher) return res.status(404).json({ error: "Teacher not found" });
+    if (!teacher) {
+      console.log("Teacher not found - returning 404");
+      return res.status(404).json({ error: "Teacher not found" });
+    }
 
-    if (teacher.banner && teacher.banner.filename) {
-      await safeUnlink(teacher.banner.filename);
+    console.log("Current banner:", teacher.banner);
+
+    if (teacher.banner && teacher.banner.bucket && teacher.banner.name) {
+      console.log("Deleting GCS banner...");
+      await deleteFromGCS(teacher.banner.bucket, teacher.banner.name);
+    } else if (teacher.banner && teacher.banner.path) {
+      console.log("Deleting old local banner...");
+      try {
+        const localPath = path.isAbsolute(teacher.banner.path)
+          ? teacher.banner.path
+          : path.join(__dirname, "..", "uploads", teacher.banner.filename || teacher.banner.path);
+        console.log("Local path to delete:", localPath);
+        await fs.unlink(localPath).catch(() => {
+          console.log("Local file delete failed (might not exist)");
+        });
+      } catch (err) {
+        console.error("Error deleting local file:", err);
+      }
+    } else {
+      console.log("No banner to delete");
     }
 
     teacher.banner = null;
+    console.log("Saving teacher with null banner...");
     await teacher.save();
+    console.log("Teacher saved successfully");
+
     return res.status(200).json({ message: "Banner deleted" });
   } catch (err) {
     console.error("Delete banner error:", err);
@@ -237,4 +543,5 @@ router.delete("/tutor/:tutorId/banner", verifyToken, async (req, res) => {
   }
 });
 
+console.log("Upload routes initialized successfully");
 export default router;

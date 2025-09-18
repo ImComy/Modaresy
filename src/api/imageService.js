@@ -36,4 +36,60 @@ export function getBannerUrl(tutor) {
   return getImageUrl(fromBanner);
 }
 
+export async function uploadFile(file, shape, tutorId, token) {
+  if (!file) return null;
+  if (!tutorId) throw new Error('uploadFile requires tutorId');
+  const genBody = {
+    fileName: file.name,
+    contentType: file.type || 'application/octet-stream',
+    fileType: shape === 'profile' ? 'pfp' : 'banner',
+  };
+
+  const genRes = await fetch(`${API_BASE}/storage/generateUploadUrl`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(genBody),
+  });
+
+  if (!genRes.ok) {
+    const txt = await genRes.text();
+    throw new Error(txt || 'Failed to get upload URL');
+  }
+
+  const { signedUrl, filePath } = await genRes.json();
+  if (!signedUrl || !filePath) throw new Error('Invalid signed URL response');
+
+  // Upload to GCS
+  const putRes = await fetch(signedUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    body: file,
+  });
+  if (!putRes.ok) {
+    const txt = await putRes.text();
+    throw new Error(txt || 'Upload to GCS failed');
+  }
+
+  // Notify backend
+  const notifyRes = await fetch(`${API_BASE}/storage/tutor/${tutorId}/${shape === 'profile' ? 'pfp' : 'banner'}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ filePath }),
+  });
+
+  if (!notifyRes.ok) {
+    const txt = await notifyRes.text();
+    throw new Error(txt || 'Backend notify failed');
+  }
+
+  const parsed = await notifyRes.json();
+  return parsed.profile_picture || parsed.banner || null;
+}
+
 export default { getImageUrl, getAvatarSrc, getBannerUrl };

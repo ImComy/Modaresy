@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { getImageUrl, getAvatarSrc, getBannerUrl } from '@/api/imageService';
+import { getImageUrl, getAvatarSrc, getBannerUrl, uploadFile } from '@/api/imageService';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
@@ -196,49 +196,47 @@ const TutorProfileHeaderEdit = ({
   }, [onChange]);
 
   const addSocial = useCallback(() => {
-  console.log('[TutorProfileHeaderEdit] addSocial', { newSocial });
-  if (!newSocial.platform || !newSocial.url) return;
-    setFormData(prev => {
-      const updatedSocials = { ...(prev?.social_media || {}), [newSocial.platform]: newSocial.url };
-      try { onChange?.('social_media', updatedSocials); } catch (e) {}
-      return { ...prev, social_media: updatedSocials };
-    });
-    setNewSocial({ platform: '', url: '' });
+    try {
+      const platform = newSocial?.platform;
+      const url = newSocial?.url;
+      if (!platform || !url) return;
+      setFormData(prev => {
+        const current = prev?.social_media || {};
+        const updated = { ...current, [platform]: url };
+        try { onChange?.('social_media', updated); } catch (e) {}
+        return { ...prev, social_media: updated };
+      });
+      setNewSocial({ platform: '', url: '' });
+    } catch (err) {
+      console.error('addSocial error', err);
+    }
   }, [newSocial, onChange]);
 
-  const handleFileSelect = useCallback((e, shape) => {
-    const file = e.target.files?.[0];
-    if (file) {
-  console.log('[TutorProfileHeaderEdit] handleFileSelect', { shape, fileName: file.name, size: file.size });
-  const imageUrl = URL.createObjectURL(file);
+  // Handle file input selection for profile/banner - opens crop overlay
+  const handleFileSelect = useCallback((e, shape = 'banner') => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    try {
+      // create a temporary object URL for the selected file and open the crop overlay
+      const url = URL.createObjectURL(file);
+      // set the crop overlay to open and pass the raw file (so cropper can use it)
+      setCropOverlay({ open: true, image: url, shape });
+      // store any previous object url to revoke later in upload flow
       if (lastObjectUrl.current) {
         try { URL.revokeObjectURL(lastObjectUrl.current); } catch {}
       }
-      lastObjectUrl.current = imageUrl;
-      setCropOverlay({ open: true, image: imageUrl, shape });
+      lastObjectUrl.current = url;
+      // prevent default file input value retention
+      e.target.value = null;
+    } catch (err) {
+      console.error('handleFileSelect error', err);
     }
   }, []);
 
-  const uploadFile = async (file, shape) => {
+  const uploadFileToStorage = async (file, shape) => {
     try {
-      if (!tutor?._id) throw new Error('Missing tutor id');
-      const tutorId = tutor._id;
-      const endpoint = `${API_BASE}/storage/tutor/${tutorId}/${shape === 'profile' ? 'pfp' : 'banner'}`;
-      const body = new FormData();
-      if (shape === 'profile') body.append('profile_picture', file);
-      else body.append('banner', file);
       const token = localStorage.getItem('token');
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body,
-      });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || 'Upload failed');
-      }
-      const parsed = await res.json();
-      const returned = parsed.profile_picture || parsed.banner;
+      const returned = await uploadFile(file, shape, tutor?._id, token);
       let url = returned?.url || returned?.path || '';
       if (url && url.startsWith('/')) url = `${API_BASE}${url}`;
       if (shape === 'profile') {
@@ -255,6 +253,7 @@ const TutorProfileHeaderEdit = ({
       return null;
     }
   };
+
 
   const handleCrop = useCallback(async (croppedFile) => {
   const shape = cropOverlay.shape === 'profile' ? 'profile' : 'banner';

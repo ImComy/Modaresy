@@ -8,6 +8,7 @@ import BlogSection from '@/components/profile/BlogSection';
 import useTutorProfile from '@/hooks/useTutorProfile';
 import useEditMode from '@/hooks/useEditMode';
 import { apiFetch, API_BASE } from '@/api/apiService';
+import { uploadFile } from '@/api/imageService';
 import { BookOpen, FileText } from 'lucide-react';
 import Loader from '@/components/ui/loader';
 
@@ -134,7 +135,9 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
         const existingSubjectsToUpdate = updatedSubjects.filter(s => s._id && originalSubjectIds.has(s._id));
         const updateSubjectPromises = [];
         const updateProfilePromises = [];
-        const deletePromises = [];
+  const deletePromises = [];
+  // collect misc storage/delete promises (profile/banner deletes)
+  const promises = [];
 
         deletedSubjectIds.forEach(subjectId => {
           deletePromises.push(deleteSubjectFromBackend(subjectId));
@@ -185,23 +188,8 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
         delete tutorProfileData.subjects;
 
         const uploadToStorage = async (file, shape) => {
-          if (!file) return null;
-          const form = new FormData();
-          if (shape === 'profile') form.append('profile_picture', file);
-          else form.append('banner', file);
           const token = localStorage.getItem('token');
-          const url = `${API_BASE}/storage/tutor/${tutor._id}/${shape === 'profile' ? 'pfp' : 'banner'}`;
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-            body: form,
-          });
-          if (!res.ok) {
-            const txt = await res.text();
-            throw new Error(txt || 'Upload failed');
-          }
-          const parsed = await res.json();
-          return parsed.profile_picture || parsed.banner || null;
+          return await uploadFile(file, shape, tutor._id, token);
         };
 
         const pending = (pendingFilesRef && pendingFilesRef.current) ? pendingFilesRef.current : {};
@@ -262,10 +250,12 @@ const TutorProfilePage = ({ tutorId: propTutorId, isEditing: externalEditing = n
         });
 
         // creations already awaited serially above, run remaining updates in parallel
+        // include any storage-related promises (deletes) collected above
         await Promise.all([
           ...updateSubjectPromises,
           ...updateProfilePromises,
-          tutorUpdatePromise
+          tutorUpdatePromise,
+          ...promises
         ]);
 
         // Now run deletes (subjects). We run them after updates to avoid profile-not-found races
