@@ -25,6 +25,7 @@ import ForgotPasswordPage from './pages/forgot-password';
 import AdminPage from './pages/AdminPage';
 import ChatPage from './pages/chat';
 import ModaresyCommunityPage from './pages/community'
+import TutorOnboardingWrapper from './pages/signupProfileEdit';
 
 const ProtectedRoute = ({ element, requireAuth = false, allowedRoles = null, unsignedOnly = false }) => {
   const { authState } = useAuth();
@@ -141,6 +142,8 @@ function RoutesWrapper() {
 
         <Route path="/wishlist" element={<ProtectedRoute element={<WishlistPage />} requireAuth />} />
         <Route path="/profile" element={<ProtectedRoute element={<StudentProfilePage />} requireAuth />} />
+
+        <Route path="/onboard" element={<ProtectedRoute element={<TutorOnboardingWrapper />} />} />
 
         <Route path="/dashboard/teacher" element={<ProtectedRoute element={<TeacherDashboardPage />} requireAuth allowedRoles={["Teacher"]} />} />
         <Route path="/admin" element={<ProtectedRoute element={<AdminPage />} requireAuth allowedRoles={["admin"]} />} />

@@ -72,10 +72,12 @@ const TutorLocationMapEdit = ({ tutor, onChange, className = '' }) => {
   useEffect(() => {
     if (!position) return;
     
-    onChange('location_coordinates', {
-      latitude: position.lat,
-      longitude: position.lng,
-    });
+    if (onChange && typeof onChange === 'function') {
+      onChange('location_coordinates', {
+        latitude: position.lat,
+        longitude: position.lng,
+      });
+    }
   }, [position, onChange]);
 
   useEffect(() => {

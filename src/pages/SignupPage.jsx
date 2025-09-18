@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { getConstants } from '@/api/constantsFetch';
 import { useFormLogic } from '@/handlers/form';
 // import { ScrollableTimeline } from '@/components/ui/timeline'; // Timeline removed
-import SignupForm from '@/components/SignupForm';
+import SignupForm from '@/components/signup/SignupForm';
 import Loader from '@/components/ui/loader';
 
 const initialFormData = {
