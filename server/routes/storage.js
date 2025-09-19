@@ -234,13 +234,111 @@ async function deleteFromGCS(bucketName, objectName) {
   }
 }
 
+/**
+ * Archive (move) a file within the same bucket into an "old" subfolder:
+ * e.g. pfps/123/filename.ext -> pfps/old/123/filename.ext
+ *
+ * If the object is already in an `old` folder, this function will permanently delete it.
+ * Returns: { archived: true, newName } on archive, { deleted: true } on permanent delete, or throws.
+ */
+async function archiveFileInBucket(bucketName, objectName) {
+  console.log(`Archive request - bucket: ${bucketName}, object: ${objectName}`);
+  if (!bucketName || !objectName) {
+    throw new Error('Missing bucketName or objectName for archive');
+  }
+
+  const bucket = storage.bucket(bucketName);
+  const file = bucket.file(objectName);
+
+  try {
+    const [exists] = await file.exists();
+    if (!exists) {
+      console.log("archiveFileInBucket: file does not exist, nothing to archive");
+      return { missing: true };
+    }
+
+    // If already under an "old" segment, do permanent delete (to avoid nested old/old/old).
+    if (objectName.includes('/old/')) {
+      console.log("Object already in /old/ - performing permanent delete");
+      await file.delete({ ignoreNotFound: true });
+      console.log("Permanently deleted archived file:", objectName);
+      return { deleted: true };
+    }
+
+    // Build new path: insert 'old' right after the top-level folder
+    // Example: 'pfps/123/foo.png' -> 'pfps/old/123/foo.png'
+    const parts = objectName.split('/');
+    if (parts.length < 2) {
+      // If shape unexpected, place under 'old' prefix directly
+      const fallbackName = `old/${path.basename(objectName)}`;
+      console.log(`Unexpected objectName layout; using fallback archive path: ${fallbackName}`);
+      try {
+        await file.move(fallbackName);
+        console.log(`Archived to fallback path: ${fallbackName}`);
+        const encodedPath = fallbackName.split('/').map(encodeURIComponent).join('/');
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${encodedPath}`;
+        // Make public if configured
+        if (String(GCS_MAKE_PUBLIC).toLowerCase() === 'true') {
+          await bucket.file(fallbackName).makePublic().catch(e => console.warn('makePublic failed on archived file', e));
+        }
+        return { archived: true, newName: fallbackName, publicUrl };
+      } catch (err) {
+        console.warn('Fallback archive move failed, attempting copy+delete', err);
+        // fallback to copy+delete
+      }
+    } else {
+      const top = parts[0];
+      const rest = parts.slice(1).join('/');
+      const newName = `${top}/old/${rest}`;
+
+      console.log(`Attempting to move file to archive path: ${newName}`);
+      try {
+        // server-side rename (fast)
+        await file.move(newName);
+        console.log(`File moved to archive path: ${newName}`);
+        // Make public if configured (to preserve same visibility)
+        if (String(GCS_MAKE_PUBLIC).toLowerCase() === 'true') {
+          await bucket.file(newName).makePublic().catch(e => console.warn('makePublic failed on archived file', e));
+        }
+        const encodedPath = newName.split('/').map(encodeURIComponent).join('/');
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${encodedPath}`;
+        return { archived: true, newName, publicUrl };
+      } catch (moveErr) {
+        console.warn('file.move failed, attempting copy+delete fallback', moveErr);
+        // Try copy then delete
+        try {
+          const destFile = bucket.file(newName);
+          await file.copy(destFile);
+          console.log('Copied to archive path success:', newName);
+          // Make archived file public if configured
+          if (String(GCS_MAKE_PUBLIC).toLowerCase() === 'true') {
+            await destFile.makePublic().catch(e => console.warn('makePublic failed on copied archived file', e));
+          }
+          // Delete original
+          await file.delete({ ignoreNotFound: true });
+          console.log('Original deleted after copy');
+          const encodedPath = newName.split('/').map(encodeURIComponent).join('/');
+          const publicUrl = `https://storage.googleapis.com/${bucket.name}/${encodedPath}`;
+          return { archived: true, newName, publicUrl };
+        } catch (copyErr) {
+          console.error('archiveFileInBucket: copy+delete fallback failed', copyErr);
+          throw copyErr;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('archiveFileInBucket error:', err && err.message ? err.message : err);
+    throw err;
+  }
+}
+
 function buildDestination({ typeFolder, tutorId, originalName }) {
   const ext = path.extname(originalName || '') || "";
   // Descriptive filename: <tutorId>-YYYYMMDD-HHMMSS-<random><ext>
   const now = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   const datePart = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
-  const timePart = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const timePart = `H${pad(now.getHours())}M${pad(now.getMinutes())}S${pad(now.getSeconds())}`;
   const randomPart = Math.round(Math.random() * 1e9);
   const filename = `${tutorId}-${datePart}-${timePart}-${randomPart}${ext}`;
   const destination = `${typeFolder}/${tutorId}/${filename}`;
@@ -354,7 +452,7 @@ router.post("/generateUploadUrl", verifyToken, async (req, res) => {
   }
 });
 
-// Helper to set Teacher's picture or banner object and delete old object.
+// Helper to set Teacher's picture or banner object and archive old object instead of deleting permanently.
 async function setTeacherMedia({ tutorId, type, filePath, bucket }) {
   const teacher = await Teacher.findById(tutorId);
   if (!teacher) throw new Error('Teacher not found');
@@ -363,33 +461,60 @@ async function setTeacherMedia({ tutorId, type, filePath, bucket }) {
   const encodedFilePath = filePath.split('/').map(encodeURIComponent).join('/');
   const publicUrl = `https://storage.googleapis.com/${bucket}/${encodedFilePath}`;
 
-  // delete old
-  if (type === 'pfp') {
-    if (teacher.profile_picture && teacher.profile_picture.bucket && teacher.profile_picture.name) {
-      await deleteFromGCS(teacher.profile_picture.bucket, teacher.profile_picture.name).catch(err => console.warn('Old pfp delete failed', err));
+  // archive old (move to /old/) instead of deleting permanently
+  try {
+    if (type === 'pfp') {
+      if (teacher.profile_picture && teacher.profile_picture.bucket && teacher.profile_picture.name) {
+        try {
+          await archiveFileInBucket(teacher.profile_picture.bucket, teacher.profile_picture.name)
+            .catch(err => console.warn('Old pfp archive failed', err));
+        } catch (err) {
+          console.warn('archiveFileInBucket thrown for old pfp', err);
+        }
+      }
+      teacher.profile_picture = {
+        filename: path.basename(filePath),
+        originalname: path.basename(filePath),
+        bucket: bucket,
+        name: filePath,
+        url: publicUrl,
+      };
+    } else if (type === 'banner') {
+      if (teacher.banner && teacher.banner.bucket && teacher.banner.name) {
+        try {
+          await archiveFileInBucket(teacher.banner.bucket, teacher.banner.name)
+            .catch(err => console.warn('Old banner archive failed', err));
+        } catch (err) {
+          console.warn('archiveFileInBucket thrown for old banner', err);
+        }
+      }
+      teacher.banner = {
+        filename: path.basename(filePath),
+        originalname: path.basename(filePath),
+        bucket: bucket,
+        name: filePath,
+        url: publicUrl,
+      };
     }
-    teacher.profile_picture = {
-      filename: path.basename(filePath),
-      originalname: path.basename(filePath),
-      bucket: bucket,
-      name: filePath,
-      url: publicUrl,
-    };
-  } else if (type === 'banner') {
-    if (teacher.banner && teacher.banner.bucket && teacher.banner.name) {
-      await deleteFromGCS(teacher.banner.bucket, teacher.banner.name).catch(err => console.warn('Old banner delete failed', err));
-    }
-    teacher.banner = {
-      filename: path.basename(filePath),
-      originalname: path.basename(filePath),
-      bucket: bucket,
-      name: filePath,
-      url: publicUrl,
-    };
-  }
 
-  await teacher.save();
-  return type === 'pfp' ? teacher.profile_picture : teacher.banner;
+    // Ensure the newly uploaded file is publicly accessible if configured
+    try {
+      if (String(GCS_MAKE_PUBLIC).toLowerCase() === 'true') {
+        const file = storage.bucket(bucket).file(filePath);
+        await file.makePublic().catch(err => {
+          console.warn('Failed to make uploaded file public:', err && err.message ? err.message : err);
+        });
+      }
+    } catch (err) {
+      console.warn('makePublic check failed:', err && err.message ? err.message : err);
+    }
+
+    await teacher.save();
+    return type === 'pfp' ? teacher.profile_picture : teacher.banner;
+  } catch (err) {
+    console.warn('setTeacherMedia error:', err && err.message ? err.message : err);
+    throw err;
+  }
 }
 
 router.post("/tutor/:tutorId/pfp", verifyToken, async (req, res) => {
@@ -466,15 +591,20 @@ router.delete("/tutor/:tutorId/pfp", verifyToken, async (req, res) => {
     const teacher = await Teacher.findById(tutorId);
     if (!teacher) return res.status(404).json({ error: "Teacher not found" });
 
-    // delete storage object if exists
+    // archive storage object if exists (moves to /old/)
     if (teacher.profile_picture && teacher.profile_picture.bucket && teacher.profile_picture.name) {
-      await deleteFromGCS(teacher.profile_picture.bucket, teacher.profile_picture.name).catch(err => console.warn('Delete pfp failed', err));
+      try {
+        await archiveFileInBucket(teacher.profile_picture.bucket, teacher.profile_picture.name)
+          .catch(err => console.warn('Archive pfp failed', err));
+      } catch (err) {
+        console.warn('archiveFileInBucket threw for pfp delete endpoint:', err);
+      }
     }
 
     teacher.profile_picture = null;
     await teacher.save();
 
-    return res.status(200).json({ message: "Profile picture deleted" });
+    return res.status(200).json({ message: "Profile picture deleted (archived)" });
   } catch (err) {
     console.error("Delete profile picture error:", err && err.message ? err.message : err);
     return res.status(500).json({ error: "Internal server error" });
@@ -497,13 +627,18 @@ router.delete("/tutor/:tutorId/banner", verifyToken, async (req, res) => {
     if (!teacher) return res.status(404).json({ error: "Teacher not found" });
 
     if (teacher.banner && teacher.banner.bucket && teacher.banner.name) {
-      await deleteFromGCS(teacher.banner.bucket, teacher.banner.name).catch(err => console.warn('Delete banner failed', err));
+      try {
+        await archiveFileInBucket(teacher.banner.bucket, teacher.banner.name)
+          .catch(err => console.warn('Archive banner failed', err));
+      } catch (err) {
+        console.warn('archiveFileInBucket threw for banner delete endpoint:', err);
+      }
     }
 
     teacher.banner = null;
     await teacher.save();
 
-    return res.status(200).json({ message: "Banner deleted" });
+    return res.status(200).json({ message: "Banner deleted (archived)" });
   } catch (err) {
     console.error("Delete banner error:", err && err.message ? err.message : err);
     return res.status(500).json({ error: "Internal server error" });
