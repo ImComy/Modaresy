@@ -36,8 +36,20 @@ app.use(
   cors(  {
     origin: ['https://www.modaresy.me', 'https://modaresy.me'],
     methods: ["GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "ETag", "x-goog-generation", "x-goog-metageneration", "x-goog-storage-class"],
-    maxAge: 3600
+    // Allow Authorization and other common headers so preflight requests succeed
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "ETag",
+      "x-goog-generation",
+      "x-goog-metageneration",
+      "x-goog-storage-class",
+      "X-Requested-With",
+      "Accept",
+      "Origin"
+    ],
+    exposedHeaders: ["Authorization", "ETag"],
+    credentials: true,
   })
 );
 
