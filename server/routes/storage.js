@@ -25,6 +25,7 @@ const {
   GOOGLE_CREDENTIALS_FILENAME,
   GOOGLE_APPLICATION_CREDENTIALS,
   GOOGLE_APPLICATION_CREDENTIALS_JSON,
+  GOOGLE_APPLICATION_CREDENTIALS_BASE64,
   GC_BUCKET_PFPS,
   GC_BUCKET_BANNERS,
   GC_BUCKET_UPLOADS,
@@ -35,27 +36,104 @@ const {
 const storageOptions = {};
 if (GOOGLE_CLOUD_PROJECT) storageOptions.projectId = GOOGLE_CLOUD_PROJECT;
 
+// Attempt credential sources in order: JSON string -> base64 env -> file path -> legacy file
+let credentialSource = null;
 if (GOOGLE_APPLICATION_CREDENTIALS_JSON) {
   try {
     storageOptions.credentials = JSON.parse(GOOGLE_APPLICATION_CREDENTIALS_JSON);
+    credentialSource = 'GOOGLE_APPLICATION_CREDENTIALS_JSON';
     console.log('Using credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON');
   } catch (err) {
     console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', err.message);
   }
-} else if (GOOGLE_APPLICATION_CREDENTIALS) {
+}
+
+if (!storageOptions.credentials && GOOGLE_APPLICATION_CREDENTIALS_BASE64) {
+  try {
+    const decoded = Buffer.from(GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('utf8');
+    storageOptions.credentials = JSON.parse(decoded);
+    credentialSource = 'GOOGLE_APPLICATION_CREDENTIALS_BASE64';
+    console.log('Using credentials from GOOGLE_APPLICATION_CREDENTIALS_BASE64');
+  } catch (err) {
+    console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_BASE64:', err.message);
+  }
+}
+
+if (!storageOptions.credentials && GOOGLE_APPLICATION_CREDENTIALS) {
   // Path provided directly (absolute or relative). If relative, resolve against repo.
   const credsPath = path.isAbsolute(GOOGLE_APPLICATION_CREDENTIALS)
     ? GOOGLE_APPLICATION_CREDENTIALS
     : path.join(__dirname, '..', GOOGLE_APPLICATION_CREDENTIALS);
   storageOptions.keyFilename = credsPath;
+  credentialSource = 'GOOGLE_APPLICATION_CREDENTIALS (file)';
   console.log('Using credentials file from GOOGLE_APPLICATION_CREDENTIALS:', credsPath);
-} else if (GOOGLE_CREDENTIALS_FILENAME) {
+}
+
+if (!storageOptions.credentials && !storageOptions.keyFilename && GOOGLE_CREDENTIALS_FILENAME) {
   // Old behavior: filename relative to server directory
   const credsPath = path.join(__dirname, '..', GOOGLE_CREDENTIALS_FILENAME);
   storageOptions.keyFilename = credsPath;
+  credentialSource = 'GOOGLE_CREDENTIALS_FILENAME (file)';
   console.log('Using credentials file from GOOGLE_CREDENTIALS_FILENAME:', credsPath);
-} else {
-  console.warn('No explicit Google credentials provided via env. Falling back to Application Default Credentials (ADC) if available.');
+}
+
+if (!storageOptions.credentials && !storageOptions.keyFilename) {
+  // Try reading legacy base64 file at server/base64
+  try {
+    const base64Path = path.join(__dirname, '..', 'base64');
+    const exists = await fs.stat(base64Path).then(() => true).catch(() => false);
+    if (exists) {
+      const b64 = await fs.readFile(base64Path, 'utf8');
+      const decoded = Buffer.from(b64.trim(), 'base64').toString('utf8');
+      storageOptions.credentials = JSON.parse(decoded);
+      credentialSource = 'server/base64 file';
+      console.log('Using credentials decoded from server/base64 file');
+    } else {
+      console.warn('No explicit Google credentials provided via env. Falling back to Application Default Credentials (ADC) if available.');
+    }
+  } catch (err) {
+    console.error('Error reading/decoding server/base64 file:', err.message);
+    console.warn('No explicit Google credentials provided via env. Falling back to Application Default Credentials (ADC) if available.');
+  }
+}
+
+console.log('Credential source chosen:', credentialSource || 'none (ADC fallback)');
+
+console.log('Env credential flags:', {
+  hasJson: Boolean(GOOGLE_APPLICATION_CREDENTIALS_JSON),
+  hasBase64: Boolean(GOOGLE_APPLICATION_CREDENTIALS_BASE64),
+  hasFilePath: Boolean(GOOGLE_APPLICATION_CREDENTIALS || GOOGLE_CREDENTIALS_FILENAME)
+});
+
+// If credentials object is set (from JSON or base64), prefer it and ignore any keyFilename
+if (storageOptions.credentials && storageOptions.keyFilename) {
+  console.log('Credentials provided via env (JSON/base64); ignoring keyFilename to avoid file lookup.');
+  delete storageOptions.keyFilename;
+}
+
+// If we have in-memory credentials (from JSON or base64), make sure the
+// google-cloud library doesn't accidentally read process.env.GOOGLE_APPLICATION_CREDENTIALS
+// (which would try to open a file). Clear those env vars when we're supplying
+// credentials programmatically.
+if (storageOptions.credentials) {
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    console.log('Clearing process.env.GOOGLE_APPLICATION_CREDENTIALS to avoid file lookups (using in-memory credentials)');
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  }
+  if (process.env.GOOGLE_CREDENTIALS_FILENAME) {
+    console.log('Clearing process.env.GOOGLE_CREDENTIALS_FILENAME to avoid file lookups (using in-memory credentials)');
+    delete process.env.GOOGLE_CREDENTIALS_FILENAME;
+  }
+}
+
+// If a keyFilename is set (file path), validate it exists before proceeding. If missing, drop it.
+if (storageOptions.keyFilename) {
+  try {
+    await fs.stat(storageOptions.keyFilename);
+  } catch (err) {
+    console.warn('Specified keyFilename does not exist at path:', storageOptions.keyFilename, '- ignoring it.');
+    delete storageOptions.keyFilename;
+  }
 }
 
 console.log('Initializing GCS client with options:', Object.keys(storageOptions));
