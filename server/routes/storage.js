@@ -32,23 +32,6 @@ const {
   GCS_MAKE_PUBLIC = "true",
 } = process.env;
 
-// Normalize bucket env vars: strip surrounding single/double quotes if present
-function normalizeBucketVal(v) {
-  if (!v) return v;
-  return v.replace(/^\s*['"]?|['"]?\s*$/g, '').trim();
-}
-
-const BUCKET_PFPS = normalizeBucketVal(GC_BUCKET_PFPS);
-const BUCKET_BANNERS = normalizeBucketVal(GC_BUCKET_BANNERS);
-const BUCKET_UPLOADS = normalizeBucketVal(GC_BUCKET_UPLOADS);
-
-console.log('Configured BUCKETS:', {
-  PFPS: BUCKET_PFPS,
-  BANNERS: BUCKET_BANNERS,
-  UPLOADS: BUCKET_UPLOADS,
-  MAKE_PUBLIC: GCS_MAKE_PUBLIC
-});
-
 // Validate and build storage options safely. Do NOT call path.join on undefined values.
 const storageOptions = {};
 if (GOOGLE_CLOUD_PROJECT) storageOptions.projectId = GOOGLE_CLOUD_PROJECT;
@@ -322,15 +305,15 @@ router.post("/generateUploadUrl", verifyToken, async (req, res) => {
 
     switch (fileType) {
       case 'pfp':
-        bucketName = BUCKET_PFPS;
+        bucketName = GC_BUCKET_PFPS;
         folder = 'pfps';
         break;
       case 'banner':
-        bucketName = BUCKET_BANNERS;
+        bucketName = GC_BUCKET_BANNERS;
         folder = 'banners';
         break;
       case 'upload':
-        bucketName = BUCKET_UPLOADS;
+        bucketName = GC_BUCKET_UPLOADS;
         folder = 'uploads';
         break;
       default:

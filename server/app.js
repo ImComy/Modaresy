@@ -46,7 +46,8 @@ app.use(
       "x-goog-storage-class",
       "X-Requested-With",
       "Accept",
-      "Origin"
+      "Origin",
+      "Access-Control-Allow-Origin"
     ],
     exposedHeaders: ["Authorization", "ETag"],
     credentials: true,
