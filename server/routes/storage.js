@@ -194,7 +194,9 @@ async function uploadBufferToGCS({ buffer, filename, destinationPath, contentTyp
     console.log("Skipping makePublic (GCS_MAKE_PUBLIC is false)");
   }
 
-  const publicUrl = `https://storage.googleapis.com/${bucket.name}/${encodeURIComponent(destinationPath)}`;
+  // Encode each path segment separately to preserve '/' separators in the public URL
+  const encodedPath = destinationPath.split('/').map(encodeURIComponent).join('/');
+  const publicUrl = `https://storage.googleapis.com/${bucket.name}/${encodedPath}`;
   console.log("Generated public URL:", publicUrl);
 
   return {
@@ -234,10 +236,16 @@ async function deleteFromGCS(bucketName, objectName) {
 
 function buildDestination({ typeFolder, tutorId, originalName }) {
   const ext = path.extname(originalName || '') || "";
-  const base = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-  const destination = `${typeFolder}/${tutorId}/${base}${ext}`;
+  // Descriptive filename: <tutorId>-YYYYMMDD-HHMMSS-<random><ext>
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const datePart = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  const timePart = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const randomPart = Math.round(Math.random() * 1e9);
+  const filename = `${tutorId}-${datePart}-${timePart}-${randomPart}${ext}`;
+  const destination = `${typeFolder}/${tutorId}/${filename}`;
 
-  console.log(`Built destination path: ${destination} for originalName: ${originalName}`);
+  console.log(`Built descriptive destination path: ${destination} (original: ${originalName})`);
   return destination;
 }
 
@@ -351,7 +359,9 @@ async function setTeacherMedia({ tutorId, type, filePath, bucket }) {
   const teacher = await Teacher.findById(tutorId);
   if (!teacher) throw new Error('Teacher not found');
 
-  const publicUrl = `https://storage.googleapis.com/${bucket}/${encodeURIComponent(filePath)}`;
+  // Encode each path segment to avoid encoding slashes which would break the URL
+  const encodedFilePath = filePath.split('/').map(encodeURIComponent).join('/');
+  const publicUrl = `https://storage.googleapis.com/${bucket}/${encodedFilePath}`;
 
   // delete old
   if (type === 'pfp') {
