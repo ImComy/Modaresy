@@ -30,6 +30,20 @@ import {
 import { Label } from '../../ui/label'
 import AddSubjectCard from './SubjectSection';
 
+// map platform keys (lowercase) to icon components
+const socialIcons = {
+  facebook: FaFacebookF,
+  instagram: FaInstagram,
+  twitter: FaTwitter,
+  linkedin: FaLinkedinIn,
+  youtube: FaYoutube,
+  tiktok: FaTiktok,
+  telegram: FaTelegramPlane,
+  whatsapp: FaWhatsapp,
+  email: FaEnvelope,
+  website: FaGlobe,
+};
+
 const TutorProfileHeaderEdit = ({
   tutor,
   editedData = null,
@@ -639,7 +653,7 @@ const SocialButtons = ({ setSocialEditOpen, socialMedia, t }) => (
     <div className="flex flex-wrap justify-center gap-3 pt-2">
       {Object.entries(socialMedia || {}).map(([key, url]) => {
         if (!url) return null;
-        const Icon = socialIcons[key];
+        const Icon = socialIcons[String(key).toLowerCase()];
         return Icon ? (
           <a
             key={key}
@@ -766,7 +780,7 @@ const SocialMediaModal = ({ open, onClose, socialMedia, newSocial, setNewSocial,
           {Object.entries(socialMedia || {}).map(([platform, url]) => (
             <div key={platform} className="flex items-center gap-2">
               <div className="w-8 flex items-center justify-center">
-                {socialIcons[platform] && React.createElement(socialIcons[platform], { size: 16 })}
+                {socialIcons[String(platform).toLowerCase()] && React.createElement(socialIcons[String(platform).toLowerCase()], { size: 16 })}
               </div>
               <Input
                 value={url}

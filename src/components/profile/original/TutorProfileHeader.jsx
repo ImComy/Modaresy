@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { getAvatarSrc, getBannerUrl } from '@/api/imageService';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -315,6 +315,17 @@ function SubjectsDisplay({ tutor = {}, t }) {
     );
   };
 
+  // Group subjects by normalized name (case-insensitive, trimmed)
+  const grouped = useMemo(() => {
+    const map = new Map();
+    for (const s of subjects) {
+      const key = (s.name || '').toString().trim().toLowerCase() || `__no_name__${Math.random()}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(s);
+    }
+    return Array.from(map.entries()); // [ [key, [subjects...]], ... ]
+  }, [subjects]);
+
   return (
     <div
       dir={dir}
@@ -336,63 +347,104 @@ function SubjectsDisplay({ tutor = {}, t }) {
 
       {subjects.length > 0 ? (
         <div className="flex flex-col gap-3">
-          {subjects.map((subject, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="rounded-xl p-3 bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/70 dark:to-gray-800/70 backdrop-blur-sm border border-gray-200/80 dark:border-gray-600/50 shadow-sm hover:shadow-md transition-all hover:border-primary/30"
-              style={{ direction: dir }}
-            >
-              <div className="flex items-center gap-2 mb-2" style={{ justifyContent: dir === 'rtl' ? 'flex-end' : 'flex-start' }}>
-                <div className="p-1 rounded-md bg-primary/10" style={{ order: dir === 'rtl' ? 2 : 0 }}>
-                  <GraduationCap size={16} className="text-primary shrink-0" />
-                </div>
-                <h4 className="text-base font-semibold truncate flex-1" style={{ textAlign }}>
-                  {translateValue(subject.name, 'subject') || t('unnamedSubject', 'Unnamed subject')}
-                </h4>
-              </div>
+          {grouped.map(([key, group], idx) => {
+            const displayName = translateValue(group[0].name, 'subject') || t('unnamedSubject', 'Unnamed subject');
 
-              <div className="text-xs text-muted-foreground flex flex-col gap-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2">
-                    <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
-                      {t('System', 'System')}
-                    </div>
-                    <div className="font-medium truncate text-xs" style={{ textAlign }}>
-                      {subject.education_system ? translateValue(subject.education_system, 'system') : t('notSpecified', 'Not specified')}
-                    </div>
+            return (
+              <motion.div
+                key={`${key}-${idx}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className="rounded-xl p-3 bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/70 dark:to-gray-800/70 backdrop-blur-sm border border-gray-200/80 dark:border-gray-600/50 shadow-sm hover:shadow-md transition-all hover:border-primary/30"
+                style={{ direction: dir }}
+              >
+                <div className="flex items-center gap-2 mb-2" style={{ justifyContent: dir === 'rtl' ? 'flex-end' : 'flex-start' }}>
+                  <div className="p-1 rounded-md bg-primary/10" style={{ order: dir === 'rtl' ? 2 : 0 }}>
+                    <GraduationCap size={16} className="text-primary shrink-0" />
                   </div>
-
-                  <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2">
-                    <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
-                      {t('Grade', 'Grade')}
-                    </div>
-                    <div className="font-medium truncate text-xs" style={{ textAlign }}>
-                      {subject.grade ? translateValue(subject.grade, 'grade') : t('notSpecified', 'Not specified')}
-                    </div>
-                  </div>
+                  <h4 className="text-base font-semibold truncate flex-1" style={{ textAlign }}>
+                    {displayName}
+                  </h4>
                 </div>
 
-                <div className="space-y-2">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
-                      {t('Sector', 'Sector')}
-                    </div>
-                    <Chips value={subject.sector} ariaLabel={`${t('Sector', 'Sector')} for ${subject.name || ''}`} type="sector" />
-                  </div>
+                {/* if only one variant, show same layout as before */}
+                {group.length === 1 ? (
+                  (() => {
+                    const subject = group[0];
+                    return (
+                      <div className="text-xs text-muted-foreground flex flex-col gap-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2">
+                            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
+                              {t('System', 'System')}
+                            </div>
+                            <div className="font-medium truncate text-xs" style={{ textAlign }}>
+                              {subject.education_system ? translateValue(subject.education_system, 'system') : t('notSpecified', 'Not specified')}
+                            </div>
+                          </div>
 
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
-                      {t('Language', 'Language')}
-                    </div>
-                    <Chips value={subject.language} ariaLabel={`${t('Language', 'Language')} for ${subject.name || ''}`} type="language" />
+                          <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2">
+                            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
+                              {t('Grade', 'Grade')}
+                            </div>
+                            <div className="font-medium truncate text-xs" style={{ textAlign }}>
+                              {subject.grade ? translateValue(subject.grade, 'grade') : t('notSpecified', 'Not specified')}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
+                              {t('Sector', 'Sector')}
+                            </div>
+                            <Chips value={subject.sector} ariaLabel={`${t('Sector', 'Sector')} for ${subject.name || ''}`} type="sector" />
+                          </div>
+
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
+                              {t('Language', 'Language')}
+                            </div>
+                            <Chips value={subject.language} ariaLabel={`${t('Language', 'Language')} for ${subject.name || ''}`} type="language" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  // multiple variants: render a compact list of variants inside the same card
+                  <div className="space-y-2">
+                    {group.map((subject, i) => (
+                      <div key={`${key}-var-${i}`} className="p-2 rounded-md border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
+                        <div className="flex flex-col justify-between gap-2 px-2">
+                          <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2 text-center">
+                            <div className="font-medium text-sm text-gray-500 dark:text-gray-400">{subject.grade ? translateValue(subject.grade, 'grade') : t('notSpecified', 'Not specified')}</div>
+                            <div className="text-xs tracking-wide text-gray-500 dark:text-gray-400">{subject.education_system ? translateValue(subject.education_system, 'system') : t('notSpecified', 'Not specified')}</div>
+                          </div>
+                        <div className="space-y-2">
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
+                              {t('Sector', 'Sector')}
+                            </div>
+                            <Chips value={subject.sector} ariaLabel={`${t('Sector', 'Sector')} for ${subject.name || ''}`} type="sector" />
+                          </div>
+
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
+                              {t('Language', 'Language')}
+                            </div>
+                            <Chips value={subject.language} ariaLabel={`${t('Language', 'Language')} for ${subject.name || ''}`} type="language" />
+                          </div>
+                        </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+                )}
+              </motion.div>
+            );
+          })}
         </div>
       ) : (
         <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-5 bg-gradient-to-br from-gray-100/50 to-gray-200/30 dark:from-gray-700/30 dark:to-gray-800/20 flex flex-col items-center text-center text-muted-foreground gap-3" style={{ textAlign }}>

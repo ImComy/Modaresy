@@ -123,8 +123,7 @@ export default function StepSocialMedia() {
 
   return (
     <div
-      className="p-4 sm:p-6 space-y-6 rounded-2xl "
-      style={{ background: "hsl(var(--card))", color: "hsl(var(--foreground))" }}
+      className="p-4 sm:p-6 space-y-6 rounded-2xl"
     >
       <div className="flex flex-col items-center text-center">
         <h3 className="text-2xl font-semibold">Connect your socials</h3>

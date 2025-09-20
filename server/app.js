@@ -34,7 +34,7 @@ app.use(cookieParser());
 
 app.use(
   cors(  {
-    origin: ['https://www.modaresy.me', 'https://modaresy.me'],
+    origin: ['https://www.modaresy.me', 'https://modaresy.me', 'http://localhost:5173'],
     methods: ["GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"],
     // Allow Authorization and other common headers so preflight requests succeed
     allowedHeaders: [

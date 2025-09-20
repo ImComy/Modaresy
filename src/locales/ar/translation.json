@@ -1993,5 +1993,7 @@
   "passwordMatch.match": "الباسورد متطابق",
   "passwordMatch.noMatch": "الباسورد مش متطابق",
   "updating": "جارى التحديث...",
-  "updatePassword": "تحديث الباسورد"
+  "updatePassword": "تحديث الباسورد",
+  "variants": "تفرعات",
+  "Select": "أختر"
 }

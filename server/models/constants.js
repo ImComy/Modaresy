@@ -54,13 +54,13 @@ const Middle_Shared_Subjects = [
 
 const Secondary_Shared_Subjects = [
   "Arabic", "English", "French", "German",
-  "Religion", "National Education", "Technology", "Computer Science"
+  "Religion", "National Education", "Technology", "Computer Science", "Mathematics"
 ];
 
 export const Language_Independent_Subjects = ["History", "Geography"];
 
 const physicalSciences = ["Physics", "Chemistry"];
-const math = ["Math"];
+const math = ["Mathematics"];
 
 export const SubjectGroupsToSectorsMap = new Map([
   [physicalSciences, ["Scientific", "Mathematics"]],
@@ -85,7 +85,7 @@ export const SubjectsBySystem = Object.freeze({
     // Secondary 1
     "Secondary 1": [
       ...Language_Independent_Subjects,
-      "Integrated Sciences", "Philosophy and Logic",
+      "Integrated Sciences", "Philosophy and Logic", "Mathematics",
       ...Secondary_Shared_Subjects
     ],
 

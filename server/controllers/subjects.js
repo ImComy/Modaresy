@@ -112,7 +112,27 @@ export const SubjectController = {
       console.log(`[DELETE /subjects/:id] deleted subject id=${id}`);
       return res.status(204).end();
     } catch (err) {
-      console.error(`[DELETE /subjects/:id] error deleting id=${id}`, err);
+      // Log full error with any driver-provided labels for diagnostics
+      console.error(`[DELETE /subjects/:id] error deleting id=${id}`, {
+        message: err && err.message,
+        code: err && err.code,
+        codeName: err && err.codeName,
+        errorLabels: err && err.errorLabels,
+        errorLabelSet: err && err.errorLabelSet,
+        stack: err && err.stack,
+      });
+
+      // If error indicates transient transaction issue, return 503 so client may retry
+      const isTransient = (err && (
+        (Array.isArray(err.errorLabels) && err.errorLabels.includes('TransientTransactionError')) ||
+        (err.errorLabelSet && ((err.errorLabelSet instanceof Set && Array.from(err.errorLabelSet).includes('TransientTransactionError')) || (Array.isArray(err.errorLabelSet) && err.errorLabelSet.includes('TransientTransactionError')))) ||
+        (err.codeName === 'WriteConflict') || (err.code && String(err.code).toLowerCase().includes('writeconflict'))
+      ));
+
+      if (isTransient) {
+        return res.status(503).json({ error: 'Transient transaction error. Please retry the operation.', details: { errorLabels: err.errorLabels, codeName: err.codeName } });
+      }
+
       if (err.message && err.message.toLowerCase().includes("referenc")) {
         return res.status(409).json({ error: err.message });
       }

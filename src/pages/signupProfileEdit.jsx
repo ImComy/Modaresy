@@ -12,6 +12,7 @@ import StepBio from "@/components/signup/StepBio";
 import StepFinish from "@/components/signup/StepFinish";
 import TutorVideoManagerEdit from "@/components/profile/editing/TutorVideoManagerEdit";
 import TutorOnboardingAside from "@/components/signup/TutorOnboardingAside";
+import AddSubjectCardUI from "@/components/signup/StepSubjects";
 
 const STORAGE_KEY = "modaresy:tutor:onboarding";
 
@@ -20,6 +21,7 @@ const rawSteps = [
   { id: "bio", title: "Basic Info", component: StepBio },
   { id: "socials", title: "Socials", component: StepSocialMedia },
   { id: "videos", title: "Intro Videos", component: TutorVideoManagerEdit },
+  { id: "subjects", title: "Subjects", component: AddSubjectCardUI },
   { id: "finish", title: "Finish", component: StepFinish },
 ];
 

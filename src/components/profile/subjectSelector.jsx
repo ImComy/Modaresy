@@ -7,7 +7,8 @@ import {
   BookOpen,
   Clock,
   Grid3X3,
-  ChevronRight
+  ChevronRight,
+  Search
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -29,21 +30,22 @@ const SubjectSelector = ({
   onTutorChange,
   onReviewUpdate,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { authState } = useAuth();
 
-  // selectedSubjectIndex refers to index inside `orderedSubjects`
   const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(subjects.length > 0 ? 0 : -1);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [expandedSubjectId, setExpandedSubjectId] = useState(null);
+  const [expandedGroupKey, setExpandedGroupKey] = useState(null);
+
+  const [searchTerm, setSearchTerm] = useState('');
 
   const toggleRef = useRef(null);
   const listRef = useRef(null);
 
   const [portalStyle, setPortalStyle] = useState(null);
 
-  // Build student profile if student is logged in
   const studentProfile = useMemo(() => {
     if (authState?.userData && String(authState?.userRole || '').toLowerCase() === 'student') {
       return authState.userData;
@@ -51,11 +53,8 @@ const SubjectSelector = ({
     return null;
   }, [authState]);
 
-  // Create orderedSubjects as [{ subject, originalIndex }]
   const orderedSubjects = useMemo(() => {
     if (!subjects || subjects.length === 0) return [];
-
-    // If no student logged in, preserve original order
     if (!studentProfile) return subjects.map((s, i) => ({ subject: s, originalIndex: i }));
 
     const prefSystem = studentProfile.education_system || studentProfile.educationSystem;
@@ -63,7 +62,6 @@ const SubjectSelector = ({
     const prefSector = studentProfile.sector;
     const prefLanguage = studentProfile.studying_language || studentProfile.language || studentProfile.studyingLanguage;
 
-    // scoring function: give 1 point per matched dimension (system, grade, sector, language)
     function scoreFor(sub) {
       const system = sub.education_system || sub.subject_id?.education_system;
       const grade = sub.grade || sub.subject_id?.grade;
@@ -81,17 +79,31 @@ const SubjectSelector = ({
 
     const withScores = subjects.map((s, i) => ({ subject: s, originalIndex: i, score: scoreFor(s) }));
 
-    // Sort by score desc, keep original order for ties (stable sort using index)
     withScores.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return a.originalIndex - b.originalIndex;
     });
 
-    // Return as required shape without score
     return withScores.map(({ subject, originalIndex }) => ({ subject, originalIndex }));
   }, [subjects, studentProfile]);
 
-  // Keep selectedSubjectIndex in range when orderedSubjects changes
+  // group by subject name but preserve orderedSubjects order
+  const groupedOrdered = useMemo(() => {
+    const groups = [];
+    const nameKey = (s) => (s.subject.name || s.subject.subject_id?.name || '');
+    orderedSubjects.forEach((entry, orderedIndex) => {
+      const key = String(nameKey(entry) || '').trim();
+      const found = groups.find(g => g.key === key);
+      const item = { ...entry, orderedIndex };
+      if (found) {
+        found.items.push(item);
+      } else {
+        groups.push({ key, displayName: key, items: [item] });
+      }
+    });
+    return groups;
+  }, [orderedSubjects]);
+
   useEffect(() => {
     if (!orderedSubjects || orderedSubjects.length === 0) {
       setSelectedSubjectIndex(-1);
@@ -99,35 +111,28 @@ const SubjectSelector = ({
       return;
     }
 
-    // If a student is logged in, prefer the top matching subject; otherwise preserve 0
     if (studentProfile) {
-      // Try to keep previously selected subject (by originalIndex) if possible
       const prevOriginalIndex = selectedSubjectIndex >= 0 && orderedSubjects[selectedSubjectIndex] ? orderedSubjects[selectedSubjectIndex].originalIndex : null;
       const foundIdx = prevOriginalIndex != null ? orderedSubjects.findIndex(o => o.originalIndex === prevOriginalIndex) : -1;
       if (foundIdx >= 0) {
         setSelectedSubjectIndex(foundIdx);
         return;
       }
-
-      // default to the first item (which should be best match)
       setSelectedSubjectIndex(0);
       return;
     }
 
-    // Not a student: keep index within bounds (preserve as much as possible)
     setSelectedSubjectIndex((idx) => {
       if (idx < 0 || idx >= orderedSubjects.length) return 0;
       return idx;
     });
   }, [orderedSubjects, studentProfile]);
 
-  // selectedSubject from orderedSubjects
   const selectedSubject = useMemo(() => {
     if (selectedSubjectIndex >= 0 && orderedSubjects[selectedSubjectIndex]) return orderedSubjects[selectedSubjectIndex].subject;
     return null;
   }, [orderedSubjects, selectedSubjectIndex]);
 
-  // wrapper to call onUpdateSubject with original index
   const handleNestedChange = useCallback(
     (path, value) => {
       if (typeof onUpdateSubject === 'function' && selectedSubjectIndex >= 0 && orderedSubjects[selectedSubjectIndex]) {
@@ -142,6 +147,7 @@ const SubjectSelector = ({
   const toggleDropdown = useCallback(() => {
     setIsOpen((v) => !v);
     setHighlightIndex(-1);
+    setSearchTerm('');
   }, []);
 
   const selectIndex = useCallback(
@@ -151,6 +157,8 @@ const SubjectSelector = ({
       setIsOpen(false);
       setHighlightIndex(-1);
       setExpandedSubjectId(null);
+      setExpandedGroupKey(null);
+      setSearchTerm('');
     },
     [orderedSubjects.length]
   );
@@ -200,6 +208,8 @@ const SubjectSelector = ({
     [isOpen, orderedSubjects.length, highlightIndex, selectIndex]
   );
 
+  const dir = i18n.dir();
+
   useEffect(() => {
     if (!isOpen) {
       setPortalStyle(null);
@@ -221,9 +231,10 @@ const SubjectSelector = ({
       } else {
         top = Math.max(8, rect.bottom);
       }
+      const positionStyle = dir === 'ltr' ? { left: rect.left } : { right: window.innerWidth - rect.right };
       setPortalStyle({
         top,
-        left: rect.left,
+        ...positionStyle,
         width: rect.width,
         maxHeight: Math.min(MENU_MAX_HEIGHT_PX, Math.max(120, window.innerHeight - 80)),
       });
@@ -238,7 +249,7 @@ const SubjectSelector = ({
       window.removeEventListener('scroll', update, true);
       ro.disconnect();
     };
-  }, [isOpen]);
+  }, [isOpen, dir]);
 
   const getDisplayValues = (value) => {
     if (!value) return [];
@@ -268,6 +279,12 @@ const SubjectSelector = ({
     return t(value, { defaultValue: value });
   };
 
+  const translateSubjectName = useCallback((name) => {
+    if (!name && name !== 0) return '';
+    return t(`constants.Subjects.${name}`, { defaultValue: name });
+  }, [t]);
+
+  // improved badge renderer: show up to 3 badges then +N
   const renderPreviewBadges = (sub) => {
     if (!sub) return null;
 
@@ -294,76 +311,78 @@ const SubjectSelector = ({
       );
     }
 
-    if (sectors.length > 0) {
+    sectors.forEach((s, i) => {
       badges.push(
-        <Badge key="sectors" variant="outline" className="text-[10px] px-1.5 py-0.5 flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">
+        <Badge key={`sec-${i}`} variant="outline" className="text-[10px] px-1.5 py-0.5 flex items-center gap-1">
           <Grid3X3 size={10} />
-          {sectors.length === 1 ? translateValue(sectors[0], 'sector') : `${sectors.length} ${t('sectors', 'sectors')}`}
+          {translateValue(s, 'sector')}
         </Badge>
       );
-    }
+    });
 
-    if (languages.length > 0) {
+    languages.forEach((l, i) => {
       badges.push(
-        <Badge key="languages" variant="outline" className="text-[10px] px-1.5 py-0.5 flex items-center gap-1 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">
-          {languages.length === 1 ? translateValue(languages[0], 'language') : `${languages.length} ${t('languages', 'languages')}`}
+        <Badge key={`lang-${i}`} variant="outline" className="text-[10px] px-1.5 py-0.5">
+          {translateValue(l, 'language')}
+        </Badge>
+      );
+    });
+
+    // cap badges visually
+    const cap = 3;
+    const visible = badges.slice(0, cap);
+    if (badges.length > cap) {
+      visible.push(
+        <Badge key="more" variant="secondary" className="text-[10px] px-1.5 py-0.5">
+          +{badges.length - cap}
         </Badge>
       );
     }
-
-    return badges.slice(0, 4);
+    return visible;
   };
 
-  const renderSubjectDetailsInDropdown = (subject, originalIndex) => {
+  const renderSubjectDetailsInDropdown = (subject, originalIndex, showCompact = true) => {
     const system = subject.education_system || subject.subject_id?.education_system;
     const grade = subject.grade || subject.subject_id?.grade;
     const sectors = getDisplayValues(subject.sector || subject.subject_id?.sector);
     const languages = getDisplayValues(subject.language || subject.subject_id?.language);
-    const subjectId = subject._id || subject.tempId || `${originalIndex}`;
-    const isExpanded = expandedSubjectId === subjectId;
+
+    const subjectName = subject.name ? translateValue(subject.name, 'subject') : subject.subject_id?.name ? translateValue(subject.subject_id.name, 'subject') : t('unknownSubject', 'Unknown subject');
 
     return (
       <div className="min-w-0 flex-1">
-        <div className="font-medium text-sm truncate">
-          {subject.name ? translateValue(subject.name, 'subject') : subject.subject_id?.name ? translateValue(subject.subject_id.name, 'subject') : t('unknownSubject', 'Unknown subject')}
+        <div className="font-medium text-sm truncate" title={subjectName}>
+          {subjectName}
         </div>
         <div className="text-xs text-muted-foreground truncate">
           {(system ? translateValue(system, 'system') : '—')} • {(grade ? translateValue(grade, 'grade') : '—')}
         </div>
 
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="mt-2 space-y-2"
-            >
-              {sectors.length > 0 && (
-                <div className="flex flex-wrap gap-1 items-center">
-                  <span className="text-xs font-medium text-muted-foreground">{t('Sector', 'Sector')}:</span>
-                  {sectors.map((sector, idx) => (
-                    <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0.5">
-                      {translateValue(sector, 'sector')}
-                    </Badge>
-                  ))}
-                </div>
-              )}
+        {!showCompact && (
+          <div className="mt-2 space-y-2">
+            {sectors.length > 0 && (
+              <div className="flex flex-wrap gap-1 items-center">
+                <span className="text-xs font-medium text-muted-foreground">{t('Sector', 'Sector')}:</span>
+                {sectors.map((sector, idx) => (
+                  <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0.5" title={translateValue(sector, 'sector')}>
+                    {translateValue(sector, 'sector')}
+                  </Badge>
+                ))}
+              </div>
+            )}
 
-              {languages.length > 0 && (
-                <div className="flex flex-wrap gap-1 items-center">
-                  <span className="text-xs font-medium text-muted-foreground">{t('Language', 'Language')}:</span>
-                  {languages.map((language, idx) => (
-                    <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0.5">
-                      {translateValue(language, 'language')}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+            {languages.length > 0 && (
+              <div className="flex flex-wrap gap-1 items-center">
+                <span className="text-xs font-medium text-muted-foreground">{t('Language', 'Language')}:</span>
+                {languages.map((language, idx) => (
+                  <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0.5" title={translateValue(language, 'language')}>
+                    {translateValue(language, 'language')}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   };
@@ -400,6 +419,18 @@ const SubjectSelector = ({
     );
   }
 
+  // Filter helper: if there's a search term filter items inside a group
+  const groupMatchesSearch = (group, term) => {
+    if (!term) return true;
+    const lower = term.toLowerCase();
+    return group.items.some(it => {
+      const name = it.subject.name || it.subject.subject_id?.name || '';
+      return String(name).toLowerCase().includes(lower) ||
+        String(it.subject.grade || it.subject.subject_id?.grade || '').toLowerCase().includes(lower) ||
+        String(it.subject.education_system || it.subject.subject_id?.education_system || '').toLowerCase().includes(lower);
+    });
+  };
+
   return (
     <div className="space-y-6 mt-6">
       <div className="flex flex-col gap-6">
@@ -411,6 +442,7 @@ const SubjectSelector = ({
             onVideosChange={(newVideos) => onTutorChange('youtube', newVideos)}
           />
         </div>
+
         <div className='flex flex-col-reverse lg:flex-row gap-6'>
           <Card className="md:w-fit flex justify-center items-center">
             <CardHeader className="p-4 flex items-center justify-between gap-4">
@@ -426,7 +458,7 @@ const SubjectSelector = ({
                     </span>
                   </CardTitle>
                   <div className="text-sm text-muted-foreground">
-                    {t('chooseSubjectTip', 'Select a subject to view and edit details')}
+                    <span dir="ltr">Select a subject to view and edit details</span> — <span dir="rtl">اختر المادة لعرض وتعديل التفاصيل</span>
                   </div>
                 </div>
               </div>
@@ -441,15 +473,14 @@ const SubjectSelector = ({
                   className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border bg-background hover:bg-muted/5 transition-shadow shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <div className="flex flex-col items-start overflow-hidden">
-                    <span className="font-medium text-sm text-foreground truncate">
+                    <span className="font-medium text-sm text-foreground truncate" title={selectedSubject?.name || selectedSubject?.subject_id?.name}>
                       {selectedSubject?.name ? translateValue(selectedSubject.name, 'subject') : selectedSubject?.subject_id?.name ? translateValue(selectedSubject.subject_id.name, 'subject') : t('unknownSubject', 'Unknown subject')}
                     </span>
                     <div className="flex gap-2 mt-1 items-center flex-wrap">
                       {renderPreviewBadges(selectedSubject)}
                       {selectedSubject?.hourlyRate || selectedSubject?.price ? (
                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
-                          {selectedSubject.hourlyRate ?? selectedSubject.price}{' '}
-                          {t('egp', 'EGP')}
+                          {selectedSubject.hourlyRate ?? selectedSubject.price}
                         </Badge>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
@@ -462,69 +493,118 @@ const SubjectSelector = ({
                 {isOpen && portalStyle &&
                   createPortal(
                     <AnimatePresence>
-                      <motion.ul
-                        ref={listRef}
+                      <motion.div
                         initial={{ opacity: 0, y: -8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
                         transition={{ duration: 0.18 }}
-                        role="listbox"
-                        aria-label={t('subjectList', 'Subjects list')}
                         style={{
                           position: 'fixed',
                           top: `${portalStyle.top}px`,
-                          left: `${portalStyle.left}px`,
-                          width: portalStyle.width,
+                          ...portalStyle,
                           zIndex: 9999,
-                          maxHeight: portalStyle.maxHeight,
-                          overflowY: 'auto',
+                          overflow: 'hidden',
                         }}
-                        className="rounded-xl border bg-popover shadow-xl overflow-y-auto"
+                        className="rounded-xl border bg-popover shadow-xl"
+                        dir={dir}
                       >
-                        {orderedSubjects.map(({ subject, originalIndex }, idx) => {
-                          const isSelected = idx === selectedSubjectIndex;
-                          const isHighlighted = idx === highlightIndex;
-                          const subjectId = subject._id || subject.tempId || `${originalIndex}`;
-                          const isExpanded = expandedSubjectId === subjectId;
+                        <div className="sticky top-0 bg-popover z-10 p-2 border-b">
+                          <div className="relative">
+                            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <input
+                              type="text"
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              placeholder={t('searchSubjects', 'Search subjects...')}
+                              className="w-full ps-10 pe-4 py-2 text-sm bg-background border rounded-lg placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                            />
+                          </div>
+                        </div>
+                        <div style={{ maxHeight: portalStyle.maxHeight - 64, overflowY: 'auto' }} ref={listRef}>
+                          <ul role="listbox" aria-label={t('subjectList', 'Subjects list')} className="space-y-2 p-3">
+                            {groupedOrdered.filter(g => groupMatchesSearch(g, searchTerm)).map((group, gIdx) => {
+                              const isGroupExpanded = expandedGroupKey === group.key;
+                              const groupCount = group.items.length;
+                              const firstItem = group.items[0];
+                              const subjectForPreview = firstItem?.subject;
 
-                          return (
-                            <li key={subjectId} role="option" aria-selected={isSelected}>
-                              <button
-                                type="button"
-                                onClick={() => selectIndex(idx)}
-                                onMouseEnter={() => setHighlightIndex(idx)}
-                                onMouseLeave={() => setHighlightIndex(-1)}
-                                className={`w-full text-left p-4 flex items-start gap-3 transition-colors ${isSelected ? 'bg-primary/10 text-primary' : ''} ${isHighlighted && !isSelected ? 'bg-muted/5' : ''}`}
-                              >
-                                <div className="flex-shrink-0 w-9 h-9 rounded-md bg-muted/10 flex items-center justify-center text-muted-foreground mt-0.5">
-                                  <BookOpen className="w-4 h-4" />
-                                </div>
+                              return (
+                                <li key={`group-${gIdx}`} className="rounded-md">
+                                  <div
+                                    className={`w-full text-left p-3 flex items-start gap-3 cursor-pointer hover:bg-muted/3 transition-colors rounded-md`}
+                                    onClick={() => setExpandedGroupKey(prev => prev === group.key ? null : group.key)}
+                                    onMouseEnter={() => setHighlightIndex(firstItem?.orderedIndex ?? -1)}
+                                    onMouseLeave={() => setHighlightIndex(-1)}
+                                  >
+                                    <div className="flex-shrink-0 w-9 h-9 rounded-md bg-muted/10 flex items-center justify-center text-muted-foreground mt-0.5">
+                                      <BookOpen className="w-4 h-4" />
+                                    </div>
 
-                                {renderSubjectDetailsInDropdown(subject, originalIndex)}
-
-                                <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                                  <div className="flex items-center gap-2">
-                                    {subject.hourlyRate || subject.price ? (
-                                      <div className="text-sm font-semibold text-foreground whitespace-nowrap">
-                                        {subject.hourlyRate ?? subject.price} {t('egp', 'EGP')}
+                                    <div className="min-w-0 flex-1 rtl:text-right">
+                                      <div className="font-medium text-sm truncate" title={translateSubjectName(group.key)}>
+                                        {translateSubjectName(group.key) || t('unknownSubject', 'Unknown subject')}
+                                        <span className="ml-2 text-xs text-muted-foreground">· {groupCount} {t('variants','variants')}</span>
                                       </div>
-                                    ) : (
-                                      <div className="text-xs text-muted-foreground">—</div>
-                                    )}
-                                    <button
-                                      type="button"
-                                      onClick={(e) => toggleExpandSubject(subjectId, e)}
-                                      className={`p-1 rounded transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                                    >
-                                      <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                                    </button>
+                                      <div className="text-xs text-muted-foreground truncate" title={subjectForPreview ? `${subjectForPreview.education_system || subjectForPreview.subject_id?.education_system ? translateValue(subjectForPreview.education_system || subjectForPreview.subject_id?.education_system, 'system') : '—'} • ${subjectForPreview.grade || subjectForPreview.subject_id?.grade ? translateValue(subjectForPreview.grade || subjectForPreview.subject_id?.grade, 'grade') : '—'}` : ''}>
+                                        {subjectForPreview ? `${subjectForPreview.education_system || subjectForPreview.subject_id?.education_system ? translateValue(subjectForPreview.education_system || subjectForPreview.subject_id?.education_system, 'system') : '—'} • ${subjectForPreview.grade || subjectForPreview.subject_id?.grade ? translateValue(subjectForPreview.grade || subjectForPreview.subject_id?.grade, 'grade') : '—'}` : '—'}
+                                      </div>
+                                      <div className="flex gap-2 mt-2 items-center flex-wrap">{renderPreviewBadges(subjectForPreview)}</div>
+                                    </div>
+
+                                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                                      <div className="flex items-center gap-2">
+                                        <div className="text-sm font-semibold text-foreground whitespace-nowrap">{group.items[0]?.subject?.hourlyRate ?? group.items[0]?.subject?.price ?? '—'}</div>
+                                        <button type="button" className="text-xs px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20">
+                                          {t('Select')}
+                                        </button>
+                                        <button type="button" className={`p-1 rounded transition-transform ${isGroupExpanded ? 'rotate-90' : ''}`} aria-label={isGroupExpanded ? t('collapse','Collapse') : t('expand','Expand')}>
+                                          <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                                        </button>
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </motion.ul>
+
+                                  <AnimatePresence>
+                                    {isGroupExpanded && (
+                                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.14 }} className="px-4 pb-3">
+                                        <ul className="space-y-2 relative before:content-[''] before:absolute before:inset-y-0 before:start-3 before:w-0.5 before:bg-muted ">
+                                          {group.items
+                                            .filter(it => {
+                                              if (!searchTerm) return true;
+                                              const name = it.subject.name || it.subject.subject_id?.name || '';
+                                              return String(name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                String(it.subject.grade || it.subject.subject_id?.grade || '').toLowerCase().includes(searchTerm.toLowerCase());
+                                            })
+                                            .map((it) => {
+                                              const { subject, originalIndex, orderedIndex } = it;
+                                              const isSelected = orderedIndex === selectedSubjectIndex;
+                                              const isHighlighted = orderedIndex === highlightIndex;
+                                              return (
+                                                <li key={`variant-${orderedIndex}`} className="relative">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => selectIndex(orderedIndex)}
+                                                    onMouseEnter={() => setHighlightIndex(orderedIndex)}
+                                                    onMouseLeave={() => setHighlightIndex(-1)}
+                                                    className={`rtl:text-right w-full text-left ps-8 p-3 rounded-lg transition-colors flex items-center gap-3 relative before:content-[''] before:absolute before:start-2 before:top-1/2 before:-translate-y-1/2 before:w-2 before:h-2 before:rounded-full before:bg-primary ${isSelected ? 'bg-primary/10 text-primary' : ''} ${isHighlighted && !isSelected ? 'bg-muted/5' : ''}`}
+                                                  >
+                                                    <div className="min-w-0 flex-1">
+                                                      {renderSubjectDetailsInDropdown(subject, originalIndex, false)}
+                                                    </div>
+                                                  </button>
+                                                </li>
+                                              );
+                                            })}
+                                        </ul>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      </motion.div>
                     </AnimatePresence>,
                     document.body
                   )}

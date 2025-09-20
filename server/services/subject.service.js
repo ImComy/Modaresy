@@ -90,7 +90,7 @@ const isValidSubjectForGrade = (name, grade, education_system) => {
 // ====================
 // RETRY UTILITY FOR TRANSACTIONS
 // ====================
-async function runWithRetry(fn, maxRetries = 3) {
+async function runWithRetry(fn, maxRetries = 18) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -100,14 +100,26 @@ async function runWithRetry(fn, maxRetries = 3) {
       return result;
     } catch (err) {
       await session.abortTransaction();
+
+      // Detect transient retryable errors. Different drivers/versions may expose labels
+      // as `errorLabels` (array) or `errorLabelSet` (Set). Also check for WriteConflict code/name.
+      const hasTransientLabel = (err && (
+        (Array.isArray(err.errorLabels) && err.errorLabels.includes('TransientTransactionError')) ||
+        (err.errorLabelSet && ((err.errorLabelSet instanceof Set && Array.from(err.errorLabelSet).includes('TransientTransactionError')) || (Array.isArray(err.errorLabelSet) && err.errorLabelSet.includes('TransientTransactionError'))))
+      ));
+
       const isWriteConflict = err && (err.codeName === "WriteConflict" || (err.code && String(err.code).toLowerCase().includes('writeconflict')));
-      if (isWriteConflict && attempt < maxRetries - 1) {
-        const backoffMs = Math.min(100 * Math.pow(2, attempt), 1000); // 100ms, 200ms, 400ms...
-        console.warn(`Write conflict detected, retrying after ${backoffMs}ms (attempt ${attempt + 1}/${maxRetries})`);
+
+      const shouldRetry = (hasTransientLabel || isWriteConflict);
+
+      if (shouldRetry && attempt < maxRetries - 1) {
+        const backoffMs = Math.min(150 * Math.pow(2, attempt), 2000); // 150ms, 300ms, 600ms, ... cap 2000ms
+        console.warn(`Transient transaction/write conflict detected (labels=${JSON.stringify(err && err.errorLabels)} codeName=${err && err.codeName}), retrying after ${backoffMs}ms (attempt ${attempt + 1}/${maxRetries})`);
         // small delay before retrying
         await new Promise(res => setTimeout(res, backoffMs));
         continue;
       }
+
       throw err;
     } finally {
       session.endSession();
@@ -183,7 +195,9 @@ const validateSubjectData = (data) => {
 // ====================
 export const SubjectService = {
 createSubject: async (data) => {
-  return await runWithRetry(async (session) => {
+  try {
+    return await runWithRetry(async (session) => {
+      // transactional path (existing implementation)
     // required: name, grade, education_system
     const requiredFields = ["name", "grade", "education_system"];
     const missingFields = requiredFields.filter((field) => !data[field]);
@@ -205,16 +219,6 @@ createSubject: async (data) => {
     // === Respect client-provided values first ===
     let finalSectors = normalizeArray(data.sector || []);     // use what client sent (if any)
     let finalLanguages = normalizeArray(data.language || []); // use what client sent (if any)
-
-    // If this is a mapped subject and client provided sectors, validate them are allowed
-    if (mappedSectors && mappedSectors.length > 0 && finalSectors.length > 0) {
-      const invalid = finalSectors.filter(s => !mappedSectors.includes(s));
-      if (invalid.length > 0) {
-        const e = new Error(`Invalid sector(s) for this subject: ${invalid.join(", ")}`);
-        e.status = 400;
-        throw e;
-      }
-    }
 
     // If client DIDN'T provide sectors, fallback to mappedSectors (if any).
     if ((finalSectors.length === 0) && mappedSectors && mappedSectors.length > 0) {
@@ -373,8 +377,71 @@ createSubject: async (data) => {
       }
     }
 
-    return subject;
-  });
+      return subject;
+    });
+  } catch (err) {
+    // If the transaction failed due to transient errors after retries, attempt a non-transactional fallback
+    const isTransient = (err && (
+      (Array.isArray(err.errorLabels) && err.errorLabels.includes('TransientTransactionError')) ||
+      (err.errorLabelSet && ((err.errorLabelSet instanceof Set && Array.from(err.errorLabelSet).includes('TransientTransactionError')) || (Array.isArray(err.errorLabelSet) && err.errorLabelSet.includes('TransientTransactionError')))) ||
+      (err.codeName === 'WriteConflict') || (err.code && String(err.code).toLowerCase().includes('writeconflict'))
+    ));
+
+    if (!isTransient) throw err;
+
+    console.warn('[createSubject] Transactional create failed with transient error after retries - trying non-transactional fallback', { message: err.message, errorLabels: err.errorLabels, codeName: err.codeName });
+
+    // NON-TRANSACTIONAL FALLBACK (idempotent-ish):
+    // 1) Try to find-or-create the subject doc with a single upsert
+    // 2) For each teacher, ensure SubjectProfile exists and push references using atomic ops
+    const { name, grade, education_system } = data;
+
+    // Apply same normalization logic as transactional path
+    const mappedSectors = findMapSectorsForSubject(name);
+    const isLanguageSubject = Languages.map(s => s.toLowerCase()).includes(String(name).toLowerCase());
+    let finalSectors = normalizeArray(data.sector || []);
+    let finalLanguages = normalizeArray(data.language || []);
+    if ((finalSectors.length === 0) && mappedSectors && mappedSectors.length > 0) finalSectors = normalizeArray(mappedSectors);
+    if (finalLanguages.length === 0 && isLanguageSubject) finalLanguages = normalizeArray([name, 'English']);
+    finalSectors = normalizeArray(finalSectors);
+    finalLanguages = normalizeArray(finalLanguages);
+
+    // Upsert subject doc (match exact canonical fields)
+    const subjectQuery = { name, grade, education_system, sector: finalSectors, language: finalLanguages };
+    const subjectUpdate = { $setOnInsert: { name, grade, education_system, sector: finalSectors, language: finalLanguages, years_experience: data.years_experience || 0 } };
+
+    const subjectDoc = await Subject.findOneAndUpdate(subjectQuery, subjectUpdate, { new: true, upsert: true });
+
+    // If teacherIds supplied, ensure profiles & teacher refs
+    if (data.teacherIds && data.teacherIds.length > 0) {
+      for (const teacherId of data.teacherIds) {
+        const teacher = await Teacher.findById(teacherId);
+        if (!teacher) {
+          const e = new Error(`Teacher ${teacherId} not found`);
+          e.status = 404;
+          throw e;
+        }
+
+        // Check duplicate profile (non-transactional)
+        let existingProfile = await SubjectProfile.findOne({ subject_id: subjectDoc._id, teacher_id: teacherId });
+        if (!existingProfile) {
+          // Try create new profile; tolerate duplicate key errors
+          try {
+            existingProfile = await SubjectProfile.create({ subject_id: subjectDoc._id, teacher_id: teacherId, user_type: 'tutor', rating: 0 });
+          } catch (createErr) {
+            // If another process created it concurrently, fetch it
+            existingProfile = await SubjectProfile.findOne({ subject_id: subjectDoc._id, teacher_id: teacherId });
+            if (!existingProfile) throw createErr;
+          }
+        }
+
+        // Ensure teacher doc references are set atomically
+        await Teacher.findByIdAndUpdate(teacherId, { $addToSet: { subjects: subjectDoc._id, subject_profiles: existingProfile._id } });
+      }
+    }
+
+    return subjectDoc;
+  }
 },
 
 

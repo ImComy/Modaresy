@@ -33,11 +33,9 @@ const AddSubjectCard = ({
   isSubjectMutating
 }) => {
   const { t, i18n } = useTranslation();
-  // console.log('[AddSubjectCard] render', { subjectsCount: (formData && formData.subjects && formData.subjects.length) || 0 });
   const dir = (i18n && typeof i18n.dir === 'function') ? i18n.dir() : 'ltr';
   const textAlign = dir === 'rtl' ? 'right' : 'left';
 
-  // form state (we keep same shape)
   const [newSubject, setNewSubject] = useState({
     education_system: '',
     grades: [], // multi-select
@@ -54,7 +52,6 @@ const AddSubjectCard = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // safe setter: normalize arrays & dedupe grades
   const safeSetNewSubject = useCallback((updater) => {
     setNewSubject(prev => {
       const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
@@ -88,6 +85,25 @@ const AddSubjectCard = ({
     return { fallback: Object.keys(subjectsObj || {}) };
   }, [constants, t]);
 
+  // list of existing subjects depending on edit mode
+  const existingSubjectsList = useMemo(() => {
+    return isEditing ? (Array.isArray(editedData?.subjects) ? editedData.subjects : []) : (Array.isArray(formData?.subjects) ? formData.subjects : []);
+  }, [isEditing, editedData, formData]);
+
+  // helper to check duplicates (name + grade + system) in existing subjects
+  const isSubjectAlreadyAdded = useCallback((system, grade, name) => {
+    if (!system || !grade || !name) return false;
+    const nameLower = String(name).toLowerCase();
+    const gradeLower = String(grade).toLowerCase();
+    const sysLower = String(system).toLowerCase();
+    return existingSubjectsList.some(s => {
+      const sSys = String(s.education_system || s.system || '').toLowerCase();
+      const sGrade = String(s.grade || s.subject_id?.grade || '').toLowerCase();
+      const sName = String(s.name || s.subject_id?.name || '').toLowerCase();
+      return sSys === sysLower && sGrade === gradeLower && sName === nameLower;
+    });
+  }, [existingSubjectsList]);
+
   const selectedGrades = newSubject.grades || [];
   const singleGradeMode = selectedGrades.length === 1;
   const activeGrade = singleGradeMode ? selectedGrades[0] : null;
@@ -101,7 +117,6 @@ const AddSubjectCard = ({
     return [];
   }, [educationStructure, newSubject.education_system]);
 
-  // system languages (shared across grades)
   const systemLanguages = useMemo(() => {
     if (!newSubject.education_system) return [];
     const langs = educationStructure[newSubject.education_system]?.languages || [];
@@ -110,7 +125,6 @@ const AddSubjectCard = ({
     return [];
   }, [educationStructure, newSubject.education_system]);
 
-  // helper: sectors available for a single grade
   const getSectorsForGrade = useCallback((system, grade) => {
     if (!system || !grade) return [];
     const s = educationStructure[system]?.sectors?.[grade];
@@ -120,7 +134,6 @@ const AddSubjectCard = ({
     return [];
   }, [educationStructure]);
 
-  // union of sectors across selected grades (used when multiple grades selected)
   const unionSectorsForSelectedGrades = useMemo(() => {
     const system = newSubject.education_system;
     if (!system || !selectedGrades || selectedGrades.length === 0) return [];
@@ -131,6 +144,20 @@ const AddSubjectCard = ({
     }
     return Array.from(set);
   }, [newSubject.education_system, selectedGrades, getSectorsForGrade]);
+
+  // helper: check whether a subject name exists for a specific grade in a system
+  const subjectExistsForGrade = useCallback((system, grade, subjectName) => {
+    if (!system || !grade || !subjectName) return false;
+    const sys = subjectsBySystem[system] || subjectsBySystem.fallback || {};
+    const gradeEntry = sys[grade];
+    if (!gradeEntry) return false;
+    const nameLower = String(subjectName).toLowerCase();
+    if (Array.isArray(gradeEntry)) return gradeEntry.some(s => String(s).toLowerCase() === nameLower);
+    if (typeof gradeEntry === 'object') {
+      return Object.values(gradeEntry).some(arr => Array.isArray(arr) && arr.some(s => String(s).toLowerCase() === nameLower));
+    }
+    return String(gradeEntry).toLowerCase() === nameLower;
+  }, [subjectsBySystem]);
 
   // compute available subjects: union across selected grades (works for single & multi)
   const availableSubjects = useMemo(() => {
@@ -149,23 +176,18 @@ const AddSubjectCard = ({
     return Array.from(set);
   }, [subjectsBySystem, newSubject.education_system, selectedGrades]);
 
-  // decide which dropdowns to hide (completely not rendered)
   const hideSystemField = Array.isArray(systems) && systems.length === 1;
   const hideSubjectField = Array.isArray(availableSubjects) && availableSubjects.length === 1 && editingIndex === null;
 
-  // enforce single system when only one choice (auto-select and keep hidden)
   useEffect(() => {
     if (hideSystemField) {
       const only = systems[0];
       if (newSubject.education_system !== only) {
-        // set education system and clear dependent selections (grades/subject)
         safeSetNewSubject({ education_system: only, grades: [], name: '', sector: [], language: [] });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hideSystemField, systems]);
 
-  // auto-select subject when there's exactly one available subject (and not editing)
   useEffect(() => {
     if (hideSubjectField) {
       const only = availableSubjects[0];
@@ -173,10 +195,8 @@ const AddSubjectCard = ({
         safeSetNewSubject({ name: only });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hideSubjectField, availableSubjects]);
 
-  // when editing an existing subject, populate form as before (single-grade editing)
   useEffect(() => {
     if (editingIndex === null) {
       safeSetNewSubject(prev => {
@@ -186,7 +206,6 @@ const AddSubjectCard = ({
         if (next.grades && next.grades.length > 0) {
           next.grades = next.grades.filter(g => gradesForSystem.includes(g));
         }
-        // only keep sectors/languages if available (filter)
         const sectorsForActive = activeGrade ? getSectorsForGrade(next.education_system, activeGrade) : [];
         if (next.sector && next.sector.length > 0 && sectorsForActive && sectorsForActive.length) {
           next.sector = next.sector.filter(s => sectorsForActive.includes(s) || unionSectorsForSelectedGrades.includes(s));
@@ -210,10 +229,8 @@ const AddSubjectCard = ({
         });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingIndex, editedData?.subjects, formData.subjects, educationStructure, systems, availableGrades, activeGrade]);
 
-  // toggle handlers
   const toggleGrade = useCallback((grade) => {
     safeSetNewSubject(prev => {
       const g = Array.isArray(prev.grades) ? [...prev.grades] : [];
@@ -249,7 +266,6 @@ const AddSubjectCard = ({
   }, [systemLanguages, safeSetNewSubject]);
 
   const selectAllSectors = useCallback(() => {
-    // in single-grade mode: select sectors available for that grade
     if (!singleGradeMode) {
       safeSetNewSubject({ sector: unionSectorsForSelectedGrades || [] });
       return;
@@ -257,32 +273,75 @@ const AddSubjectCard = ({
     safeSetNewSubject({ sector: getSectorsForGrade(newSubject.education_system, activeGrade) || [] });
   }, [singleGradeMode, unionSectorsForSelectedGrades, activeGrade, getSectorsForGrade, newSubject.education_system, safeSetNewSubject]);
 
-  // handle add: apply selected sectors/languages to each selected grade
+  // PENDING PREVIEW: compute which subjects WOULD be created based on current selections
+  // excludes grades where the subject doesn't exist or is already added
+  const pendingSubjectsPreview = useMemo(() => {
+    if (!newSubject.name || !newSubject.education_system || !selectedGrades || selectedGrades.length === 0) return [];
+    const chosenSectors = normalizeArray(newSubject.sector);
+    const chosenLanguages = normalizeArray(newSubject.language);
+    const system = newSubject.education_system;
+    const out = [];
+    for (const g of selectedGrades) {
+      // skip if subject doesn't exist for this grade
+      if (!subjectExistsForGrade(system, g, newSubject.name)) continue;
+
+      // skip if already added
+      if (isSubjectAlreadyAdded(system, g, newSubject.name)) continue;
+
+      const gradeEntry = subjectsBySystem[system]?.[g];
+      const gradeRequiresSector = gradeEntry && typeof gradeEntry === 'object' && !Array.isArray(gradeEntry);
+      const gradeSectors = getSectorsForGrade(system, g);
+
+      let sectorsForThisGrade = [];
+      if (chosenSectors && chosenSectors.length > 0) {
+        if (gradeSectors && gradeSectors.length > 0) {
+          sectorsForThisGrade = chosenSectors.filter(s => gradeSectors.map(x => String(x).toLowerCase()).includes(String(s).toLowerCase()));
+        } else {
+          sectorsForThisGrade = chosenSectors;
+        }
+      }
+
+      if (gradeRequiresSector && (!sectorsForThisGrade || sectorsForThisGrade.length === 0)) {
+        // skip grade
+        continue;
+      }
+
+      if (!chosenLanguages || chosenLanguages.length === 0) continue;
+
+      out.push({
+        name: newSubject.name,
+        education_system: system,
+        grade: g,
+        sector: sectorsForThisGrade,
+        language: chosenLanguages,
+        private_pricing: { price: 0, currency: 'EGP', period: 'session' }
+      });
+    }
+    return out;
+  }, [newSubject, selectedGrades, subjectsBySystem, subjectExistsForGrade, getSectorsForGrade, isSubjectAlreadyAdded]);
+
   const handleAddSubject = useCallback(async () => {
     if (!newSubject.name || !newSubject.education_system) return;
+    if (!newSubject.language || newSubject.language.length === 0) return;
 
-    // validation: need at least languages selected
-    if (!newSubject.language || newSubject.language.length === 0) {
-      // don't create any subjects if no language chosen (skip per spec)
-      return;
-    }
-
-    // single-grade mode: behave as before but with manual selection only
     if (singleGradeMode) {
       const grade = activeGrade;
       if (!grade) return;
 
-      // if the grade requires sectors and none of chosen sectors apply -> do not create
+      // verify subject exists for this grade
+      if (!subjectExistsForGrade(newSubject.education_system, grade, newSubject.name)) return;
+
+      // skip if duplicate
+      if (isSubjectAlreadyAdded(newSubject.education_system, grade, newSubject.name)) return;
+
       const gradeEntry = subjectsBySystem[newSubject.education_system]?.[grade];
       const gradeRequiresSector = gradeEntry && typeof gradeEntry === 'object' && !Array.isArray(gradeEntry);
-
-      // available sectors for this grade
       const gradeSectors = getSectorsForGrade(newSubject.education_system, grade);
       const chosenSectors = normalizeArray(newSubject.sector);
 
       if (gradeRequiresSector) {
         const intersect = chosenSectors.filter(s => gradeSectors.map(x => String(x).toLowerCase()).includes(String(s).toLowerCase()));
-        if (intersect.length === 0) return; // skip because user didn't pick sectors relevant to this grade
+        if (intersect.length === 0) return; // skip because not applicable
       }
 
       const subjectData = {
@@ -305,101 +364,42 @@ const AddSubjectCard = ({
       return;
     }
 
-    // MULTI-GRADE
-    const grades = selectedGrades;
-    if (!grades || grades.length === 0) return;
-    const system = newSubject.education_system;
-    if (!system) return;
-
-    const chosenSectors = normalizeArray(newSubject.sector);
-    const chosenLanguages = normalizeArray(newSubject.language);
-
-    // prepare subjects for each grade but evaluate applicability
-    const subjectsToCreate = [];
-    for (const g of grades) {
-      const gradeEntry = subjectsBySystem[system]?.[g];
-      const gradeRequiresSector = gradeEntry && typeof gradeEntry === 'object' && !Array.isArray(gradeEntry);
-      const gradeSectors = getSectorsForGrade(system, g);
-
-      // intersect chosen sectors with this grade's sectors
-      let sectorsForThisGrade = [];
-      if (chosenSectors && chosenSectors.length > 0) {
-        // only keep those that actually exist for the grade (if the grade has defined sectors)
-        if (gradeSectors && gradeSectors.length > 0) {
-          sectorsForThisGrade = chosenSectors.filter(s => gradeSectors.map(x => String(x).toLowerCase()).includes(String(s).toLowerCase()));
-        } else {
-          // grade has no defined sectors: allow chosen sectors as-is
-          sectorsForThisGrade = chosenSectors;
-        }
-      }
-
-      // if grade requires a sector and none of the chosen sectors apply -> skip this grade
-      if (gradeRequiresSector && (!sectorsForThisGrade || sectorsForThisGrade.length === 0)) {
-        // skip as per your spec
-        continue;
-      }
-
-      // languages: chosenLanguages must be non-empty (we validated earlier), so apply them
-      if (!chosenLanguages || chosenLanguages.length === 0) {
-        continue; // skip as per your spec
-      }
-
-      subjectsToCreate.push({
-        name: newSubject.name,
-        education_system: system,
-        grade: g,
-        sector: sectorsForThisGrade,
-        language: chosenLanguages,
-        private_pricing: { price: 0, currency: 'EGP', period: 'session' }
-      });
-    }
-
-    if (subjectsToCreate.length === 0) return;
+    // MULTI-GRADE: build using pendingSubjectsPreview so incompatible or duplicate grades are automatically skipped
+    const subjectsToCreate = pendingSubjectsPreview;
+    if (!subjectsToCreate || subjectsToCreate.length === 0) return;
 
     setIsSubmitting(true);
     try {
-      // sequential submit to avoid parent-state races
       for (const sd of subjectsToCreate) {
         try {
+          // double-check duplicates right before submitting (race-safety)
+          if (isSubjectAlreadyAdded(sd.education_system, sd.grade, sd.name)) continue;
           const r = onAddSubject(sd);
           if (r && typeof r.then === 'function') await r;
         } catch (err) {
           console.error('Failed to add subject for grade', sd.grade, err);
         }
       }
-      // clear only the name (preserve grades/sectors/languages for quick reuse as requested)
       safeSetNewSubject(prev => ({ ...prev, name: '' }));
     } catch (err) {
       console.error(err);
     } finally {
       setIsSubmitting(false);
     }
-  }, [
-    newSubject,
-    singleGradeMode,
-    activeGrade,
-    selectedGrades,
-    onAddSubject,
-    safeSetNewSubject,
-    getSectorsForGrade,
-    subjectsBySystem
-  ]);
+  }, [newSubject, singleGradeMode, activeGrade, pendingSubjectsPreview, onAddSubject, safeSetNewSubject, getSectorsForGrade, subjectsBySystem, subjectExistsForGrade, isSubjectAlreadyAdded]);
 
   const handleDelete = useCallback((index) => {
-    // console.log('[AddSubjectCard] handleDelete', { index });
     onDeleteSubject(index);
     if (editingIndex === index) setEditingIndex(null);
   }, [onDeleteSubject, editingIndex]);
 
   const handleEditSubject = useCallback((index) => {
-    // console.log('[AddSubjectCard] handleEditSubject', { index });
     setEditingIndex(index);
   }, []);
 
   const handleUpdateSubject = useCallback(() => {
     if (editingIndex === null) return;
-    if (!singleGradeMode || !activeGrade) return; // editing only supports single-grade like before
-    // apply current sector/language selections (they apply to activeGrade)
+    if (!singleGradeMode || !activeGrade) return;
     onUpdateSubject(editingIndex, {
       ...newSubject,
       grade: activeGrade,
@@ -411,7 +411,6 @@ const AddSubjectCard = ({
 
   const cancelEdit = useCallback(() => setEditingIndex(null), []);
 
-  // helper to translate constants
   const translateConst = useCallback((pathBase, key, fallback) => {
     if (!key && key !== 0) return fallback || '';
     const full = `${pathBase}.${key}`;
@@ -420,10 +419,8 @@ const AddSubjectCard = ({
     return fallback || key;
   }, [t]);
 
-  // stable key generator for subject list to prevent duplicate-key warnings
   const subjectRenderKey = useCallback((subject, idx) => {
     if (subject._id) return String(subject._id);
-    // composite fallback key
     const nm = (subject.name || subject.subject_id?.name || 'unknown').replace(/\s+/g, '_');
     const gr = (subject.grade || subject.subject_id?.grade || 'nograde').replace(/\s+/g, '_');
     return `${nm}-${gr}-${idx}`;
@@ -475,7 +472,6 @@ const AddSubjectCard = ({
     </motion.div>
   ), [t, handleEditSubject, handleDelete, dir, textAlign, translateConst, subjectRenderKey]);
 
-  // tooltip handlers
   const handleMouseEnterInfo = useCallback(() => {
     if (infoTimeoutRef.current) clearTimeout(infoTimeoutRef.current);
     try {
@@ -492,31 +488,14 @@ const AddSubjectCard = ({
     infoTimeoutRef.current = setTimeout(() => setShowInfoPopup(false), 300);
   }, []);
 
-  /**
-   * displayedSubjects:
-   * - When editingIndex !== null, return a copy of formData.subjects with the editing index
-   *   replaced by a live preview object built from newSubject + existing subject values.
-   * - Otherwise return the original array (shallow copy).
-   */
-  // Choose data source for preview:
-  // - if we're in edit mode (`isEditing`), prefer `editedData.subjects` (the edit buffer)
-  // - otherwise fall back to `formData.subjects` so the preview shows live data when not editing
   const effectiveSubjectsFromEdited = Array.isArray(editedData?.subjects) ? editedData.subjects : [];
   const effectiveSubjectsFromForm = Array.isArray(formData?.subjects) ? formData.subjects : [];
   const effectiveSubjects = isEditing ? effectiveSubjectsFromEdited : effectiveSubjectsFromForm;
-  console.log('[AddSubjectCard] effectiveSubjectsFromEdited:', effectiveSubjectsFromEdited);
-
-  // keep a debug log (user asked to keep logs) to help trace why preview might not update
-  // this is intentionally lightweight and will not flood the console because objects are small
-  // eslint-disable-next-line no-console
-  console.log('[AddSubjectCard] preview source', { isEditing, editedCount: effectiveSubjectsFromEdited.length, formCount: effectiveSubjectsFromForm.length, editingIndex });
 
   const displayedSubjects = useMemo(() => {
-    // we copy to avoid accidental mutation of parent arrays
     const orig = Array.isArray(effectiveSubjects) ? [...effectiveSubjects] : [];
     if (editingIndex === null) return orig;
 
-    // guard: if editingIndex refers to an index past the array (can happen when switching sources), clamp
     if (editingIndex < 0 || editingIndex >= orig.length) return orig;
 
     const existing = orig[editingIndex];
@@ -536,7 +515,6 @@ const AddSubjectCard = ({
     const copy = [...orig];
     copy[editingIndex] = preview;
     return copy;
-  // include editedData and isEditing in deps so memo recalculates when the edit buffer changes or mode toggles
   }, [isEditing, editedData, formData, editingIndex, newSubject, singleGradeMode, activeGrade]);
 
   return (
@@ -566,7 +544,6 @@ const AddSubjectCard = ({
       </div>
 
       <div className="space-y-3">
-        {/* System select - completely hidden if only one system */}
         {!hideSystemField && (
           <div className="space-y-1">
             <Label className="text-xs flex items-center gap-1" style={{ textAlign }}>
@@ -587,7 +564,6 @@ const AddSubjectCard = ({
           </div>
         )}
 
-        {/* Grades multi-select - extracted into MultiSelect component */}
         <div className="space-y-1">
           <Label className="text-xs flex items-center gap-1" style={{ textAlign }}>
             <Award size={12} />
@@ -605,7 +581,6 @@ const AddSubjectCard = ({
           />
         </div>
 
-        {/* Subject selector (completely hidden if only one available subject) */}
         {!hideSubjectField && (
           <div className="space-y-1">
             <Label className="text-xs flex items-center gap-1" style={{ textAlign }}>
@@ -627,7 +602,6 @@ const AddSubjectCard = ({
           </div>
         )}
 
-        {/* Sectors */}
         <div className="space-y-1">
           <Label className="text-xs flex items-center justify-between" style={{ textAlign }}>
             <span className="flex items-center gap-1"><MapPin size={12} />{t('sector','Sector')}</span>
@@ -663,7 +637,6 @@ const AddSubjectCard = ({
           )}
         </div>
 
-        {/* Languages */}
         <div className="space-y-1">
           <Label className="text-xs flex items-center justify-between" style={{ textAlign }}>
             <span className="flex items-center gap-1"><BookOpen size={12} />{t('language','Language')}</span>
@@ -699,7 +672,6 @@ const AddSubjectCard = ({
           )}
         </div>
 
-        {/* Add / Update */}
         {editingIndex !== null ? (
           <div className="flex gap-2 pt-2">
             <Button type="button" className="w-full h-10" onClick={handleUpdateSubject} disabled={!newSubject.name || !singleGradeMode || !activeGrade}>
@@ -719,7 +691,6 @@ const AddSubjectCard = ({
         )}
       </div>
 
-      {/* existing subjects (use displayedSubjects so editing preview shows live changes) */}
       {displayedSubjects?.length > 0 && (
         <div className="mt-6">
           <h3 className="font-semibold mb-3 flex items-center gap-2" style={{ textAlign }}>
@@ -735,26 +706,16 @@ const AddSubjectCard = ({
   );
 };
 
-/**
- * Safer comparator for memoization:
- * - Quick-checks on props that affect rendering
- * - Shallow, deterministic checks of subjects (id / name / grade / sector / language)
- */
 const areEqualAddSubjectCard = (prevProps, nextProps) => {
-  // props that should force re-render when changed
   if (prevProps.constants !== nextProps.constants) return false;
   if (prevProps.isSubjectMutating !== nextProps.isSubjectMutating) return false;
-  // if edit mode toggles, re-render so preview source selection updates
   if (prevProps.isEditing !== nextProps.isEditing) return false;
 
-  // choose which subjects array to compare depending on edit mode
   const prevSubs = prevProps.isEditing ? (Array.isArray(prevProps.editedData?.subjects) ? prevProps.editedData.subjects : []) : (Array.isArray(prevProps.formData?.subjects) ? prevProps.formData.subjects : []);
   const nextSubs = nextProps.isEditing ? (Array.isArray(nextProps.editedData?.subjects) ? nextProps.editedData.subjects : []) : (Array.isArray(nextProps.formData?.subjects) ? nextProps.formData.subjects : []);
 
-  // length change -> re-render
   if (prevSubs.length !== nextSubs.length) return false;
 
-  // compare each subject shallowly and deterministically
   for (let i = 0; i < prevSubs.length; i++) {
     const a = prevSubs[i] || {};
     const b = nextSubs[i] || {};
