@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import { apiFetch } from '@/api/apiService';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,7 +20,8 @@ import { getConstants } from '@/api/constantsFetch';
 const StudentProfilePage = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const { authState, updateUserData, updatePassword } = useAuth();
+  const navigate = useNavigate();
+  const { authState, updateUserData, updatePassword, logout } = useAuth();
   const { userData: authUserData, isLoading: authLoading } = authState;
   const [constants, setConstants] = useState(null);
   const [userData, setUserData] = useState({
@@ -43,8 +47,8 @@ const StudentProfilePage = () => {
   const [availableGrades, setAvailableGrades] = useState([]);
   const [availableSectors, setAvailableSectors] = useState([]);
   const [availableLanguages, setAvailableLanguages] = useState([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Load constants
   useEffect(() => {
     const loadConstants = async () => {
       try {
@@ -57,11 +61,9 @@ const StudentProfilePage = () => {
     loadConstants();
   }, []);
 
-  // Update districts when governate changes
   useEffect(() => {
     if (userData.governate && constants?.Districts) {
       const districts = constants.Districts[userData.governate] || [];
-      // translate each district with constants key with fallback
       setAvailableDistricts(
         districts.map(d => ({
           value: d,
@@ -69,7 +71,6 @@ const StudentProfilePage = () => {
         }))
       );
 
-      // Reset district if not available in new governate
       if (userData.district && !districts.includes(userData.district)) {
         setUserData(prev => ({ ...prev, district: '' }));
       }
@@ -79,7 +80,6 @@ const StudentProfilePage = () => {
     }
   }, [userData.governate, constants, t]);
 
-  // Update grades when education system changes
   useEffect(() => {
     if (userData.education_system && constants?.EducationStructure) {
       const systemGrades = constants.EducationStructure[userData.education_system]?.grades || [];
@@ -90,7 +90,6 @@ const StudentProfilePage = () => {
         }))
       );
 
-      // Reset grade and sector if not compatible with new system
       if (userData.grade && !systemGrades.includes(userData.grade)) {
         setUserData(prev => ({ ...prev, grade: '', sector: '' }));
       }
@@ -100,14 +99,12 @@ const StudentProfilePage = () => {
     }
   }, [userData.education_system, constants, t]);
 
-  // Update sectors when grade changes
   useEffect(() => {
     if (userData.grade && userData.education_system && constants?.EducationStructure) {
       const gradeSectors = constants.EducationStructure[userData.education_system]?.sectors?.[userData.grade] || [];
       setAvailableSectors(
         gradeSectors.map(s => ({
           value: s,
-          // try structured path first, fallback to generic constant key and then the raw value
           label:
             t(`constants.EducationStructure.${userData.education_system}.sectors.${userData.grade}.${s}`, { defaultValue: '' }) ||
             t(`constants.EducationStructure.${userData.education_system}.sectors.${s}`, { defaultValue: '' }) ||
@@ -115,7 +112,6 @@ const StudentProfilePage = () => {
         }))
       );
 
-      // Reset sector if not compatible with new grade
       if (userData.sector && !gradeSectors.includes(userData.sector)) {
         setUserData(prev => ({ ...prev, sector: '' }));
       }
@@ -125,12 +121,9 @@ const StudentProfilePage = () => {
     }
   }, [userData.grade, userData.education_system, constants, t]);
 
-  // Update languages when education system changes
   useEffect(() => {
     if (userData.education_system && constants?.EducationStructure) {
-      // Get languages from the selected education system
       const systemLanguages = constants.EducationStructure[userData.education_system]?.languages || [];
-      // Fallback to Arabic if no languages defined (for Azhar case)
       const languagesToShow = systemLanguages.length > 0 ? systemLanguages : ['Arabic'];
       setAvailableLanguages(
         languagesToShow.map(l => ({
@@ -141,7 +134,6 @@ const StudentProfilePage = () => {
         }))
       );
 
-      // Reset language if not compatible with new system
       if (userData.language && !languagesToShow.includes(userData.language)) {
         setUserData(prev => ({ ...prev, language: '' }));
       }
@@ -300,6 +292,22 @@ const StudentProfilePage = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await apiFetch('/users/deleteAccount', { method: 'DELETE' });
+      toast({ title: t('accountDeleted', 'Account deleted'), description: t('youWillBeLoggedOut', 'You will be logged out.') });
+      logout();
+      navigate('/');
+    } catch (err) {
+      console.error('Delete account failed', err);
+      toast({ title: t('deleteFailed', 'Delete failed'), description: err?.message || t('tryAgain', 'Please try again later.'), variant: 'destructive' });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (isLoading || authLoading || !constants) {
     return <div>{t('loading')}</div>;
   }
@@ -339,7 +347,7 @@ const StudentProfilePage = () => {
               {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
             </div>
             <div>
-              <Label htmlFor="governate" className="mb-2 block flex items-center gap-2">
+              <Label htmlFor="governate" className="mb-2 flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-muted-foreground" />
                 {t('governate')}
               </Label>
@@ -358,29 +366,54 @@ const StudentProfilePage = () => {
               {errors.governate && <p className="text-sm text-red-500 mt-1">{errors.governate}</p>}
             </div>
             <div>
-              <Label htmlFor="district" className="mb-2 block flex items-center gap-2">
+              <Label htmlFor="district" className="mb-2 flex items-center gap-2">
                 <Building className="w-4 h-4 text-muted-foreground" />
                 {t('district')}
               </Label>
-              <Select 
-                value={userData.district} 
-                onValueChange={(v) => handleSelectChange('district', v)}
-                disabled={!userData.governate}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={
-                    userData.governate ? t('selectDistrict') : t('selectGovernateFirst')
-                  } />
-                </SelectTrigger>
-                {userData.governate && (
-                  <SearchableSelectContent
-                    searchPlaceholder={t('searchDistrict')}
-                    items={availableDistricts}
-                  />
-                )}
-              </Select>
-              {errors.district && <p className="text-sm text-red-500 mt-1">{errors.district}</p>}
-            </div>
+
+                <div className="flex-1">
+                  <Select 
+                    value={userData.district} 
+                    onValueChange={(v) => handleSelectChange('district', v)}
+                    disabled={!userData.governate}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={
+                        userData.governate ? t('selectDistrict') : t('selectGovernateFirst')
+                      } />
+                    </SelectTrigger>
+                    {userData.governate && (
+                      <SearchableSelectContent
+                        searchPlaceholder={t('searchDistrict')}
+                        items={availableDistricts}
+                      />
+                    )}
+                  </Select>
+                  {errors.district && <p className="text-sm text-red-500 mt-1">{errors.district}</p>}
+                </div>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button
+                    type="button"
+                    className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium border border-red-600 text-red-600 hover:bg-red-50"
+                    disabled={isDeleting}
+                    aria-label={t('deleteAccount')}
+                  >
+                    {t('deleteAccount')}
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t('confirmDeleteAccount', 'Confirm account deletion')}</AlertDialogTitle>
+                  </AlertDialogHeader>
+                  <p className="p-4">{t('deleteAccountWarning', 'This will permanently delete your account and all related data. This action cannot be undone.')}</p>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteAccount} className="bg-red-600 text-white">{isDeleting ? t('deleting') : t('delete')}</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
           </CardContent>
         </Card>
 
@@ -474,7 +507,7 @@ const StudentProfilePage = () => {
             </div>
 
             <div>
-              <Label className="mb-2 block flex items-center gap-2">
+              <Label className="mb-2 flex items-center gap-2">
                 <Globe className="w-4 h-4 text-muted-foreground" />
                 {t('language')}
               </Label>

@@ -60,6 +60,11 @@ export const authService = {
       },
     });
   },
+
+  async handleDeleteAccount() {
+    // Return apiFetch promise; caller is responsible for logout/navigation/toasts
+    return apiFetch('/users/deleteAccount', { method: 'DELETE' });
+  },
 };
 
 export default authService;

@@ -273,7 +273,7 @@ const PasswordInputs = ({
       </div>
 
       {variant === 'update' && (
-        <Button type="submit" disabled={loading} className="w-full mt-4">
+        <Button type="button" disabled={loading} className="w-full mt-4">
           {loading ? t('updating', 'Updating...') : t('updatePassword', 'Update Password')}
         </Button>
       )}

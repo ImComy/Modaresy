@@ -98,6 +98,7 @@ export const AuthProvider = ({ children }) => {
 
   const updatePassword = async (currentPassword, newPassword) => {
     try {
+      console.debug('updatePassword called', { currentLength: currentPassword?.length, newLength: newPassword?.length });
       const response = await apiFetch('/users/updatePassword', {
         method: 'POST',
         body: JSON.stringify({ currentPassword, newPassword }),
@@ -106,6 +107,7 @@ export const AuthProvider = ({ children }) => {
         },
       });
 
+      console.debug('updatePassword response', response);
       toast({
         title: t('auth.passwordUpdateSuccessTitle', 'Success'),
         description: response?.message
@@ -114,12 +116,24 @@ export const AuthProvider = ({ children }) => {
       });
       return response;
     } catch (err) {
-      console.error('Password update failed:', err.message);
+      console.error('Password update failed:', err);
+      const serverMsg = err?.body?.error || err?.body?.message || err?.message;
+
+      // If token problems, suggest logout
+      if (err?.status === 401 || err?.status === 403) {
+        toast({
+          title: t('auth.sessionExpiredTitle', 'Session expired'),
+          description: t('auth.sessionExpiredDescription', 'Please log in again.'),
+          variant: 'destructive',
+        });
+        // clear local state so UI can redirect or user can re-login
+        logout();
+        throw err;
+      }
+
       toast({
         title: t('auth.passwordUpdateFailedTitle', 'Password Update Failed'),
-        description: err.message
-          ? t('auth.passwordUpdateFailedDescription', { message: err.message })
-          : t('auth.passwordUpdateFailedDescription', 'Failed to update password'),
+        description: serverMsg || t('auth.passwordUpdateFailedDescription', 'Failed to update password'),
         variant: 'destructive',
       });
       throw err;

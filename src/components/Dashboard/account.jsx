@@ -7,6 +7,11 @@ import { User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import PasswordInputs from '@/components/ui/password';
 import { useFormLogic } from '@/handlers/form';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import { apiFetch } from '@/api/apiService';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
 
 const initialFormData = {
   email: '',
@@ -15,7 +20,7 @@ const initialFormData = {
   confirmPassword: '',
 };
 
-const AccountSection = ({ form, setForm }) => {
+const AccountSection = ({ form = {}, setForm }) => {
   const { t } = useTranslation();
   const { errors, handleChange } = useFormLogic(
     { ...initialFormData, ...form },
@@ -23,6 +28,48 @@ const AccountSection = ({ form, setForm }) => {
     t,
     { isSignup: false }
   );
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const { toast } = useToast();
+
+  // update parent form + delegate to hook's handleChange (supports both signatures)
+  const onChangeField = (e, field) => {
+    const value = e && e.target ? e.target.value : e;
+    if (typeof setForm === 'function') {
+      setForm(prev => ({ ...prev, [field]: value }));
+    } else {
+      console.warn('AccountSection: setForm not provided');
+    }
+
+    if (typeof handleChange === 'function') {
+      try {
+        // prefer (event, field) if hook supports it
+        if (handleChange.length >= 2) {
+          handleChange(e, field);
+        } else {
+          // otherwise call with a synthetic event shaped object
+          handleChange({ target: { id: field, value } });
+        }
+      } catch (err) {
+        // swallow to avoid breaking typing UI
+        // validation hook failure shouldn't block input
+        // (keep minimal logging)
+        // eslint-disable-next-line no-console
+        console.warn('form logic handleChange failed:', err);
+      }
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      await apiFetch('/users/deleteAccount', { method: 'DELETE' });
+      logout();
+      navigate('/');
+    } catch (err) {
+      console.error('Failed to delete account', err);
+      toast({ title: t('deleteFailed', 'Delete failed'), description: err?.message || t('tryAgain', 'Please try again later.'), variant: 'destructive' });
+    }
+  };
 
   return (
     <motion.div
@@ -47,8 +94,8 @@ const AccountSection = ({ form, setForm }) => {
               <Input
                 id="email"
                 type="email"
-                value={form.email}
-                onChange={(e) => handleChange(e, 'email')}
+                value={form.email || ''}
+                onChange={(e) => onChangeField(e, 'email')}
                 placeholder={t('settings.form.emailPlaceholder', 'Enter your email')}
                 className={`bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] ${errors.email ? 'border-destructive' : ''}`}
               />
@@ -63,15 +110,46 @@ const AccountSection = ({ form, setForm }) => {
               <Input
                 id="phone"
                 name="phone"
-                value={form.phone}
-                onChange={(e) => handleChange(e, 'phone')}
+                value={form.phone || ''}
+                onChange={(e) => onChangeField(e, 'phone')}
                 placeholder={t('settings.form.phonePlaceholder', 'Enter your phone number')}
                 className={`bg-input border border-border/50 rounded-lg h-10 sm:h-11 text-xs sm:text-sm focus:ring-2 focus:ring-primary transition-all duration-300 hover:scale-[1.02] ${errors.phone ? 'border-destructive' : ''}`}
               />
               {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
             </div>
 
-            <PasswordInputs form={form} handleChange={(e) => handleChange(e)} errors={errors} />
+            <div className='w-full'>
+              {/* pass a handler that matches PasswordInputs' expected signature (e, field) */}
+              <PasswordInputs
+                form={form}
+                layout={'horizontal'}
+                variant={'update'}
+                handleChange={(e, field) => onChangeField(e, field)}
+                errors={errors}
+              />
+            </div>
+          </div>
+          <div className="pt-4 flex justify-end">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="mr-2 inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  {t('deleteAccount', 'Delete account')}
+                </button>
+              </AlertDialogTrigger>
+
+              <AlertDialogContent className="sm:max-w-[420px]">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('deleteAccountTitle', 'Delete account')}</AlertDialogTitle>
+                  <div className="text-sm text-muted-foreground">
+                    {t('deleteAccountWarning', 'This action is permanent and will remove your account and all related data. This cannot be undone.')}
+                  </div>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('cancel', 'Cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive">{t('confirmDelete', 'Delete account')}</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </CardContent>
       </Card>

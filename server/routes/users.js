@@ -14,6 +14,7 @@ import {
   hash_password,
   updatePassword
 } from '../services/authentication.service.js';
+import { deleteAccount } from '../controllers/users.js';
 
 const router = express.Router();
 
@@ -25,6 +26,7 @@ router.post("/sendVerificationCode", verifyToken, sendVerificationCode);
 router.post("/verifyUserAccount", verifyToken, verifyUserAccount);
 router.post("/updatePassword", verifyToken, updatePassword);
 router.delete("/logout", verifyToken, logout);
+router.delete('/deleteAccount', verifyToken, deleteAccount);
 router.get("/stats", stats);
 
 export default router;
