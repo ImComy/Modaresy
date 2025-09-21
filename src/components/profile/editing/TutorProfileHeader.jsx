@@ -9,7 +9,7 @@ import { getImageUrl, getAvatarSrc, getBannerUrl, uploadFile } from '@/api/image
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { MapPin, BookOpen, MessageSquare, Heart, Award, Building, GraduationCap, Star, Plus, Trash, X } from 'lucide-react';
+import { MapPin, BookOpen, MessageSquare, Heart, Award, Building, GraduationCap, Star, Plus, Trash, X, BadgeCheck, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import BannerCropOverlay from '../../ui/cropper';
 import { SearchableSelectContent } from '@/components/ui/searchSelect';
@@ -29,6 +29,7 @@ import {
 } from 'react-icons/fa';
 import { Label } from '../../ui/label'
 import AddSubjectCard from './SubjectSection';
+import { getPaymentIcon } from '@/data/payment';
 
 // map platform keys (lowercase) to icon components
 const socialIcons = {
@@ -42,6 +43,58 @@ const socialIcons = {
   whatsapp: FaWhatsapp,
   email: FaEnvelope,
   website: FaGlobe,
+};
+
+const PaymentSection = ({ formData = {}, paymentTimings = ["Prepaid", "Postpaid"], paymentOptions = [], onTimingChange = () => {}, onToggleMethod = () => {}, t = (k, d) => d }) => {
+  return (
+    <section value="payment" className="mt-4 max-w-3xl mx-auto">
+      <div className="p-4 sm:p-5 bg-muted/20 rounded-xl border border-primary/30 space-y-4 transition-all hover:shadow-md">
+        <div className="flex items-center gap-2 text-primary font-medium mb-2">
+          <BadgeCheck size={20} className="text-blue-600" />
+          <span>{t("paymentInfo", "Payment Information")}</span>
+        </div>
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+            <Wallet size={16} className="text-purple-600 sm:mt-0 mt-1" />
+            <Select
+              value={formData.payment_timing}
+              onValueChange={onTimingChange}
+            >
+              <SelectTrigger className="w-full sm:max-w-xs h-9 text-sm border-primary/30 focus:border-primary focus:ring-primary/20 transition-colors shadow-sm">
+                <SelectValue placeholder={t("selectPaymentTiming", "Select Payment Timing")} />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentTimings.map((opt) => (
+                  <SelectItem key={opt} value={opt}>
+                    {t(`constants.PaymentTimings.${opt}`, { defaultValue: opt })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {paymentOptions.map((option) => (
+              <Button
+                key={option.value}
+                type="button"
+                variant={Array.isArray(formData.payment_methods) && formData.payment_methods.includes(option.value) ? "default" : "outline"}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-full shadow-sm transition-all text-sm h-9",
+                  Array.isArray(formData.payment_methods) && formData.payment_methods.includes(option.value)
+                    ? "bg-primary hover:bg-primary/90"
+                    : "border-primary/30 hover:bg-primary/10 hover:border-primary"
+                )}
+                onClick={() => onToggleMethod(option.value)}
+              >
+                {option.icon}
+                <span>{option.label}</span>
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 };
 
 const TutorProfileHeaderEdit = ({
@@ -87,6 +140,9 @@ const TutorProfileHeaderEdit = ({
       rating: tutorData?.rating || 0,
       subjects: tutorData?.subjects || [],
       experience_years: tutorData?.experience_years || 0,
+      // payment fields moved to tutor level
+      payment_methods: Array.isArray(tutorData?.payment_methods) ? tutorData.payment_methods : (tutorData?.payment_methods || []),
+      payment_timing: tutorData?.payment_timing || '',
     };
   }
 
@@ -113,11 +169,58 @@ const TutorProfileHeaderEdit = ({
       try {
         const data = await getConstants();
         setConstants(data);
+        // also set default payment constants if not already present
+        if (data) {
+          // no-op here; Subject component uses getConstants separately
+        }
       } catch (error) {
       }
     };
     loadConstants();
   }, []);
+
+  // Payment related derived state/helpers
+  const paymentTimings = useMemo(() => {
+    try {
+      return (constants && constants.PaymentTimings) || ["Prepaid", "Postpaid"];
+    } catch { return ["Prepaid", "Postpaid"]; }
+  }, [constants]);
+
+  const paymentMethodsList = useMemo(() => {
+    try { return (constants && constants.PaymentMethods) || ["Cash", "Bank Transfer", "Credit Card"]; } catch { return ["Cash", "Bank Transfer", "Credit Card"]; }
+  }, [constants]);
+
+  const paymentOptions = useMemo(() => {
+    try {
+      const getPaymentIcon = require('@/data/payment').getPaymentIcon;
+      return paymentMethodsList.map((method) => {
+        const IconComponent = getPaymentIcon(method);
+        return { value: method, label: t(`constants.PaymentMethods.${method}`, { defaultValue: method }), icon: IconComponent ? <IconComponent className="w-4 h-4" /> : null };
+      });
+    } catch (err) {
+      return paymentMethodsList.map(m => ({ value: m, label: m, icon: null }));
+    }
+  }, [paymentMethodsList, t]);
+
+  const handlePaymentTimingChange = useCallback((value) => {
+    try {
+      setFormData(prev => ({ ...prev, payment_timing: value }));
+    } catch (e) {}
+    try { onChange?.('payment_timing', value); } catch (e) {}
+  }, [onChange]);
+
+  const handlePaymentMethodToggle = useCallback((method) => {
+    setFormData(prev => {
+      const current = Array.isArray(prev.payment_methods) ? prev.payment_methods : [];
+      const updated = current.includes(method) ? current.filter(m => m !== method) : [...current, method];
+      try { onChange?.('payment_methods', updated); } catch (e) {}
+      return { ...prev, payment_methods: updated };
+    });
+  }, [onChange]);
+
+  // PaymentSection is implemented above as a prop-driven component to avoid accessing
+  // component-scoped bindings at module initialization time.
+
 
   useEffect(() => {
     return () => {
@@ -386,8 +489,18 @@ const TutorProfileHeaderEdit = ({
             constants={constants}
             t={t}
             isSubjectMutating={isSubjectMutating}
+            paymentTimings={paymentTimings}
+            paymentOptions={paymentOptions}
+            handlePaymentTimingChange={handlePaymentTimingChange}
+            handlePaymentMethodToggle={handlePaymentMethodToggle}
           />
         </CardContent>
+
+      <AboutMeSection
+        aboutMe={formData.about_me}
+        onChange={(value) => handleFieldChange('about_me', value)}
+        t={t}
+      />
       </Card>
 
       <SocialMediaModal
@@ -401,6 +514,11 @@ const TutorProfileHeaderEdit = ({
         addSocial={addSocial}
         onChange={handleFieldChange}
         t={t}
+        formData={formData}
+        paymentTimings={paymentTimings}
+        paymentOptions={paymentOptions}
+        handlePaymentTimingChange={handlePaymentTimingChange}
+        handlePaymentMethodToggle={handlePaymentMethodToggle}
       />
     </>
   );
@@ -679,7 +797,11 @@ const DetailsSection = ({
   onUpdateSubject,
   onDeleteSubject,
   constants,
-  t
+  t,
+  paymentTimings = ["Prepaid","Postpaid"],
+  paymentOptions = [],
+  handlePaymentTimingChange = () => {},
+  handlePaymentMethodToggle = () => {},
 }) => (
   <motion.div
     initial={{ opacity: 0, x: 10 }}
@@ -687,11 +809,15 @@ const DetailsSection = ({
     transition={{ duration: 0.4, delay: 0.1 }}
     className="md:col-span-2 space-y-4 flex flex-col items-center text-center md:items-start md:text-left"
   >
-    <div className="flex flex-col md:flex-row w-full gap-6 justify-between">
+      <div className="flex flex-col md:flex-row w-full gap-6 justify-between">
       <ExperienceLocationSection
         formData={formData}
         handleFieldChange={handleFieldChange}
         t={t}
+        paymentTimings={paymentTimings}
+        paymentOptions={paymentOptions}
+        handlePaymentTimingChange={handlePaymentTimingChange}
+        handlePaymentMethodToggle={handlePaymentMethodToggle}
       />
 
       <AddSubjectCard
@@ -705,16 +831,10 @@ const DetailsSection = ({
         t={t}
       />
     </div>
-
-    <AboutMeSection
-      aboutMe={formData.about_me}
-      onChange={(value) => handleFieldChange('about_me', value)}
-      t={t}
-    />
   </motion.div>
 );
 
-const ExperienceLocationSection = ({ formData, handleFieldChange, t }) => {
+const ExperienceLocationSection = ({ formData, handleFieldChange, t, paymentOptions, paymentTimings, handlePaymentTimingChange, handlePaymentMethodToggle}) => {
   return (
     <div className="space-y-4 w-full md:w-1/2">
       <div className="bg-muted/30 p-3 rounded-lg border border-primary/20">
@@ -746,15 +866,23 @@ const ExperienceLocationSection = ({ formData, handleFieldChange, t }) => {
           value={formData.address || ''}
           onChange={(e) => handleFieldChange('address', e.target.value)}
           placeholder={t('enterYourAddress')}
-          className="min-h-[80px]"
+          className="min-h-[125px]"
         />
       </div>
+      <PaymentSection
+        formData={formData}
+        paymentTimings={paymentTimings}
+        paymentOptions={paymentOptions}
+        onTimingChange={handlePaymentTimingChange}
+        onToggleMethod={handlePaymentMethodToggle}
+        t={t}
+      />
     </div>
   );
 };
 
 const AboutMeSection = ({ aboutMe, onChange, t }) => (
-  <div className="w-full flex flex-col">
+  <div className="w-full flex flex-col p-10 -mt-16">
     <Separator className="my-4" />
     <h2 className="text-xl font-semibold mb-2 text-primary rtl:text-right">{t('aboutMe')}</h2>
     <Textarea
@@ -766,7 +894,7 @@ const AboutMeSection = ({ aboutMe, onChange, t }) => (
   </div>
 );
 
-const SocialMediaModal = ({ open, onClose, socialMedia, newSocial, setNewSocial, handleSocialChange, removeSocial, addSocial, t }) => (
+const SocialMediaModal = ({ open, onClose, socialMedia, newSocial, setNewSocial, handleSocialChange, removeSocial, addSocial, t, formData, handlePaymentMethodToggle, paymentOptions, paymentTimings, handlePaymentTimingChange}) => (
   open && (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full shadow-xl">

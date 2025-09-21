@@ -523,7 +523,7 @@ const AddSubjectCard = ({
       style={{ direction: dir }}
       className={cn(
         "w-full bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 shadow-lg rounded-2xl p-4 z-10 border border-gray-200 dark:border-gray-700",
-        "max-h-[500px] overflow-y-auto flex-1 min-w-0 md:max-w-xs mt-0 md:-mt-32"
+        "max-h-[670px] overflow-y-auto flex-1 min-w-0 md:max-w-xs mt-0 md:-mt-32"
       )}
     >
       <div className="text-lg font-semibold flex items-center gap-2 text-primary mb-4 pb-2 border-b border-gray-100 dark:border-gray-700" style={{ textAlign }}>

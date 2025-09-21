@@ -101,8 +101,9 @@ const SubjectPricingInfoDisplay = (props) => {
         })),
       bio: fromSubject.description ?? propBio ?? "",
       rating: fromSubject.rating ?? propRating ?? null,
-      paymentTiming: fromSubject.payment_timing ?? propPaymentTiming ?? null,
-      paymentMethods: fromSubject.payment_methods ?? propPaymentMethods ?? [],
+    // paymentTiming/paymentMethods removed from subject-level; these are now displayed on the tutor profile
+    paymentTiming: null,
+    paymentMethods: [],
     };
   })();
 
@@ -208,38 +209,7 @@ const SubjectPricingInfoDisplay = (props) => {
           </p>
         </div>
 
-        <div className="p-4 bg-muted/20 rounded-xl border border-muted space-y-2">
-          <div className="flex items-center gap-2 text-primary font-medium mb-2">
-            <BadgeCheck size={20} className="text-blue-600" />
-            <span>{t('paymentInfo', 'Payment Information')}</span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2 bg-background px-3 py-1 rounded-full border border-muted shadow-sm">
-              <Wallet size={16} className="text-purple-600" />
-              <span className="text-primary font-medium">
-                {t('paymentTiming', 'Payment:')}{" "}
-                <span className="font-bold text-foreground">
-                  {toBooleanPaymentTimingLabel(normalized.paymentTiming)}
-                </span>
-              </span>
-            </div>
-
-            {normalized.paymentMethods?.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {normalized.paymentMethods.map((method, idx) => (
-                  <div
-                    key={`${String(method)}-${idx}`}
-                    className="flex items-center gap-2 bg-background px-3 py-1 rounded-full border border-muted shadow-sm"
-                  >
-                    {getIconForMethod(method)}
-                    <span>{getLabelForMethod(method)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Payment display removed from subject-level; now shown on tutor profile */}
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row gap-4">

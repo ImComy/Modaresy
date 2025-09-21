@@ -84,21 +84,7 @@ const SubjectProfileSchema = new Schema({
       description: String
     }
   }],
-  payment_methods: { 
-    type: [String], 
-    enum: PaymentMethods, 
-    validate: {
-      validator: methods => methods.length > 0,
-      message: "At least one payment method is required"
-    },
-    default: ['Cash'] 
-  },
-  payment_timing: { 
-    type: String, 
-    enum: PaymentTimings, 
-    required: true, 
-    default: "Postpaid" 
-  },
+  // payment methods and timing moved to Teacher model
   groups: { type: [mongoose.Types.ObjectId], ref: 'Group', default: [] },
   session_duration: { type: Number, min: 0 },
   lectures_per_week: { type: Number, min: 0 },

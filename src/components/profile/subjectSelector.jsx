@@ -305,7 +305,7 @@ const SubjectSelector = ({
 
     if (grade) {
       badges.push(
-        <Badge key="grade" variant="secondary" className="text-[10px] px-1.5 py-0.5">
+        <Badge key="grade" variant="secondary" className="text-[10px]">
           {translateValue(grade, 'grade')}
         </Badge>
       );
@@ -444,8 +444,8 @@ const SubjectSelector = ({
         </div>
 
         <div className='flex flex-col-reverse lg:flex-row gap-6'>
-          <Card className="md:w-fit flex justify-center items-center">
-            <CardHeader className="p-4 flex items-center justify-between gap-4">
+          <Card className="w-full md:w-fit flex justify-center items-center">
+            <CardHeader className="p-4 flex md:flex-col sm:flex-row items-start sm:items-center justify-start gap-4">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-10 h-10 rounded-md bg-primary/10 text-primary">
                   <BookOpen className="w-5 h-5" />
@@ -458,12 +458,12 @@ const SubjectSelector = ({
                     </span>
                   </CardTitle>
                   <div className="text-sm text-muted-foreground">
-                    <span dir="ltr">Select a subject to view and edit details</span> — <span dir="rtl">اختر المادة لعرض وتعديل التفاصيل</span>
+                    <span>{t('selectSubjectDropDown', 'Select a subject to view and edit details')}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="sm:w-fit md:w-96 max-w-full relative" onKeyDown={handleKeyDown}>
+              <div className="w-full md:w-96 max-w-full relative" onKeyDown={handleKeyDown}>
                 <button
                   ref={toggleRef}
                   type="button"
@@ -476,15 +476,8 @@ const SubjectSelector = ({
                     <span className="font-medium text-sm text-foreground truncate" title={selectedSubject?.name || selectedSubject?.subject_id?.name}>
                       {selectedSubject?.name ? translateValue(selectedSubject.name, 'subject') : selectedSubject?.subject_id?.name ? translateValue(selectedSubject.subject_id.name, 'subject') : t('unknownSubject', 'Unknown subject')}
                     </span>
-                    <div className="flex gap-2 mt-1 items-center flex-wrap">
+                    <div className="flex gap-2 mt-1 items-center flex-wrap px-2">
                       {renderPreviewBadges(selectedSubject)}
-                      {selectedSubject?.hourlyRate || selectedSubject?.price ? (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
-                          {selectedSubject.hourlyRate ?? selectedSubject.price}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
                     </div>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -508,18 +501,6 @@ const SubjectSelector = ({
                         className="rounded-xl border bg-popover shadow-xl"
                         dir={dir}
                       >
-                        <div className="sticky top-0 bg-popover z-10 p-2 border-b">
-                          <div className="relative">
-                            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <input
-                              type="text"
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              placeholder={t('searchSubjects', 'Search subjects...')}
-                              className="w-full ps-10 pe-4 py-2 text-sm bg-background border rounded-lg placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                            />
-                          </div>
-                        </div>
                         <div style={{ maxHeight: portalStyle.maxHeight - 64, overflowY: 'auto' }} ref={listRef}>
                           <ul role="listbox" aria-label={t('subjectList', 'Subjects list')} className="space-y-2 p-3">
                             {groupedOrdered.filter(g => groupMatchesSearch(g, searchTerm)).map((group, gIdx) => {
@@ -531,7 +512,7 @@ const SubjectSelector = ({
                               return (
                                 <li key={`group-${gIdx}`} className="rounded-md">
                                   <div
-                                    className={`w-full text-left p-3 flex items-start gap-3 cursor-pointer hover:bg-muted/3 transition-colors rounded-md`}
+                                    className={`w-full text-left p-3 flex items-start gap-3 cursor-pointer hover:bg-muted/3 transition-colors rounded-md flex-wrap`}
                                     onClick={() => setExpandedGroupKey(prev => prev === group.key ? null : group.key)}
                                     onMouseEnter={() => setHighlightIndex(firstItem?.orderedIndex ?? -1)}
                                     onMouseLeave={() => setHighlightIndex(-1)}
@@ -544,9 +525,6 @@ const SubjectSelector = ({
                                       <div className="font-medium text-sm truncate" title={translateSubjectName(group.key)}>
                                         {translateSubjectName(group.key) || t('unknownSubject', 'Unknown subject')}
                                         <span className="ml-2 text-xs text-muted-foreground">· {groupCount} {t('variants','variants')}</span>
-                                      </div>
-                                      <div className="text-xs text-muted-foreground truncate" title={subjectForPreview ? `${subjectForPreview.education_system || subjectForPreview.subject_id?.education_system ? translateValue(subjectForPreview.education_system || subjectForPreview.subject_id?.education_system, 'system') : '—'} • ${subjectForPreview.grade || subjectForPreview.subject_id?.grade ? translateValue(subjectForPreview.grade || subjectForPreview.subject_id?.grade, 'grade') : '—'}` : ''}>
-                                        {subjectForPreview ? `${subjectForPreview.education_system || subjectForPreview.subject_id?.education_system ? translateValue(subjectForPreview.education_system || subjectForPreview.subject_id?.education_system, 'system') : '—'} • ${subjectForPreview.grade || subjectForPreview.subject_id?.grade ? translateValue(subjectForPreview.grade || subjectForPreview.subject_id?.grade, 'grade') : '—'}` : '—'}
                                       </div>
                                       <div className="flex gap-2 mt-2 items-center flex-wrap">{renderPreviewBadges(subjectForPreview)}</div>
                                     </div>
@@ -586,7 +564,7 @@ const SubjectSelector = ({
                                                     onClick={() => selectIndex(orderedIndex)}
                                                     onMouseEnter={() => setHighlightIndex(orderedIndex)}
                                                     onMouseLeave={() => setHighlightIndex(-1)}
-                                                    className={`rtl:text-right w-full text-left ps-8 p-3 rounded-lg transition-colors flex items-center gap-3 relative before:content-[''] before:absolute before:start-2 before:top-1/2 before:-translate-y-1/2 before:w-2 before:h-2 before:rounded-full before:bg-primary ${isSelected ? 'bg-primary/10 text-primary' : ''} ${isHighlighted && !isSelected ? 'bg-muted/5' : ''}`}
+                                                    className={`rtl:text-right w-full text-left ps-8 p-3 rounded-lg transition-colors flex items-center gap-3 relative before:content-[''] before:absolute before:start-2 before:top-1/2 before:-translate-y-1/2 before:w-2 before:h-2 before:rounded-full before:bg-primary ${isSelected ? 'bg-primary/10 text-primary' : ''} ${isHighlighted && !isSelected ? 'bg-muted/5' : ''} flex-wrap`}
                                                   >
                                                     <div className="min-w-0 flex-1">
                                                       {renderSubjectDetailsInDropdown(subject, originalIndex, false)}
@@ -612,7 +590,7 @@ const SubjectSelector = ({
             </CardHeader>
           </Card>
 
-          <Card className="md:w-full sm:w-fit bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/70 dark:to-indigo-950/70 border-blue-200/50 dark:border-blue-800/30 shadow-lg">
+          <Card className="w-full flex-1 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/70 dark:to-indigo-950/70 border-blue-200/50 dark:border-blue-800/30 shadow-lg">
             <TutorLocationMap tutor={tutor} isEditing={isEditing} onChange={onTutorChange} isOwner={isOwner} />
           </Card>
         </div>

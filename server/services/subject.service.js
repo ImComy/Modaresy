@@ -357,10 +357,8 @@ createSubject: async (data) => {
           user_type: "tutor",
           rating: 0,
           yearsExp: 0,
-          payment_timing: "Postpaid",
-          session_duration: 60,
-          lectures_per_week: 2,
-          payment_methods: ["Cash"],
+            session_duration: 60,
+            lectures_per_week: 2,
         });
         await profile.save({ session });
 

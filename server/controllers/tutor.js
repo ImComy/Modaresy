@@ -7,6 +7,7 @@ import {
 } from '../services/tutor.service.js';
 import { Teacher } from '../models/teacher.js';
 import { PersonalAvailability } from '../models/misc.js';
+import { PaymentTiming } from '../models/subjectRelated.js';
 
 /**
  * Normalize query params into arrays if needed
@@ -79,6 +80,8 @@ export async function updateProfile(req, res) {
       experience_years: updated_information.experience_years,
       rating: updated_information.rating,
       youtube: updated_information.youtube,
+      payment_timing: updated_information.payment_timing,
+      payment_methods: updated_information.payment_methods,
     };
 
     Object.keys(teacherUpdateData).forEach((key) => {

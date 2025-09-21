@@ -97,6 +97,18 @@ const TeacherSchema = new Schema(
       }
     ],
 
+    // Payment settings moved from SubjectProfile to Teacher (global for tutor)
+    payment_methods: { 
+      type: [String], 
+      required: false,
+      default: [],
+    },
+
+    payment_timing: {
+      type: String,
+      required: false,
+    },
+
     rating: {
       type: Number,
       required: true,

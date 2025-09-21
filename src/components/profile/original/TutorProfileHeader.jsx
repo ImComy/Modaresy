@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { getAvatarSrc, getBannerUrl } from '@/api/imageService';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -6,9 +6,19 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { MapPin, BookOpen, MessageSquare, Heart, Award, GraduationCap, Star } from 'lucide-react';
+import {
+  MapPin,
+  BookOpen,
+  MessageSquare,
+  Heart,
+  Award,
+  GraduationCap,
+  Star,
+  BadgeCheck,
+  Wallet,
+} from 'lucide-react';
+import { getPaymentIcon } from '@/data/payment';
 import { cn } from '@/lib/utils';
-import { API_BASE } from '@/api/apiService';
 import {
   FaFacebookF,
   FaInstagram,
@@ -23,6 +33,7 @@ import {
 } from 'react-icons/fa';
 import { useWishlistLogic } from '@/hooks/useWishlistActions';
 import renderStars from '@/components/ui/renderStars';
+import SubjectsDisplay from './SubjectSection';
 
 const socialIcons = {
   facebook: FaFacebookF,
@@ -46,20 +57,18 @@ const TutorProfileHeaderDisplay = ({ tutor, isOwner }) => {
     (tutor.subjects?.length || 1);
 
   return (
-    <>
-      <Card className="shadow-xl bg-gradient-to-br from-primary/5 to-primary/10 border-0">
-        <div className="relative h-48 md:h-64 rounded-t-lg overflow-hidden">
-          <img
-            src={getBannerUrl(tutor) || '/banner.png'}
-            alt={tutor.name ? tutor.name : t('bannerAlt', 'Banner image')}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-            }}
-          />
-        </div>
+    <Card className="shadow-xl bg-gradient-to-br from-primary/5 to-primary/10 border-0">
+      <div className="relative h-48 md:h-64 rounded-t-lg overflow-hidden">
+        <img
+          src={getBannerUrl(tutor) || '/banner.png'}
+          alt={tutor.name ? tutor.name : t('bannerAlt', 'Banner image')}
+          className="w-full h-full object-cover"
+          onError={(e) => { e.currentTarget.onerror = null; }}
+        />
+      </div>
 
-        <CardContent className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+      <CardContent className="p-6 md:p-8 flex flex-col md:flex-row gap-6 relative">
+        <div className="w-full md:w-1/3">
           <ProfileSection
             tutor={tutor}
             isInWishlist={isInWishlist}
@@ -67,14 +76,21 @@ const TutorProfileHeaderDisplay = ({ tutor, isOwner }) => {
             averageRating={averageRating}
             t={t}
           />
+        </div>
 
+        <div className="w-full md:w-2/3">
           <DetailsSection tutor={tutor} t={t} />
-        </CardContent>
-      </Card>
-    </>
+        </div>
+      </CardContent>
+
+      <AboutMeSection aboutMe={tutor.about_me} t={t} />
+    </Card>
   );
 };
 
+/* ---------------------------
+   ProfileSection
+   --------------------------- */
 const ProfileSection = ({ tutor, isInWishlist, handleWishlistToggle, averageRating, t }) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
@@ -88,9 +104,7 @@ const ProfileSection = ({ tutor, isInWishlist, handleWishlistToggle, averageRati
           <AvatarImage
             src={getAvatarSrc(tutor) || ''}
             alt={tutor.name ? tutor.name : t('avatarAlt', 'Tutor avatar')}
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-            }}
+            onError={(e) => { e.currentTarget.onerror = null; }}
           />
           <AvatarFallback className="text-3xl rounded-sm">
             {tutor.name?.split(' ').map((n) => n[0]).join('') || ''}
@@ -118,8 +132,7 @@ const ProfileSection = ({ tutor, isInWishlist, handleWishlistToggle, averageRati
         {tutor.governate && (
           <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
             <MapPin size={14} />
-            {t(`constants.Governates.${tutor.governate}`, { defaultValue: tutor.governate })}
-            , {t(tutor.district && `constants.Districts.${tutor.district}`)}
+            {t(`constants.Governates.${tutor.governate}`, { defaultValue: tutor.governate })}, {t(tutor.district && `constants.Districts.${tutor.district}`)}
           </div>
         )}
       </div>
@@ -129,6 +142,9 @@ const ProfileSection = ({ tutor, isInWishlist, handleWishlistToggle, averageRati
   </motion.div>
 );
 
+/* ---------------------------
+   SocialButtons
+   --------------------------- */
 const SocialButtons = ({ isInWishlist, handleWishlistToggle, socialMedia, t }) => {
   const processedSocialMedia = { ...(socialMedia || {}) };
 
@@ -178,289 +194,124 @@ const SocialButtons = ({ isInWishlist, handleWishlistToggle, socialMedia, t }) =
   );
 };
 
-const DetailsSection = ({ tutor, t }) => (
-  <motion.div
-    initial={{ opacity: 0, x: 10 }}
-    animate={{ opacity: 1, x: 0 }}
-    transition={{ duration: 0.4, delay: 0.1 }}
-    className="md:col-span-2 space-y-4 flex flex-col items-center text-center md:items-start md:text-left"
-  >
-    <div className="flex flex-col md:flex-row w-full gap-6 justify-between">
-      <ExperienceLocationSection tutor={tutor} t={t} />
-      <SubjectsDisplay tutor={tutor} t={t} />
-    </div>
+/* ---------------------------
+   DetailsSection (measures left column)
+   --------------------------- */
+const DetailsSection = ({ tutor, t }) => {
+  const leftRef = useRef(null);
 
-    <AboutMeSection aboutMe={tutor.about_me} t={t} />
-  </motion.div>
-);
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.4, delay: 0.1 }}
+      className="relative flex flex-col md:flex-row w-full gap-6"
+    >
+      <div ref={leftRef} className="w-full md:w-1/2 flex-shrink-0">
+        <ExperienceLocationSection tutor={tutor} t={t} />
+      </div>
 
+      <div className="w-full  flex flex-col">
+        <div className="z-20">
+          <SubjectsDisplay tutor={tutor} t={t} />
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+
+/* ---------------------------
+   ExperienceLocationSection
+   --------------------------- */
 const ExperienceLocationSection = ({ tutor, t }) => {
   const maxExperience = tutor.subjects?.reduce((max, subject) => Math.max(max, subject.years_experience || 0), tutor.experience_years || 0);
 
   return (
-    <div className="space-y-6 w-full md:w-1/2">
-      <div className="bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg border border-primary/20 shadow-sm">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 bg-primary/10 rounded-full">
-            <Award className="h-5 w-5 text-primary" />
-          </div>
-          <h3 className="text-lg font-semibold text-primary">{t('experience', 'Experience')}</h3>
+    <div className="space-y-6 w-full">
+      <div className="flex items-center gap-3 bg-white/50 dark:bg-gray-800/50 border border-primary/20 rounded-md px-3 py-2 shadow-sm">
+        <div className="p-1.5 bg-primary/10 rounded-md">
+          <Award className="h-4 w-4 text-primary" />
         </div>
-
-        <div className="space-y-2 pl-11">
-          <div className="flex items-baseline gap-2">
-            <span className="font-medium text-lg">
-              {maxExperience} {t('years', 'years')}
-            </span>
-          </div>
+        <div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">
+            {t('experience', 'Experience')}
+          </p>
+          <p className="text-base font-semibold text-primary">
+            {maxExperience} {t('years', 'years')}
+          </p>
         </div>
       </div>
 
-      <div className="bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg border border-primary/20 shadow-sm">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 bg-primary/10 rounded-full">
-            <MapPin className="h-5 w-5 text-primary" />
+      <div className="flex flex-col items-start gap-3 bg-white/50 dark:bg-gray-800/50 border border-primary/20 rounded-md px-3 py-2 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 bg-primary/10 rounded-md">
+            <MapPin className="h-4 w-4 text-primary" />
           </div>
-          <h3 className="text-lg font-semibold text-primary">{t('location', 'Location')}</h3>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">
+            {t('location', 'Location')}
+          </p>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-primary">
+            {tutor.address ? tutor.address : <span className="italic text-muted-foreground">{t('locationNotSpecified', 'Location not specified')}</span>}
+          </p>
+        </div>
+      </div>
+
+      <PaymentDisplay tutor={tutor} t={t} />
+    </div>
+  );
+};
+
+/* ---------------------------
+   PaymentDisplay
+   --------------------------- */
+const PaymentDisplay = ({ tutor, t }) => {
+  const timing = tutor?.payment_timing || '';
+  const methods = Array.isArray(tutor?.payment_methods) ? tutor.payment_methods : (tutor?.payment_methods ? [tutor.payment_methods] : []);
+
+  return (
+    <div className="p-4 bg-muted/20 rounded-xl border border-muted space-y-2">
+      <div className="flex items-center gap-2 text-primary font-medium mb-2">
+        <BadgeCheck size={20} className="text-blue-600" />
+        <span>{t('paymentInfo', 'Payment Information')}</span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 bg-background px-3 py-1 rounded-full border border-muted shadow-sm">
+          <Wallet size={16} className="text-purple-600" />
+          <span className="text-primary font-medium">
+            {t('paymentTiming', 'Payment:')}{" "}
+            <span className="font-bold text-foreground">
+              {timing ? t(`constants.PaymentTimings.${timing}`, { defaultValue: timing }) : t('notSpecified', 'Not specified')}
+            </span>
+          </span>
         </div>
 
-        <div className="space-y-2 pl-11 rtl:text-right">
-          {tutor.address ? (
-            <div className="flex items-start gap-2">
-              <span className="text-muted-foreground flex-1">{tutor.address}</span>
-            </div>
-          ) : (
-            <p className="text-muted-foreground italic">{t('locationNotSpecified', 'Location not specified')}</p>
-          )}
-        </div>
+        {methods.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {methods.map((method, idx) => {
+              const Icon = getPaymentIcon(method);
+              return (
+                <div key={`${String(method)}-${idx}`} className="flex items-center gap-2 bg-background px-3 py-1 rounded-full border border-muted shadow-sm">
+                  {Icon ? <Icon size={14} /> : null}
+                  <span>{t(`constants.PaymentMethods.${method}`, { defaultValue: method })}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-function SubjectsDisplay({ tutor = {}, t }) {
-  const subjects = tutor.subjects || [];
-  const { i18n } = useTranslation();
-  const dir = i18n && typeof i18n.dir === 'function' ? i18n.dir() : 'ltr';
-  const textAlign = dir === 'rtl' ? 'right' : 'left';
-
-  const normalizeArrayField = (value) => {
-    if (!value) return [];
-    if (Array.isArray(value)) return value.filter(Boolean);
-    if (typeof value === 'string' && value.includes(',')) {
-      return value.split(',').map((s) => s.trim()).filter(Boolean);
-    }
-    return [String(value)];
-  };
-
-  // helper to translate values with multiple fallbacks
-  const translateValue = (value, type) => {
-    if (!value && value !== 0) return '';
-    // direct subject mapping
-    if (type === 'subject') {
-      return t(`constants.Subjects.${value}`, { defaultValue: value });
-    }
-    if (type === 'grade') {
-      return t(`constants.EducationStructure.National.grades.${value}`, { defaultValue: value });
-    }
-    if (type === 'system') {
-      return t(`constants.Education_Systems.${value}`, { defaultValue: value });
-    }
-    if (type === 'sector') {
-      return t(`constants.EducationStructure.National.sectors.${value}`, { defaultValue: value });
-    }
-    if (type === 'language') {
-      // try national languages then generic Languages
-      const national = t(`constants.EducationStructure.National.languages.${value}`, { defaultValue: null });
-      if (national) return national !== 'null' ? national : t(`constants.Languages.${value}`, { defaultValue: value });
-      return t(`constants.Languages.${value}`, { defaultValue: value });
-    }
-    // generic fallback
-    return t(value, { defaultValue: value });
-  };
-
-  const Chips = ({ value, ariaLabel, type = 'generic' }) => {
-    const items = normalizeArrayField(value);
-    if (items.length === 0) {
-      return <span className="font-medium text-xs" style={{ textAlign }}>{t('notSpecified', 'Not specified')}</span>;
-    }
-
-    return (
-      <div
-        className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full p-1"
-        aria-label={ariaLabel}
-        style={{ direction: dir }}
-      >
-        {items.map((it, i) => {
-          const translated = (() => {
-            if (type === 'sector') return translateValue(it, 'sector');
-            if (type === 'language') return translateValue(it, 'language');
-            if (type === 'subject') return translateValue(it, 'subject');
-            if (type === 'grade') return translateValue(it, 'grade');
-            return translateValue(it, 'generic');
-          })();
-
-          return (
-            <span
-              key={it + i}
-              className="flex-shrink-0 text-[10px] px-2 py-1 rounded-full border border-primary/30 bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 backdrop-blur-sm whitespace-nowrap transition-all hover:scale-105 hover:border-primary/50"
-              title={it}
-              style={{ textAlign }}
-            >
-              {translated}
-            </span>
-          );
-        })}
-      </div>
-    );
-  };
-
-  // Group subjects by normalized name (case-insensitive, trimmed)
-  const grouped = useMemo(() => {
-    const map = new Map();
-    for (const s of subjects) {
-      const key = (s.name || '').toString().trim().toLowerCase() || `__no_name__${Math.random()}`;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(s);
-    }
-    return Array.from(map.entries()); // [ [key, [subjects...]], ... ]
-  }, [subjects]);
-
-  return (
-    <div
-      dir={dir}
-      style={{ direction: dir }}
-      className={cn(
-        'w-full bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 shadow-lg rounded-2xl p-4 z-10 border border-gray-200 dark:border-gray-700 rounded-l-md',
-        'max-h-[400px] overflow-y-auto flex-1 min-w-0 md:max-w-xs mt-0 md:-mt-32'
-      )}
-    >
-      <div
-        className="text-lg font-semibold flex items-center gap-2 text-primary mb-4 pb-2 border-b border-gray-100 dark:border-gray-700"
-        style={{ textAlign }}
-      >
-        <div className="p-1.5 rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10">
-          <GraduationCap size={20} className="text-primary" />
-        </div>
-        {t('teachesSubjects', 'Teaches')}
-      </div>
-
-      {subjects.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          {grouped.map(([key, group], idx) => {
-            const displayName = translateValue(group[0].name, 'subject') || t('unnamedSubject', 'Unnamed subject');
-
-            return (
-              <motion.div
-                key={`${key}-${idx}`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                className="rounded-xl p-3 bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/70 dark:to-gray-800/70 backdrop-blur-sm border border-gray-200/80 dark:border-gray-600/50 shadow-sm hover:shadow-md transition-all hover:border-primary/30"
-                style={{ direction: dir }}
-              >
-                <div className="flex items-center gap-2 mb-2" style={{ justifyContent: dir === 'rtl' ? 'flex-end' : 'flex-start' }}>
-                  <div className="p-1 rounded-md bg-primary/10" style={{ order: dir === 'rtl' ? 2 : 0 }}>
-                    <GraduationCap size={16} className="text-primary shrink-0" />
-                  </div>
-                  <h4 className="text-base font-semibold truncate flex-1" style={{ textAlign }}>
-                    {displayName}
-                  </h4>
-                </div>
-
-                {/* if only one variant, show same layout as before */}
-                {group.length === 1 ? (
-                  (() => {
-                    const subject = group[0];
-                    return (
-                      <div className="text-xs text-muted-foreground flex flex-col gap-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2">
-                            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
-                              {t('System', 'System')}
-                            </div>
-                            <div className="font-medium truncate text-xs" style={{ textAlign }}>
-                              {subject.education_system ? translateValue(subject.education_system, 'system') : t('notSpecified', 'Not specified')}
-                            </div>
-                          </div>
-
-                          <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2">
-                            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
-                              {t('Grade', 'Grade')}
-                            </div>
-                            <div className="font-medium truncate text-xs" style={{ textAlign }}>
-                              {subject.grade ? translateValue(subject.grade, 'grade') : t('notSpecified', 'Not specified')}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div>
-                            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
-                              {t('Sector', 'Sector')}
-                            </div>
-                            <Chips value={subject.sector} ariaLabel={`${t('Sector', 'Sector')} for ${subject.name || ''}`} type="sector" />
-                          </div>
-
-                          <div>
-                            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
-                              {t('Language', 'Language')}
-                            </div>
-                            <Chips value={subject.language} ariaLabel={`${t('Language', 'Language')} for ${subject.name || ''}`} type="language" />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()
-                ) : (
-                  // multiple variants: render a compact list of variants inside the same card
-                  <div className="space-y-2">
-                    {group.map((subject, i) => (
-                      <div key={`${key}-var-${i}`} className="p-2 rounded-md border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
-                        <div className="flex flex-col justify-between gap-2 px-2">
-                          <div className="bg-gray-100/70 dark:bg-gray-700/50 rounded-lg p-2 text-center">
-                            <div className="font-medium text-sm text-gray-500 dark:text-gray-400">{subject.grade ? translateValue(subject.grade, 'grade') : t('notSpecified', 'Not specified')}</div>
-                            <div className="text-xs tracking-wide text-gray-500 dark:text-gray-400">{subject.education_system ? translateValue(subject.education_system, 'system') : t('notSpecified', 'Not specified')}</div>
-                          </div>
-                        <div className="space-y-2">
-                          <div>
-                            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
-                              {t('Sector', 'Sector')}
-                            </div>
-                            <Chips value={subject.sector} ariaLabel={`${t('Sector', 'Sector')} for ${subject.name || ''}`} type="sector" />
-                          </div>
-
-                          <div>
-                            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1" style={{ textAlign }}>
-                              {t('Language', 'Language')}
-                            </div>
-                            <Chips value={subject.language} ariaLabel={`${t('Language', 'Language')} for ${subject.name || ''}`} type="language" />
-                          </div>
-                        </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-5 bg-gradient-to-br from-gray-100/50 to-gray-200/30 dark:from-gray-700/30 dark:to-gray-800/20 flex flex-col items-center text-center text-muted-foreground gap-3" style={{ textAlign }}>
-          <div className="p-2 rounded-full bg-primary/10">
-            <GraduationCap size={32} className="text-primary/60" />
-          </div>
-          <p className="font-medium text-sm">{t('noSubjectsAdded', 'No subjects added')}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{t('subjectsWillAppear', 'Subjects will appear here once added')}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
+/* ---------------------------
+   AboutMeSection
+   --------------------------- */
 const AboutMeSection = ({ aboutMe, t }) => (
-  <div className="w-full flex flex-col rtl:text-right">
+  <div className="w-full flex flex-col rtl:text-right p-10 -mt-16">
     <Separator className="my-4" />
     <h2 className="text-xl font-semibold mb-2 text-primary rtl:text-right">{t('aboutMe', 'About me')}</h2>
     {aboutMe?.trim() ? (

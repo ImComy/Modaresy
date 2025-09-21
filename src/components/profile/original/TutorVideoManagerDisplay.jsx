@@ -254,7 +254,7 @@ export default function TutorVideoManagerDisplay({ videos = [], className = '' }
                     </Button>
 
                     {selected && (
-                      <div className="ml-auto px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                      <div className="text-center px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
                         {t('tutorVideos.playing', 'Playing')} {selectedIndex + 1}/{videos.length}
                       </div>
                     )}

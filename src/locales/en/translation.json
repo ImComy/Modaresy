@@ -1931,6 +1931,8 @@
   "passwordMatch.match": "Passwords match",
   "passwordMatch.noMatch": "Passwords do not match",
   "updating": "Updating...",
-  "updatePassword": "Update Password"
+  "updatePassword": "Update Password",
+  "enterYourAddress": "Enter Yoou Address",
+  "selectSubjectDropDown": "Select a subject to view and edit details"
 }
 
