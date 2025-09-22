@@ -10,7 +10,7 @@ import StepUploadPfp from "@/components/signup/StepUploadPfp";
 import StepSocialMedia from "@/components/signup/StepSocialMedia";
 import StepBio from "@/components/signup/StepBio";
 import StepFinish from "@/components/signup/StepFinish";
-import TutorVideoManagerEdit from "@/components/profile/editing/TutorVideoManagerEdit";
+import TutorVideoOnboard from "@/components/signup/youtube";
 import TutorOnboardingAside from "@/components/signup/TutorOnboardingAside";
 import AddSubjectCardUI from "@/components/signup/StepSubjects";
 import ScheduleEditor from "@/components/signup/ScheduleEditor";
@@ -22,7 +22,7 @@ const rawSteps = [
   { id: "pfp", title: "Profile Photo & Banner", component: StepUploadPfp },
   { id: "bio", title: "Basic Info", component: StepBio },
   { id: "socials", title: "Socials", component: StepSocialMedia },
-  { id: "videos", title: "Intro Videos", component: TutorVideoManagerEdit },
+  { id: "videos", title: "Intro Videos", component: TutorVideoOnboard },
   { id: "subjects", title: "Subjects", component: AddSubjectCardUI },
   { id: "schedule", title: "Schedule", component: ScheduleEditor },
   { id: "pricing", title: "Pricing", component: SubjectPricingInfoEditHollow },
@@ -214,7 +214,7 @@ export default function TutorOnboardingWrapper({ onFinish }) {
 
             {/* glass-like open card */}
             <div id="onboard-card" ref={cardRef} className="relative rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.02))] backdrop-blur-md shadow-lg ring-1 ring-transparent overflow-hidden mt-10">
-              <div className="relative px-4 md:px-6 pt-6 pb-6 md:pb-0">
+              <div className="relative md:px-6  md:pb-0">
                 {/* SINGLE shared step rendering - responsive scroll behavior handled by CSS */}
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -228,7 +228,7 @@ export default function TutorOnboardingWrapper({ onFinish }) {
                   >
                     {/* inner wrapper: scrollable on small screens, static on md+ */}
                     <div
-                      className="max-h-[calc(100vh-160px)] md:max-h-none overflow-auto md:overflow-visible touch-pan-y"
+                      className="max-h-none overflow-auto md:overflow-visible touch-pan-y"
                       aria-live="polite"
                     >
                       <activeStep.component

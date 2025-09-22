@@ -43,9 +43,9 @@ const OfferForm = ({ offer, onChange }) => {
   }, [offer]);
 
   return (
-    <div className="mt-4 p-4 border border-green-300 bg-lime-100/30 rounded-lg">
+    <div className="mt-4 p-4 border border-green-700 bg-lime-800/10 rounded-lg">
       <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center gap-2 text-green-700 font-medium">
+        <div className="flex items-center gap-2 text-green-300 font-medium">
           <BadgePercent size={16} />
           <span>{t("offer", "Offer")}</span>
         </div>

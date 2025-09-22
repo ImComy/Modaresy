@@ -1500,7 +1500,6 @@
   "errorGettingLocation": "خطأ في الحصول على الموقع:",
   "locationAccessDenied": "ممكن مانفعش الوصول للموقع.",
   "locationPermissionDenied": "تم رفض إذن الموقع.",
-  "locationUnavailable": "موقعك الحالي غير متاح.",
   "locationTimeout": "انتهت مهلة طلب الموقع.",
   "geolocationNotSupported": "المتصفح لا يدعم تحديد الموقع.",
   "connectionErrorTitle": "خطأ في الاتصال",
@@ -2023,5 +2022,6 @@
   "deleteAccountShort": "هذا الإجراء لا يمكن التراجع عنه.",
   "account": {
     "footerNote": "هل تحتاج مساعدة؟ تواصل مع الدعم."
-  }
+  },
+  "locationUnavailable": "الموقع الحالي غير متاح."
 }

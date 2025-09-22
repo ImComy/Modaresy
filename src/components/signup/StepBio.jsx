@@ -1,10 +1,164 @@
 import React, { useEffect, useState, Fragment } from "react";
 import { useStepData } from "@/context/StepContext";
-import { User, Briefcase, MapPin, PhoneCall, Clock, CheckCircle, Edit2, X, Plus, Trash } from "lucide-react";
+import {
+  User,
+  Briefcase,
+  MapPin,
+  PhoneCall,
+  Clock,
+  CheckCircle,
+  Edit2,
+  X,
+  Plus,
+  Trash,
+  BadgeCheck,
+  Wallet,
+  CreditCard,
+  DollarSign,
+} from "lucide-react";
 import TutorLocationMapEdit from "@/components/profile/editing/map";
 import { Listbox, Transition } from "@headlessui/react";
 import MultiSelect from '@/components/ui/multi-select';
+import { motion } from "framer-motion";
 
+function PaymentOnboardSection({
+  formData = {},
+  paymentTimings = ['Prepaid', 'Postpaid'],
+  paymentOptions = [],
+  onTimingChange = () => {},
+  onToggleMethod = () => {},
+  t = (k, d) => d,
+}) {
+  const selectedMethods = Array.isArray(formData.payment_methods) ? formData.payment_methods : [];
+
+  function classNames(...args) {
+    return args.filter(Boolean).join(' ');
+  }
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      aria-label={t('paymentOnboardSectionLabel', 'Payment setup')}
+      className="mx-auto"
+    >
+      {/* Card */}
+      <div className="rounded-2xl border p-5 bg-card/60" style={{ borderColor: 'hsl(var(--border))' }}>
+        {/* Friendly explanation */}
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 mt-1">
+            <Wallet className="w-6 h-6" />
+          </div>
+
+          <div className="flex-1">
+            <h2 className="text-sm font-medium">{t('paymentTitle', 'Set up how you want to get paid')}</h2>
+            <p className="text-xs mt-1 text-muted-foreground">{t('paymentSubtitle', 'Only a few quick choices — you can change them anytime.')}</p>
+          </div>
+        </div>
+
+        <hr className="my-4 border-dashed" />
+
+        {/* Timing selector (big, clear buttons) */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium">{t('paymentTimingLabel', 'When should students pay?')}</label>
+          <p className="text-xs text-muted-foreground">{t('paymentTimingHint', 'Pick the default option shown on your profile.')}</p>
+
+          <div className="mt-3 flex gap-3" role="radiogroup" aria-label={t('paymentTimingAria','Payment timing options')}>
+            {paymentTimings.map((opt) => {
+              const selected = formData.payment_timing === opt;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => onTimingChange(opt)}
+                  className={classNames(
+                    'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1',
+                    selected ? 'bg-primary text-primary-foreground ring-1 ring-primary/40' : 'bg-transparent border border-primary/20 text-foreground hover:bg-primary/5'
+                  )}
+                >
+                  <Clock className="w-4 h-4" aria-hidden />
+                  <span>{t(`constants.PaymentTimings.${opt}`, opt)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <hr className="my-4 border-dashed" />
+
+        {/* Payment methods */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="block text-sm font-medium">{t('paymentMethodsLabel', 'Which payment methods do you accept?')}</label>
+              <p className="text-xs text-muted-foreground">{t('paymentMethodsHint', 'Students will see these options when they book.')}</p>
+            </div>
+
+            <div className="text-xs text-muted-foreground">{selectedMethods.length} {t('selected', 'selected')}</div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mt-2">
+            {paymentOptions.length === 0 && (
+              <div className="text-xs text-muted-foreground">{t('noPaymentOptions', 'No payment options available')}</div>
+            )}
+
+            {paymentOptions.map((option) => {
+              const active = selectedMethods.includes(option.value);
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onToggleMethod(option.value)}
+                  aria-pressed={active}
+                  className={classNames(
+                    'flex items-center gap-2 px-3 py-2 rounded-full text-sm transition-shadow focus:outline-none',
+                    active
+                      ? 'bg-primary text-primary-foreground shadow-md ring-1 ring-primary/30'
+                      : 'bg-transparent border border-primary/10 hover:bg-primary/5'
+                  )}
+                >
+                  <span className="flex items-center justify-center w-5 h-5">
+                    {option.icon || <CreditCard className="w-4 h-4" />}
+                  </span>
+                  <span>{option.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Footer actions */}
+        <div className="mt-5 flex items-center justify-between">
+          <div className="text-xs text-muted-foreground">{t('privacyNote', 'Your payment details are private and only used to display accepted methods.')}</div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="text-sm underline text-muted-foreground"
+            >
+              {t('needHelp', 'Need help?')}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => alert('Saved — proceed to next step (this is a prototype).')}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm shadow-sm"
+            >
+              {t('saveAndContinue', 'Save & continue')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
+/**
+ * Main default export: StepBio
+ */
 export default function StepBio() {
   const { state, setState } = useStepData();
 
@@ -298,12 +452,12 @@ export default function StepBio() {
             <div className="space-y-1 pt-4 border-t border-border/50">
               <label className="text-sm font-medium text-foreground">Communication note (optional)</label>
               <p className="text-xs text-muted-foreground">Share any additional details, like preferred contact methods or typical response times.</p>
-              <textarea 
+              <textarea
                 placeholder="e.g., I prefer WhatsApp for quick responses and usually reply within 24 hours. For urgent matters, call me during availability hours."
-                value={availability.note || ''} 
-                onChange={(e) => handleAvailabilityField('note', e.target.value)} 
-                className="w-full p-3 rounded-lg h-20" 
-                style={fieldStyle} 
+                value={availability.note || ''}
+                onChange={(e) => handleAvailabilityField('note', e.target.value)}
+                className="w-full p-3 rounded-lg h-20"
+                style={fieldStyle}
               />
             </div>
 
@@ -313,6 +467,8 @@ export default function StepBio() {
           </div>
         </div>
 
+        {/* Use the named PaymentOnboardSection here (no default export collision) */}
+        <PaymentOnboardSection />
       </div>
     </div>
   );

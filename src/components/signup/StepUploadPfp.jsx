@@ -131,7 +131,7 @@ export default function StepUploadPfp({ onFile, onBannerFile }) {
 
   return (
     <>
-      <div className="flex flex-col items-center text-center gap-6 py-8 w-full h-full">
+      <div className="flex flex-col items-center text-center gap-6 py-16 px-3 w-full h-full">
         <h3 className="text-2xl font-semibold" style={{ color: "hsl(var(--foreground))" }}>
           Upload profile photo and banner
         </h3>
