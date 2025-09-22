@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TrendingUp, User } from 'lucide-react';
 
 import AnalysisSection from '@/components/Dashboard/analysis';
 import AccountSection from '@/components/Dashboard/account';
-import SaveButton from '@/components/ui/save';
+import { tutorService } from '@/api/tutor';
+import { useToast } from '@/components/ui/use-toast';
 
 const TeacherDashboardPage = () => {
   const { t, i18n } = useTranslation();
@@ -20,26 +21,38 @@ const TeacherDashboardPage = () => {
     password: '',
     confirmPassword: '',
   });
+  const setFormStable = useCallback((newForm) => {
+    setForm(newForm);
+    markDirty('account');
+  }, []);
   const lastSectionRef = useRef('analysis');
 
   const markDirty = (sectionId) => {
     setUnsavedSections((prev) => ({ ...prev, [sectionId]: true }));
   };
 
+  const { toast } = useToast();
+
   const handleSave = async (sectionId) => {
     setIsSaving(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setUnsavedSections((prev) => ({ ...prev, [sectionId]: false }));
-    setIsSaving(false);
+    try {
+      if (sectionId === 'account') {
+        await tutorService.updateProfile(form);
+        toast({ title: t('toastTitleSaved', 'Saved'), description: t('toastDescSaved', 'Changes saved.') });
+      } else {
+        await new Promise((r) => setTimeout(r, 1200));
+      }
+
+      setUnsavedSections((prev) => ({ ...prev, [sectionId]: false }));
+    } catch (err) {
+      console.error('Failed to save section', sectionId, err);
+      toast({ title: t('error'), description: err?.message || t('failedToSaveProfile', 'Failed to save changes'), variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleTabChange = async (newSection) => {
-    const currentSection = lastSectionRef.current;
-
-    if (unsavedSections[currentSection]) {
-      await handleSave(currentSection);
-    }
-
     lastSectionRef.current = newSection;
     setActiveSection(newSection);
   };
@@ -57,16 +70,16 @@ const TeacherDashboardPage = () => {
 
   const sections = [
     {
-      id: 'analysis',
-      label: t('analysis'),
-      icon: <TrendingUp className="h-6 w-6" />,
-      description: t('analysisDesc', 'View and analyze your teaching performance and student progress.'),
-    },
-    {
       id: 'account',
       label: t('accountNav'),
       icon: <User className="h-6 w-6" />,
       description: t('accountDesc', 'Manage your personal information and account settings.'),
+    },
+    {
+      id: 'analysis',
+      label: t('analysis'),
+      icon: <TrendingUp className="h-6 w-6" />,
+      description: t('analysisDesc', 'View and analyze your teaching performance and student progress.'),
     },
   ];
 
@@ -79,7 +92,7 @@ const TeacherDashboardPage = () => {
         <p className="text-lg text-muted-foreground">{t('dashboardOverview')}</p>
       </section>
 
-      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gradient-to-r from-muted/5 to-muted/10 rounded-xl shadow-lg gap-5">
+      <div className="flex flex-col sm:flex-row gap-5 p-4 bg-gradient-to-r from-muted/5 to-muted/10 rounded-xl shadow-lg">
         {sections.map((section) => (
           <motion.button
             key={section.id}
@@ -108,19 +121,13 @@ const TeacherDashboardPage = () => {
 
       {activeSection === 'analysis' && <AnalysisSection />}
       {activeSection === 'account' && (
-        <>
-          <AccountSection
-            form={form}
-            setForm={(newForm) => {
-              setForm(newForm);
-              markDirty('account');
-            }}
-          />
-          <SaveButton
-            isLoading={isSaving}
-            onClick={() => handleSave('account')}
-          />
-        </>
+        <AccountSection
+          form={form}
+          setForm={setFormStable}
+          // pass the save action down so the AccountSection can render the Save button in its header
+          onSave={() => handleSave('account')}
+          isSaving={isSaving}
+        />
       )}
     </div>
   );

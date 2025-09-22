@@ -1933,6 +1933,32 @@
   "updating": "Updating...",
   "updatePassword": "Update Password",
   "enterYourAddress": "Enter Yoou Address",
-  "selectSubjectDropDown": "Select a subject to view and edit details"
+  "selectSubjectDropDown": "Select a subject to view and edit details",
+  "deleteAccount": "Delete Account",
+  "confirmDeleteAccount": "Confirm account deletion",
+  "deleteAccountWarning": "This will permanently delete your account and all related data. This action cannot be undone.",
+  "confirmPasswordToDelete": "Enter your password to confirm",
+  "deleting": "Deleting...",
+  "accountDeleted": "Account deleted",
+  "youWillBeLoggedOut": "You will be logged out.",
+  "deleteFailed": "Delete failed",
+  "enterPassword": "Please enter your password to confirm.",
+  "tryAgain": "Please try again later.",
+  "placeholders": {
+    "confirmPassword": "Type your password"
+  },
+  "updatePasswordSectionTitle": "Update Password",
+  "profileSection": {
+    "securityHeading": "Security",
+    "twoFactorNote": "Change your password or manage account deletion below.",
+    "actions": "Actions",
+    "resetNote": "Restore fields to the last saved values.",
+    "reset": "Reset"
+  },
+  "resetToSaved": "Fields reset to saved values",
+  "deleteAccountShort": "This action is permanent.",
+  "account": {
+    "footerNote": "Need help? Contact support."
+  }
 }
 

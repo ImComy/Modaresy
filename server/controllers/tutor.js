@@ -84,15 +84,51 @@ export async function updateProfile(req, res) {
       payment_methods: updated_information.payment_methods,
     };
 
+    // Remove keys that are undefined, null, or empty strings so we don't overwrite existing values
     Object.keys(teacherUpdateData).forEach((key) => {
-      if (teacherUpdateData[key] === undefined) delete teacherUpdateData[key];
+      const val = teacherUpdateData[key];
+      if (val === undefined || val === null) {
+        delete teacherUpdateData[key];
+      } else if (typeof val === 'string' && val.trim() === '') {
+        delete teacherUpdateData[key];
+      }
     });
+
+    // Normalize numeric fields if provided
+    if (teacherUpdateData.experience_years !== undefined) {
+      const num = Number(teacherUpdateData.experience_years);
+      if (!Number.isNaN(num)) teacherUpdateData.experience_years = num;
+      else delete teacherUpdateData.experience_years;
+    }
+
+    // Collect base user fields that may exist on the Teacher discriminator (email/phone)
+    const baseUserFields = {};
+    if (typeof updated_information.email === 'string' && updated_information.email.trim() !== '') {
+      baseUserFields.email = updated_information.email.trim();
+    }
+    if (typeof updated_information.phone === 'string' && updated_information.phone.trim() !== '') {
+      // the User schema stores phone as `phone_number`
+      baseUserFields.phone_number = updated_information.phone.trim();
+    }
 
     const teacher = await Teacher.findById(req.user._id);
     if (!teacher) {
       return res.status(404).json({ error: 'User not found' });
     }
+    // Apply teacher-specific updates
     Object.assign(teacher, teacherUpdateData);
+
+    // Apply base user fields (email/phone) if provided
+    let appliedBaseFields = {};
+    if (Object.keys(baseUserFields).length > 0) {
+      Object.keys(baseUserFields).forEach((k) => {
+        // Only assign if different to avoid unnecessary writes
+        if (teacher[k] !== baseUserFields[k]) {
+          teacher[k] = baseUserFields[k];
+          appliedBaseFields[k] = baseUserFields[k];
+        }
+      });
+    }
 
     if (
       updated_information.social_media &&
@@ -136,12 +172,25 @@ export async function updateProfile(req, res) {
       }
     }
 
+    console.debug('Applying updates to teacher:', {
+      teacherUpdateDataKeys: Object.keys(teacherUpdateData),
+      appliedBaseFields,
+    });
+
     await teacher.save();
 
     const updatedUser = await Teacher.findById(req.user._id)
       .populate('availability')
       .select('-password')
       .lean();
+
+    // Make sure the returned user contains the updated base fields
+    if (appliedBaseFields.email) updatedUser.email = appliedBaseFields.email;
+    if (appliedBaseFields.phone_number) {
+      updatedUser.phone_number = appliedBaseFields.phone_number;
+      // also set `phone` for client compatibility (many components read either `phone` or `phone_number`)
+      updatedUser.phone = appliedBaseFields.phone_number;
+    }
 
     return res.status(200).json({
       message: 'Profile updated successfully',

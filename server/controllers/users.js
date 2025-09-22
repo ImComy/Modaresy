@@ -6,6 +6,7 @@ import { SubjectProfile, Subject } from '../models/subject.js';
 import { Review, Group } from '../models/subjectRelated.js';
 import { Wishlist, PersonalAvailability, Report } from '../models/misc.js';
 import { get_token, compareHash } from '../services/authentication.service.js';
+import bcrypt from 'bcrypt';
 import { getCachedUserStats, calculateUserStats } from '../events/user_stats.js';
 import { Blog } from '../models/blog.js';
 
@@ -62,6 +63,18 @@ export async function stats(req, res) {
 export async function deleteAccount(req, res) {
   const user = req.user;
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
+
+  // Require password confirmation for account deletion
+  const providedPassword = req.body?.password;
+  if (!providedPassword) {
+    return res.status(400).json({ error: 'Password is required to delete account' });
+  }
+
+  const passwordMatches = await bcrypt.compare(providedPassword, user.password);
+  if (!passwordMatches) {
+    console.warn('deleteAccount: password mismatch for user', user._id.toString());
+    return res.status(401).json({ error: 'Password incorrect' });
+  }
 
   const session = await mongoose.startSession();
   try {

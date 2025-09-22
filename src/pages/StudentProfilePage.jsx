@@ -3,19 +3,78 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import { apiFetch } from '@/api/apiService';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Mail, Phone, MapPin, User, Lock, GraduationCap, Building, Globe } from 'lucide-react';
+import {
+  Mail,
+  Phone,
+  MapPin,
+  User,
+  Lock,
+  GraduationCap,
+  Building,
+  Globe,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import { SearchableSelectContent } from '@/components/ui/searchSelect';
 import SaveButton from '@/components/ui/save';
 import { useAuth } from '@/context/AuthContext';
 import { studentService } from '@/api/student';
 import PasswordInputs from '@/components/ui/password';
 import { getConstants } from '@/api/constantsFetch';
+import { Button } from '@/components/ui/button';
+import clsx from 'clsx';
+
+/* =========================
+   Delete dialog password input (RTL-aware, eye toggle)
+   ========================= */
+const DeletePasswordInput = ({ value, onChange, show, setShow }) => {
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n?.dir?.() === 'rtl';
+  const inputPadding = isRtl ? 'pl-10' : 'pr-10'; // keep some extra space for the icon
+  const buttonPos = isRtl ? 'left-2' : 'right-2';
+
+  return (
+    <div className="relative">
+      <Input
+        id="confirmDeletePassword"
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={t('placeholders.confirmPassword', 'Type your password')}
+        className={clsx(
+          'bg-input border rounded-lg h-10 sm:h-11 text-xs sm:text-sm transition-all duration-300',
+          inputPadding,
+          'border-border/50 focus:ring-primary'
+        )}
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={() => setShow((s) => !s)}
+        className={clsx('absolute top-1/2 transform -translate-y-1/2 h-7 w-7 hover:bg-muted/50', buttonPos)}
+        aria-label={t('togglePasswordVisibility', 'Toggle password visibility')}
+      >
+        {show ? <Eye className="w-4 h-4 text-primary" /> : <EyeOff className="w-4 h-4 text-primary" />}
+      </Button>
+    </div>
+  );
+};
 
 const StudentProfilePage = () => {
   const { t } = useTranslation();
@@ -48,6 +107,9 @@ const StudentProfilePage = () => {
   const [availableSectors, setAvailableSectors] = useState([]);
   const [availableLanguages, setAvailableLanguages] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleteShow, setDeleteShow] = useState(false);
 
   useEffect(() => {
     const loadConstants = async () => {
@@ -65,18 +127,18 @@ const StudentProfilePage = () => {
     if (userData.governate && constants?.Districts) {
       const districts = constants.Districts[userData.governate] || [];
       setAvailableDistricts(
-        districts.map(d => ({
+        districts.map((d) => ({
           value: d,
-          label: t(`constants.Districts.${d}`, { defaultValue: d })
+          label: t(`constants.Districts.${d}`, { defaultValue: d }),
         }))
       );
 
       if (userData.district && !districts.includes(userData.district)) {
-        setUserData(prev => ({ ...prev, district: '' }));
+        setUserData((prev) => ({ ...prev, district: '' }));
       }
     } else {
       setAvailableDistricts([]);
-      setUserData(prev => ({ ...prev, district: '' }));
+      setUserData((prev) => ({ ...prev, district: '' }));
     }
   }, [userData.governate, constants, t]);
 
@@ -84,40 +146,44 @@ const StudentProfilePage = () => {
     if (userData.education_system && constants?.EducationStructure) {
       const systemGrades = constants.EducationStructure[userData.education_system]?.grades || [];
       setAvailableGrades(
-        systemGrades.map(g => ({
+        systemGrades.map((g) => ({
           value: g,
-          label: t(`constants.EducationStructure.${userData.education_system}.grades.${g}`, { defaultValue: g })
+          label: t(`constants.EducationStructure.${userData.education_system}.grades.${g}`, { defaultValue: g }),
         }))
       );
 
       if (userData.grade && !systemGrades.includes(userData.grade)) {
-        setUserData(prev => ({ ...prev, grade: '', sector: '' }));
+        setUserData((prev) => ({ ...prev, grade: '', sector: '' }));
       }
     } else {
       setAvailableGrades([]);
-      setUserData(prev => ({ ...prev, grade: '', sector: '' }));
+      setUserData((prev) => ({ ...prev, grade: '', sector: '' }));
     }
   }, [userData.education_system, constants, t]);
 
   useEffect(() => {
     if (userData.grade && userData.education_system && constants?.EducationStructure) {
-      const gradeSectors = constants.EducationStructure[userData.education_system]?.sectors?.[userData.grade] || [];
+      const gradeSectors =
+        constants.EducationStructure[userData.education_system]?.sectors?.[userData.grade] || [];
       setAvailableSectors(
-        gradeSectors.map(s => ({
+        gradeSectors.map((s) => ({
           value: s,
           label:
-            t(`constants.EducationStructure.${userData.education_system}.sectors.${userData.grade}.${s}`, { defaultValue: '' }) ||
+            t(
+              `constants.EducationStructure.${userData.education_system}.sectors.${userData.grade}.${s}`,
+              { defaultValue: '' }
+            ) ||
             t(`constants.EducationStructure.${userData.education_system}.sectors.${s}`, { defaultValue: '' }) ||
-            t(`constants.sectors.${s}`, { defaultValue: s })
+            t(`constants.sectors.${s}`, { defaultValue: s }),
         }))
       );
 
       if (userData.sector && !gradeSectors.includes(userData.sector)) {
-        setUserData(prev => ({ ...prev, sector: '' }));
+        setUserData((prev) => ({ ...prev, sector: '' }));
       }
     } else {
       setAvailableSectors([]);
-      setUserData(prev => ({ ...prev, sector: '' }));
+      setUserData((prev) => ({ ...prev, sector: '' }));
     }
   }, [userData.grade, userData.education_system, constants, t]);
 
@@ -126,16 +192,16 @@ const StudentProfilePage = () => {
       const systemLanguages = constants.EducationStructure[userData.education_system]?.languages || [];
       const languagesToShow = systemLanguages.length > 0 ? systemLanguages : ['Arabic'];
       setAvailableLanguages(
-        languagesToShow.map(l => ({
+        languagesToShow.map((l) => ({
           value: l,
           label:
             t(`constants.EducationStructure.${userData.education_system}.languages.${l}`, { defaultValue: '' }) ||
-            t(`constants.Languages.${l}`, { defaultValue: l })
+            t(`constants.Languages.${l}`, { defaultValue: l }),
         }))
       );
 
       if (userData.language && !languagesToShow.includes(userData.language)) {
-        setUserData(prev => ({ ...prev, language: '' }));
+        setUserData((prev) => ({ ...prev, language: '' }));
       }
     } else {
       setAvailableLanguages([]);
@@ -156,7 +222,7 @@ const StudentProfilePage = () => {
 
         const phone = profileData.phone || profileData.phone_number || '';
         const rawGovernate = profileData.governate || '';
-        const validGovernate = constants?.Governates?.find(g => g === rawGovernate) ? rawGovernate : '';
+        const validGovernate = constants?.Governates?.find((g) => g === rawGovernate) ? rawGovernate : '';
 
         setUserData({
           name: profileData.name || t('Student User'),
@@ -184,6 +250,7 @@ const StudentProfilePage = () => {
     if (!authLoading && constants) {
       fetchUserData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, authUserData, t, toast, constants]);
 
   const handleInputChange = (e) => {
@@ -292,17 +359,32 @@ const StudentProfilePage = () => {
     }
   };
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = async (password) => {
     if (isDeleting) return;
+    setDeleteError('');
+    if (!password) {
+      setDeleteError(t('enterPassword', 'Please enter your password to confirm.'));
+      return;
+    }
+
     setIsDeleting(true);
     try {
-      await apiFetch('/users/deleteAccount', { method: 'DELETE' });
-      toast({ title: t('accountDeleted', 'Account deleted'), description: t('youWillBeLoggedOut', 'You will be logged out.') });
+      await apiFetch('/users/deleteAccount', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      toast({
+        title: t('accountDeleted', 'Account deleted'),
+        description: t('youWillBeLoggedOut', 'You will be logged out.'),
+      });
       logout();
       navigate('/');
     } catch (err) {
       console.error('Delete account failed', err);
-      toast({ title: t('deleteFailed', 'Delete failed'), description: err?.message || t('tryAgain', 'Please try again later.'), variant: 'destructive' });
+      const msg = err?.message || t('tryAgain', 'Please try again later.');
+      setDeleteError(msg);
+      toast({ title: t('deleteFailed', 'Delete failed'), description: msg, variant: 'destructive' });
     } finally {
       setIsDeleting(false);
     }
@@ -330,18 +412,24 @@ const StudentProfilePage = () => {
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Label htmlFor="name" className="mb-2 block">{t('name')}</Label>
+              <Label htmlFor="name" className="mb-2 block">
+                {t('name')}
+              </Label>
               <Input id="name" value={userData.name} onChange={handleInputChange} />
               {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name}</p>}
             </div>
             <div className="relative">
-              <Label htmlFor="email" className="mb-2 block">{t('email')}</Label>
+              <Label htmlFor="email" className="mb-2 block">
+                {t('email')}
+              </Label>
               <Mail className="absolute left-3 top-9 w-4 h-4 text-muted-foreground" />
               <Input id="email" type="email" value={userData.email} onChange={handleInputChange} className="pl-10" />
               {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
             </div>
             <div className="relative">
-              <Label htmlFor="phone" className="mb-2 block">{t('phone')}</Label>
+              <Label htmlFor="phone" className="mb-2 block">
+                {t('phone')}
+              </Label>
               <Phone className="absolute left-3 top-9 w-4 h-4 text-muted-foreground" />
               <Input id="phone" value={userData.phone} onChange={handleInputChange} className="pl-10" />
               {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
@@ -371,49 +459,64 @@ const StudentProfilePage = () => {
                 {t('district')}
               </Label>
 
-                <div className="flex-1">
-                  <Select 
-                    value={userData.district} 
-                    onValueChange={(v) => handleSelectChange('district', v)}
-                    disabled={!userData.governate}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={
-                        userData.governate ? t('selectDistrict') : t('selectGovernateFirst')
-                      } />
-                    </SelectTrigger>
-                    {userData.governate && (
-                      <SearchableSelectContent
-                        searchPlaceholder={t('searchDistrict')}
-                        items={availableDistricts}
-                      />
-                    )}
-                  </Select>
-                  {errors.district && <p className="text-sm text-red-500 mt-1">{errors.district}</p>}
-                </div>
+              <div className="flex-1">
+                <Select value={userData.district} onValueChange={(v) => handleSelectChange('district', v)} disabled={!userData.governate}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={userData.governate ? t('selectDistrict') : t('selectGovernateFirst')} />
+                  </SelectTrigger>
+                  {userData.governate && <SearchableSelectContent searchPlaceholder={t('searchDistrict')} items={availableDistricts} />}
+                </Select>
+                {errors.district && <p className="text-sm text-red-500 mt-1">{errors.district}</p>}
               </div>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button
-                    type="button"
-                    className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium border border-red-600 text-red-600 hover:bg-red-50"
-                    disabled={isDeleting}
-                    aria-label={t('deleteAccount')}
+            </div>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  type="button"
+                  className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium border border-red-600 text-red-600 hover:bg-red-500 hover:text-white md:w-36 md:h-10 md:mt-6"
+                  disabled={isDeleting}
+                  aria-label={t('deleteAccount')}
+                >
+                  {t('deleteAccount')}
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('confirmDeleteAccount', 'Confirm account deletion')}</AlertDialogTitle>
+                </AlertDialogHeader>
+                <div className="p-4 space-y-2">
+                  <p>
+                    {t(
+                      'deleteAccountWarning',
+                      'This will permanently delete your account and all related data. This action cannot be undone.'
+                    )}
+                  </p>
+                  <Label htmlFor="confirmDeletePassword" className="text-sm font-semibold">
+                    {t('confirmPasswordToDelete', 'Enter your password to confirm')}
+                  </Label>
+
+                  {/* <-- Replaced plain Input with styled RTL-aware input + eye --> */}
+                  <DeletePasswordInput
+                    value={deletePassword}
+                    onChange={(v) => setDeletePassword(v)}
+                    show={deleteShow}
+                    setShow={setDeleteShow}
+                  />
+                  {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => handleDeleteAccount(deletePassword)}
+                    className={clsx('bg-red-600 text-white', (!deletePassword || isDeleting) && 'opacity-60 cursor-not-allowed')}
+                    disabled={!deletePassword || isDeleting}
                   >
-                    {t('deleteAccount')}
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{t('confirmDeleteAccount', 'Confirm account deletion')}</AlertDialogTitle>
-                  </AlertDialogHeader>
-                  <p className="p-4">{t('deleteAccountWarning', 'This will permanently delete your account and all related data. This action cannot be undone.')}</p>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteAccount} className="bg-red-600 text-white">{isDeleting ? t('deleting') : t('delete')}</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                    {isDeleting ? t('deleting') : t('delete')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
 
@@ -444,10 +547,7 @@ const StudentProfilePage = () => {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label className="mb-2 block">{t('educationSystem')}</Label>
-              <Select 
-                value={userData.education_system} 
-                onValueChange={(v) => handleSelectChange('education_system', v)}
-              >
+              <Select value={userData.education_system} onValueChange={(v) => handleSelectChange('education_system', v)}>
                 <SelectTrigger>
                   <SelectValue placeholder={t('selectEducationSystem')} />
                 </SelectTrigger>
@@ -464,44 +564,26 @@ const StudentProfilePage = () => {
 
             <div>
               <Label className="mb-2 block">{t('grade')}</Label>
-              <Select 
-                value={userData.grade} 
+              <Select
+                value={userData.grade}
                 onValueChange={(v) => handleSelectChange('grade', v)}
                 disabled={!userData.education_system}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={
-                    userData.education_system ? t('selectGrade') : t('selectSystemFirst')
-                  } />
+                  <SelectValue placeholder={userData.education_system ? t('selectGrade') : t('selectSystemFirst')} />
                 </SelectTrigger>
-                {userData.education_system && (
-                  <SearchableSelectContent
-                    searchPlaceholder={t('searchGrade')}
-                    items={availableGrades}
-                  />
-                )}
+                {userData.education_system && <SearchableSelectContent searchPlaceholder={t('searchGrade')} items={availableGrades} />}
               </Select>
               {errors.grade && <p className="text-sm text-red-500 mt-1">{errors.grade}</p>}
             </div>
 
             <div>
               <Label className="mb-2 block">{t('sector')}</Label>
-              <Select 
-                value={userData.sector} 
-                onValueChange={(v) => handleSelectChange('sector', v)}
-                disabled={!userData.grade}
-              >
+              <Select value={userData.sector} onValueChange={(v) => handleSelectChange('sector', v)} disabled={!userData.grade}>
                 <SelectTrigger>
-                  <SelectValue placeholder={
-                    userData.grade ? t('selectSector') : t('selectGradeFirst')
-                  } />
+                  <SelectValue placeholder={userData.grade ? t('selectSector') : t('selectGradeFirst')} />
                 </SelectTrigger>
-                {userData.grade && (
-                  <SearchableSelectContent
-                    searchPlaceholder={t('searchSector')}
-                    items={availableSectors}
-                  />
-                )}
+                {userData.grade && <SearchableSelectContent searchPlaceholder={t('searchSector')} items={availableSectors} />}
               </Select>
               {errors.sector && <p className="text-sm text-red-500 mt-1">{errors.sector}</p>}
             </div>
@@ -511,22 +593,11 @@ const StudentProfilePage = () => {
                 <Globe className="w-4 h-4 text-muted-foreground" />
                 {t('language')}
               </Label>
-              <Select 
-                value={userData.language} 
-                onValueChange={(v) => handleSelectChange('language', v)}
-                disabled={!userData.education_system}
-              >
+              <Select value={userData.language} onValueChange={(v) => handleSelectChange('language', v)} disabled={!userData.education_system}>
                 <SelectTrigger>
-                  <SelectValue placeholder={
-                    userData.education_system ? t('selectLanguage') : t('selectSystemFirst')
-                  } />
+                  <SelectValue placeholder={userData.education_system ? t('selectLanguage') : t('selectSystemFirst')} />
                 </SelectTrigger>
-                {userData.education_system && (
-                  <SearchableSelectContent
-                    searchPlaceholder={t('searchLanguage')}
-                    items={availableLanguages}
-                  />
-                )}
+                {userData.education_system && <SearchableSelectContent searchPlaceholder={t('searchLanguage')} items={availableLanguages} />}
               </Select>
               {errors.language && <p className="text-sm text-red-500 mt-1">{errors.language}</p>}
             </div>
@@ -560,17 +631,13 @@ const StudentProfilePage = () => {
             <div>
               <Label className="mb-2 text-muted-foreground">{t('governate')}</Label>
               <p className="font-medium text-foreground">
-                {userData.governate
-                  ? t(`constants.Governates.${userData.governate}`, { defaultValue: userData.governate })
-                  : t('notSet')}
+                {userData.governate ? t(`constants.Governates.${userData.governate}`, { defaultValue: userData.governate }) : t('notSet')}
               </p>
             </div>
             <div>
               <Label className="mb-2 text-muted-foreground">{t('district')}</Label>
               <p className="font-medium text-foreground">
-                {userData.district
-                  ? t(`constants.Districts.${userData.district}`, { defaultValue: userData.district })
-                  : t('notSet')}
+                {userData.district ? t(`constants.Districts.${userData.district}`, { defaultValue: userData.district }) : t('notSet')}
               </p>
             </div>
             <div>
@@ -601,10 +668,8 @@ const StudentProfilePage = () => {
               <Label className="mb-2 text-muted-foreground">{t('language')}</Label>
               <p className="font-medium text-foreground">
                 {userData.language
-                  ? (
-                    t(`constants.EducationStructure.${userData.education_system}.languages.${userData.language}`, { defaultValue: '' }) ||
+                  ? t(`constants.EducationStructure.${userData.education_system}.languages.${userData.language}`, { defaultValue: '' }) ||
                     t(`constants.Languages.${userData.language}`, { defaultValue: userData.language })
-                  )
                   : t('notSet')}
               </p>
             </div>

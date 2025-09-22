@@ -1997,5 +1997,31 @@
   "variants": "تفرعات",
   "Select": "أختر",
   "enterYourAddress": "أدخل عنوانك",
-  "selectSubjectDropDown": "اختر مادة لعرض وتعديل التفاصيل"
+  "selectSubjectDropDown": "اختر مادة لعرض وتعديل التفاصيل",
+  "deleteAccount": "حذف الحساب",
+  "confirmDeleteAccount": "تأكيد حذف الحساب",
+  "deleteAccountWarning": "سيتم حذف حسابك وجميع بياناتك المرتبطة بشكل نهائي. لا يمكن التراجع عن هذا الإجراء.",
+  "confirmPasswordToDelete": "أدخل كلمة المرور للتأكيد",
+  "deleting": "جارٍ الحذف...",
+  "accountDeleted": "تم حذف الحساب",
+  "youWillBeLoggedOut": "سيتم تسجيل خروجك.",
+  "deleteFailed": "فشل الحذف",
+  "enterPassword": "يرجى إدخال كلمة المرور للتأكيد.",
+  "tryAgain": "يرجى المحاولة لاحقًا.",
+  "placeholders": {
+    "confirmPassword": "أدخل كلمة المرور الخاصة بك"
+  },
+  "updatePasswordSectionTitle": "حدث كلمة المرور",
+  "profileSection": {
+    "securityHeading": "الأمان",
+    "twoFactorNote": "يمكنك تغيير كلمة المرور أو إدارة حذف الحساب من هنا.",
+    "actions": "الإجراءات",
+    "resetNote": "استرجاع الحقول إلى القيم المحفوظة.",
+    "reset": "إعادة التعيين"
+  },
+  "resetToSaved": "تمت إعادة الحقول إلى القيم المحفوظة",
+  "deleteAccountShort": "هذا الإجراء لا يمكن التراجع عنه.",
+  "account": {
+    "footerNote": "هل تحتاج مساعدة؟ تواصل مع الدعم."
+  }
 }
