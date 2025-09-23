@@ -15,20 +15,37 @@ import {
   Wallet,
   CreditCard,
   DollarSign,
+  Smartphone,
+  Landmark,
+  Percent,
+  Gift
 } from "lucide-react";
 import TutorLocationMapEdit from "@/components/profile/editing/map";
 import { Listbox, Transition } from "@headlessui/react";
 import MultiSelect from '@/components/ui/multi-select';
 import { motion } from "framer-motion";
+import { getConstantsSync } from "@/api/constantsFetch";
+import { getPaymentIcon } from "@/data/payment";
 
 function PaymentOnboardSection({
   formData = {},
-  paymentTimings = ['Prepaid', 'Postpaid'],
+  paymentTimings = [],
   paymentOptions = [],
   onTimingChange = () => {},
   onToggleMethod = () => {},
   t = (k, d) => d,
 }) {
+  const constants = getConstantsSync();
+  
+  // Use constants for payment timings and methods if available
+  const availablePaymentTimings = paymentTimings.length > 0 ? paymentTimings : constants?.PaymentTimings || ['Prepaid', 'Postpaid'];
+  const availablePaymentMethods = paymentOptions.length > 0 ? paymentOptions : 
+    (constants?.PaymentMethods || []).map(method => ({
+      value: method,
+      label: method,
+      icon: getPaymentIcon(method)
+    }));
+
   const selectedMethods = Array.isArray(formData.payment_methods) ? formData.payment_methods : [];
 
   function classNames(...args) {
@@ -65,7 +82,7 @@ function PaymentOnboardSection({
           <p className="text-xs text-muted-foreground">{t('paymentTimingHint', 'Pick the default option shown on your profile.')}</p>
 
           <div className="mt-3 flex gap-3" role="radiogroup" aria-label={t('paymentTimingAria','Payment timing options')}>
-            {paymentTimings.map((opt) => {
+            {availablePaymentTimings.map((opt) => {
               const selected = formData.payment_timing === opt;
               return (
                 <button
@@ -101,12 +118,14 @@ function PaymentOnboardSection({
           </div>
 
           <div className="flex flex-wrap gap-2 mt-2">
-            {paymentOptions.length === 0 && (
+            {availablePaymentMethods.length === 0 && (
               <div className="text-xs text-muted-foreground">{t('noPaymentOptions', 'No payment options available')}</div>
             )}
 
-            {paymentOptions.map((option) => {
+            {availablePaymentMethods.map((option) => {
               const active = selectedMethods.includes(option.value);
+              const IconComponent = option.icon || getPaymentIcon(option.value);
+              
               return (
                 <button
                   key={option.value}
@@ -121,34 +140,12 @@ function PaymentOnboardSection({
                   )}
                 >
                   <span className="flex items-center justify-center w-5 h-5">
-                    {option.icon || <CreditCard className="w-4 h-4" />}
+                    <IconComponent className="w-4 h-4" />
                   </span>
                   <span>{option.label}</span>
                 </button>
               );
             })}
-          </div>
-        </div>
-
-        {/* Footer actions */}
-        <div className="mt-5 flex items-center justify-between">
-          <div className="text-xs text-muted-foreground">{t('privacyNote', 'Your payment details are private and only used to display accepted methods.')}</div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="text-sm underline text-muted-foreground"
-            >
-              {t('needHelp', 'Need help?')}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => alert('Saved — proceed to next step (this is a prototype).')}
-              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm shadow-sm"
-            >
-              {t('saveAndContinue', 'Save & continue')}
-            </button>
           </div>
         </div>
       </div>
@@ -161,9 +158,23 @@ function PaymentOnboardSection({
  */
 export default function StepBio() {
   const { state, setState } = useStepData();
+  const constants = getConstantsSync();
 
   const handleChange = (field, value) => {
     setState((s) => ({ ...s, [field]: value }));
+  };
+
+  const handlePaymentTimingChange = (timing) => {
+    handleChange("payment_timing", timing);
+  };
+
+  const handleTogglePaymentMethod = (method) => {
+    const currentMethods = Array.isArray(state.payment_methods) ? state.payment_methods : [];
+    const newMethods = currentMethods.includes(method)
+      ? currentMethods.filter(m => m !== method)
+      : [...currentMethods, method];
+    
+    handleChange("payment_methods", newMethods);
   };
 
   const fieldStyle = {
@@ -467,8 +478,13 @@ export default function StepBio() {
           </div>
         </div>
 
-        {/* Use the named PaymentOnboardSection here (no default export collision) */}
-        <PaymentOnboardSection />
+        {/* Use the named PaymentOnboardSection here with proper props */}
+        <PaymentOnboardSection 
+          formData={state}
+          paymentTimings={constants?.PaymentTimings}
+          onTimingChange={handlePaymentTimingChange}
+          onToggleMethod={handleTogglePaymentMethod}
+        />
       </div>
     </div>
   );

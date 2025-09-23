@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useContext } from 'react';
 import { motion } from 'framer-motion';
 import { Youtube, PlusCircle, Trash2, ExternalLink, PlayCircle } from 'lucide-react';
+import { StepDataContext } from "@/context/StepContext";
 
 function getYouTubeId(url) {
   if (!url) return null;
@@ -31,11 +32,13 @@ const MOCK_VIDEOS = [
   { title: 'Teaching style — Quick demo', url: 'https://youtu.be/9bZkp7q19f0' }
 ];
 
-export default function TutorVideoOnboard({ initialVideos = [], onChange, className = '' }) {
-  // Handle empty initialVideos and empty MOCK_VIDEOS
-  const resolved = (initialVideos && initialVideos.length) 
-    ? initialVideos 
-    : (MOCK_VIDEOS && MOCK_VIDEOS.length) ? MOCK_VIDEOS : [];
+export default function TutorVideoOnboard({ className = '' }) {
+  // Use the context to get state and setState
+  const { state, setState } = useContext(StepDataContext);
+  
+  // Get videos from context or use defaults
+  const contextVideos = state.videos || [];
+  const resolved = contextVideos.length ? contextVideos : MOCK_VIDEOS;
   
   const [videos, setVideos] = useState(resolved.map(v => ({ ...v, id: getYouTubeId(v.url) })));
   const [form, setForm] = useState({ title: '', url: '' });
@@ -43,7 +46,13 @@ export default function TutorVideoOnboard({ initialVideos = [], onChange, classN
   const [error, setError] = useState('');
   const urlRef = useRef(null);
 
-  useEffect(() => onChange?.(videos), [videos, onChange]);
+  // Sync local videos state with context
+  useEffect(() => {
+    setState(prevState => ({ 
+      ...prevState, 
+      videos: videos.map(({ title, url }) => ({ title, url })) // Only save title and URL
+    }));
+  }, [videos, setState]);
 
   useEffect(() => {
     if (videos.length && !selectedId) {
@@ -81,7 +90,7 @@ export default function TutorVideoOnboard({ initialVideos = [], onChange, classN
   const selectedVideo = videos.find(v => v.id === selectedId) || null;
 
   return (
-    <div className={`max-w-4xl mx-auto p-6 flex flex-col gap-6 ${className}`}>
+    <div className={`mt-5 p-3 flex flex-col gap-6 ${className}`}>
       <header className="flex flex-col items-center text-center">
         <h3
           className="text-2xl font-semibold mb-2 flex items-center gap-2"

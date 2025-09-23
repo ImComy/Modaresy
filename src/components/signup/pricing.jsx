@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect, useContext } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { BadgePercent, Banknote, User, Plus, Trash } from "lucide-react";
+import SubjectSelector from "./SubjectSelector";
+import { StepDataContext } from "@/context/StepContext";
 
 const defaultT = (key, defaultValue) => defaultValue || key;
 
@@ -69,46 +71,119 @@ const OfferForm = ({ offer = {}, onChange = () => {}, t = defaultT }) => {
   );
 };
 
-const SubjectPricingOnboard = ({ subject = {}, onChange = () => {}, constants = {}, t = defaultT }) => {
+const SubjectPricingOnboard = ({ t = defaultT, constants = {} }) => {
+  const { state, setState } = useContext(StepDataContext);
+  const subjects = Array.isArray(state?.subjects) ? state.subjects : [];
+
+  const [selectedSubject, setSelectedSubject] = useState(null);
+
+  // If there is a selectedSubjectId in parent state, initialize selection
+  useEffect(() => {
+    const id = state?.selectedSubjectId;
+    if (id && subjects.length > 0) {
+      const found = subjects.find((s) => String(s.id) === String(id));
+      if (found) setSelectedSubject(found);
+    }
+  }, [state?.selectedSubjectId, subjects]);
+
+  // When subjects list changes, keep selectedSubject in sync (preserve updates)
+  useEffect(() => {
+    if (!selectedSubject) return;
+    const refreshed = subjects.find((s) => String(s.id) === String(selectedSubject.id));
+    if (refreshed) setSelectedSubject(refreshed);
+    // if not found, clear selection
+    else setSelectedSubject(null);
+  }, [subjects]);
+
   const PricePeriod = constants.PricePeriod ?? ["Session", "Month"];
 
-  const updateSubject = (patch) => {
-    const updated = { ...subject, ...patch };
-    onChange(updated);
+  // persist a full subject patch into parent state.subjects
+  const persistSubject = (patch) => {
+    if (!selectedSubject) return;
+    const updated = { ...selectedSubject, ...patch };
+    setSelectedSubject(updated);
+    setState((prev) => {
+      const arr = Array.isArray(prev?.subjects) ? prev.subjects : [];
+      const updatedSubjects = arr.map((s) =>
+        String(s.id) === String(updated.id) ? { ...s, ...updated } : s
+      );
+      return { ...prev, subjects: updatedSubjects };
+    });
   };
 
   const updateNested = (key, value) => {
-    updateSubject({ [key]: { ...(subject[key] || {}), ...value } });
+    persistSubject({ [key]: { ...(selectedSubject?.[key] || {}), ...value } });
   };
 
   const addAdditionalPricing = () => {
     const newItem = { name: "", price: "", period: PricePeriod[0], description: "", offer: {} };
-    updateSubject({ additional_pricing: [...(subject.additional_pricing || []), newItem] });
+    persistSubject({ additional_pricing: [...(selectedSubject.additional_pricing || []), newItem] });
   };
 
   const removeAdditionalPricing = (index) => {
-    const arr = (subject.additional_pricing || []).filter((_, i) => i !== index);
-    updateSubject({ additional_pricing: arr });
+    const arr = (selectedSubject.additional_pricing || []).filter((_, i) => i !== index);
+    persistSubject({ additional_pricing: arr });
   };
 
   const updateAdditionalPricingItem = (index, patch) => {
-    const arr = (subject.additional_pricing || []).map((it, i) => (i === index ? { ...it, ...patch } : it));
-    updateSubject({ additional_pricing: arr });
+    const arr = (selectedSubject.additional_pricing || []).map((it, i) => (i === index ? { ...it, ...patch } : it));
+    persistSubject({ additional_pricing: arr });
   };
 
-  const group_pricing = subject.group_pricing || { price: "", price_period: PricePeriod[0], offer: {} };
-  const private_pricing = subject.private_pricing || { price: "", price_period: PricePeriod[0], note: "", offer: {} };
-  const additional_pricing = Array.isArray(subject.additional_pricing) ? subject.additional_pricing : [];
+  // When a variant is selected from the selector
+  const handleSubjectSelect = (variant) => {
+    const subj = variant?.subject || variant?.raw || null;
+    if (!subj) return;
+    setSelectedSubject(subj);
+    setState((prev) => ({ ...prev, selectedSubjectId: variant.id }));
+  };
+
+  // If no subjects exist yet, show instructive message
+  if (!Array.isArray(subjects) || subjects.length === 0) {
+    return (
+      <div className="w-full max-w-4xl mx-auto py-8">
+        <div className="p-6 bg-muted rounded-lg text-center">
+          <Banknote size={36} className="mx-auto mb-4" />
+          <h2 className="text-xl font-semibold">{t("noSubjectsInOnboarding", "No subjects found")}</h2>
+          <p className="mt-2 text-muted-foreground">{t("addSubjectsFirst", "Please add subjects in the Subjects step first.")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If nothing selected yet, render selector + a hint
+  if (!selectedSubject) {
+    return (
+      <div className="w-full max-w-4xl mx-auto py-8">
+        <div className="mb-6">
+          <SubjectSelector subjects={subjects} selectedId={state?.selectedSubjectId} onSelect={handleSubjectSelect} />
+        </div>
+
+        <div className="p-6 bg-muted rounded-lg text-center">
+          <h3 className="text-lg font-medium">{t("selectSubjectToEditPricing", "Select a subject to edit its pricing")}</h3>
+          <p className="mt-2 text-sm text-muted-foreground">{t("selectAboveOrAddSubject", "Choose a subject from the selector above or add a new subject in the Subjects step.")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // safe accessors for pricing sections
+  const group_pricing = selectedSubject.group_pricing || { price: "", price_period: PricePeriod[0], offer: {} };
+  const private_pricing = selectedSubject.private_pricing || { price: "", price_period: PricePeriod[0], note: "", offer: {} };
+  const additional_pricing = Array.isArray(selectedSubject.additional_pricing) ? selectedSubject.additional_pricing : [];
 
   return (
     <div className="w-full max-w-4xl mx-auto">
       <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="rounded-2xl bg-transparent border-none">
+        <SubjectSelector subjects={subjects} selectedId={state?.selectedSubjectId} onSelect={handleSubjectSelect} />
+
+        <Card className="rounded-2xl bg-transparent border-none mt-6">
           <CardContent className="p-6 space-y-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-semibold">{t("pricingFor", "Pricing for")}{' '}
-                  <span className="text-primary">{subject.title || subject.name || t("thisSubject", "this subject")}</span>
+                <h2 className="text-2xl font-semibold">
+                  {t("pricingFor", "Pricing for")}{" "}
+                  <span className="text-primary">{selectedSubject.title || selectedSubject.name || t("thisSubject", "this subject")}</span>
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground max-w-xl">
                   {t(

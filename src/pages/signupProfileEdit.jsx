@@ -1,4 +1,3 @@
-// TutorOnboardingWrapper.jsx (updated)
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -19,18 +18,29 @@ import SubjectPricingInfoEditHollow from "@/components/signup/pricing";
 const STORAGE_KEY = "modaresy:tutor:onboarding";
 
 const rawSteps = [
-  { id: "pfp", title: "Profile Photo & Banner", component: StepUploadPfp },
-  { id: "bio", title: "Basic Info", component: StepBio },
-  { id: "socials", title: "Socials", component: StepSocialMedia },
-  { id: "videos", title: "Intro Videos", component: TutorVideoOnboard },
-  { id: "subjects", title: "Subjects", component: AddSubjectCardUI },
-  { id: "schedule", title: "Schedule", component: ScheduleEditor },
-  { id: "pricing", title: "Pricing", component: SubjectPricingInfoEditHollow },
-  { id: "finish", title: "Finish", component: StepFinish },
+  { id: "pfp", title: "Profile Photo & Banner", component: StepUploadPfp, subtitle: "Add profile picture + banner" },
+  { id: "bio", title: "Basic Info", component: StepBio, subtitle: "Enter name, bio and experience" },
+  { id: "socials", title: "Socials", component: StepSocialMedia, subtitle: "Add links and social handles" },
+  { id: "videos", title: "Intro Videos", component: TutorVideoOnboard, subtitle: "Upload or link your intro" },
+  { id: "subjects", title: "Subjects", component: AddSubjectCardUI, subtitle: "What do you teach?" },
+  { id: "schedule", title: "Schedule", component: ScheduleEditor, subtitle: "Set your availability" },
+  { id: "pricing", title: "Pricing", component: SubjectPricingInfoEditHollow, subtitle: "Set lesson prices & offers" },
+  { id: "finish", title: "Finish", component: StepFinish, subtitle: "Review & publish" },
 ];
 
 export default function TutorOnboardingWrapper({ onFinish }) {
-  const [index, setIndex] = useState(0);
+  // load initial index from localStorage so reload restores the same step
+  const [index, setIndex] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return 0;
+      const parsed = JSON.parse(raw);
+      return typeof parsed._currentStep === "number" ? parsed._currentStep : 0;
+    } catch (e) {
+      return 0;
+    }
+  });
+
   const steps = useMemo(() => rawSteps, []);
   const activeStep = steps[index];
 
@@ -43,11 +53,28 @@ export default function TutorOnboardingWrapper({ onFinish }) {
     }
   });
 
+  // persist state object whenever it changes
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      // keep any stored _currentStep if present
+      parsed._data = state;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
     } catch (e) {}
   }, [state]);
+
+  // persist current step index whenever it changes
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      parsed._currentStep = index;
+      // ensure we don't accidentally overwrite stored data object
+      if (!parsed._data) parsed._data = state;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    } catch (e) {}
+  }, [index, state]);
 
   const go = useCallback(
     (i) => {
@@ -61,7 +88,13 @@ export default function TutorOnboardingWrapper({ onFinish }) {
 
   const next = useCallback(() => {
     if (index < steps.length - 1) setIndex((i) => i + 1);
-    else onFinish?.(state);
+    else {
+      // final step: finish and clear saved draft
+      onFinish?.(state);
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (e) {}
+    }
   }, [index, steps.length, onFinish, state]);
 
   const prev = useCallback(() => {
@@ -89,7 +122,6 @@ export default function TutorOnboardingWrapper({ onFinish }) {
       if (!ticking.current) {
         ticking.current = true;
         requestAnimationFrame(() => {
-          // smaller cap keeps motion subtle on longer pages
           const raw = Math.max(0, Math.min(latestY.current * 0.12, 24));
           setAsideOffset(raw);
           ticking.current = false;
@@ -135,7 +167,6 @@ export default function TutorOnboardingWrapper({ onFinish }) {
         const el = cardRef.current;
         const cardHeight = el.offsetHeight;
         const viewport = window.innerHeight;
-        // buffer allows some breathing room for header / sticky aside
         const buffer = 160;
         setCenterCard(cardHeight + buffer < viewport);
       } catch (e) {
@@ -146,7 +177,6 @@ export default function TutorOnboardingWrapper({ onFinish }) {
     check();
     window.addEventListener("resize", check, { passive: true });
 
-    // observe for content changes inside the card (e.g. image upload expands height)
     let ro = null;
     if (window.ResizeObserver) {
       ro = new ResizeObserver(check);
@@ -158,6 +188,31 @@ export default function TutorOnboardingWrapper({ onFinish }) {
       if (ro) ro.disconnect();
     };
   }, [index]);
+
+  // helpers: small svg icons to avoid pulling other icon libs in this file
+  const IconList = ({ className = "w-5 h-5" }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M8 6h13" />
+      <path d="M8 12h13" />
+      <path d="M8 18h13" />
+      <circle cx="4" cy="6" r="1.2" />
+      <circle cx="4" cy="12" r="1.2" />
+      <circle cx="4" cy="18" r="1.2" />
+    </svg>
+  );
+
+  const IconClose = ({ className = "w-5 h-5" }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M18 6L6 18" />
+      <path d="M6 6l12 12" />
+    </svg>
+  );
+
+  const IconChevron = ({ className = "w-4 h-4" }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
 
   return (
     <StepDataContext.Provider value={{ state, setState }}>
@@ -182,7 +237,8 @@ export default function TutorOnboardingWrapper({ onFinish }) {
         {/* Main: card area. We toggle vertical alignment based on card height so short cards are centered */}
         <main className={`flex-1 flex ${centerCard ? "items-center" : "items-start"} justify-center p-4 sm:p-6 md:p-6`}>
           <div className="w-full max-w-full sm:max-w-xl md:max-w-full rounded-2xl overflow-visible" style={{ background: "transparent" }}>
-            {/* Mobile header: small controls + open step list */}
+
+            {/* Mobile header: pill style with progress ring + clearer "Steps" affordance */}
             <div className="md:hidden flex items-center justify-between mb-4 px-1">
               <div className="flex flex-col">
                 <strong className="text-base" style={{ color: "hsl(var(--foreground))" }}>Setup your tutor profile</strong>
@@ -190,26 +246,38 @@ export default function TutorOnboardingWrapper({ onFinish }) {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="ghost" onClick={() => setMobileNavOpen((s) => !s)} aria-expanded={mobileNavOpen} aria-controls="mobile-step-list" className="rounded-full p-2">
-                  Steps
-                </Button>
-              </div>
-            </div>
+                {/* improved pill button: shows a small circular progress, label and chevron */}
+                <button
+                  onClick={() => setMobileNavOpen((s) => !s)}
+                  aria-expanded={mobileNavOpen}
+                  aria-controls="mobile-step-list"
+                  className="flex items-center gap-3 px-3 py-2 rounded-full shadow-sm ring-1 ring-transparent bg-[hsl(var(--card)/0.9)]"
+                >
+                  <div className="relative w-9 h-9 flex items-center justify-center">
+                    <svg className="absolute inset-0 w-9 h-9" viewBox="0 0 36 36" aria-hidden>
+                      <path strokeWidth="2.5" stroke="rgba(0,0,0,0.05)" fill="none" d="M18 2a16 16 0 1 0 0 32 16 16 0 1 0 0-32" />
+                      <motion.path
+                        d="M18 2a16 16 0 0 1 0 32"
+                        strokeWidth="2.5"
+                        stroke="currentColor"
+                        fill="none"
+                        strokeDasharray="100"
+                        initial={{ strokeDashoffset: 100 }}
+                        animate={{ strokeDashoffset: 100 - progress }}
+                        transition={{ ease: "linear", duration: 0.3 }}
+                      />
+                    </svg>
+                    <span className="text-[10px] font-semibold" aria-hidden>{index + 1}</span>
+                  </div>
 
-            {/* decorative shapes (hidden on small screens to avoid overflow) */}
-            <div className="relative -mt-6 mb-4 pointer-events-none">
-              <motion.div
-                className="hidden md:block absolute -left-6 -top-6 w-40 h-40 rounded-3xl"
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                style={{ background: "radial-gradient(circle at 30% 20%, hsl(var(--secondary) / 0.95), transparent 50%), linear-gradient(180deg, hsl(var(--accent)), transparent)", filter: "blur(22px)", opacity: 0.85 }}
-              />
-              <motion.div
-                className="hidden md:block absolute right-0 bottom-6 w-32 h-32 rounded-lg"
-                animate={{ x: [0, 12, 0] }}
-                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                style={{ background: "linear-gradient(90deg, hsl(var(--primary) / 0.9), hsl(var(--secondary) / 0.8))", transform: "rotate(18deg)", filter: "blur(8px)", opacity: 0.95 }}
-              />
+                  <div className="flex flex-col text-left pr-2">
+                    <div className="text-sm font-medium">Steps</div>
+                    <div className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>{steps[index].title}</div>
+                  </div>
+
+                  <IconChevron />
+                </button>
+              </div>
             </div>
 
             {/* glass-like open card */}
@@ -227,10 +295,7 @@ export default function TutorOnboardingWrapper({ onFinish }) {
                     className="rounded-lg bg-transparent"
                   >
                     {/* inner wrapper: scrollable on small screens, static on md+ */}
-                    <div
-                      className="max-h-none overflow-auto md:overflow-visible touch-pan-y"
-                      aria-live="polite"
-                    >
+                    <div className="max-h-none overflow-auto md:overflow-visible touch-pan-y" aria-live="polite">
                       <activeStep.component
                         onFile={(f) => {
                           setState((s) => ({ ...s, _lastFileUploaded: !!f }));
@@ -258,20 +323,36 @@ export default function TutorOnboardingWrapper({ onFinish }) {
               </div>
             </div>
 
-            {/* footer controls - mobile */}
+            {/* footer controls - mobile: condensed, larger tap targets and a strong primary next button */}
             <div className="md:hidden">
               <div className="fixed left-4 right-4 bottom-4 z-20 rounded-xl backdrop-blur-sm shadow-lg border border-transparent" role="region" aria-label="Step controls">
                 <div className="flex items-center justify-between gap-3 p-3">
-                  <Button variant="ghost" size="sm" onClick={() => { setState({}); setIndex(0); localStorage.removeItem(STORAGE_KEY); }} className="flex-1 rounded-lg">Restart</Button>
-                  <Button variant="outline" size="sm" onClick={prev} disabled={index === 0} className="flex-1 rounded-lg">Back</Button>
-                  <Button size="sm" onClick={next} className="flex-1 rounded-lg" style={{ background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}>{index === steps.length - 1 ? "Finish" : "Next"}</Button>
+                  <button
+                    onClick={() => { setState({}); setIndex(0); localStorage.removeItem(STORAGE_KEY); }}
+                    className="flex-1 rounded-lg p-2 text-sm"
+                    aria-label="Restart onboarding"
+                  >Restart</button>
+
+                  <button
+                    onClick={prev}
+                    disabled={index === 0}
+                    className="flex-1 rounded-lg p-2 text-sm"
+                    aria-label="Previous step"
+                  >Back</button>
+
+                  <button
+                    onClick={next}
+                    className="flex-1 rounded-lg p-2 text-sm"
+                    aria-label={index === steps.length - 1 ? "Finish onboarding" : "Next step"}
+                    style={{ background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
+                  >{index === steps.length - 1 ? "Finish" : "Next"}</button>
                 </div>
               </div>
             </div>
           </div>
         </main>
 
-        {/* Mobile step list drawer: bottom sheet */}
+        {/* Mobile step list drawer: bottom sheet with drag handle and clearer layout */}
         <AnimatePresence>
           {mobileNavOpen && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 md:hidden">
@@ -281,13 +362,26 @@ export default function TutorOnboardingWrapper({ onFinish }) {
                 animate={{ y: 0 }}
                 exit={{ y: "40%" }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="absolute left-0 right-0 bottom-0 bg-[hsl(var(--card)/0.98)] rounded-t-2xl p-4 shadow-lg overflow-auto max-h-[80vh]"
+                className="absolute left-0 right-0 bottom-0 bg-[hsl(var(--card)/0.98)] rounded-t-2xl p-3 shadow-lg overflow-auto max-h-[86vh]"
                 role="dialog"
                 aria-modal="true"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-lg font-medium">Steps</div>
-                  <Button size="sm" variant="ghost" onClick={() => setMobileNavOpen(false)}>Close</Button>
+                {/* drag handle */}
+                <div className="w-12 mx-auto mb-3">
+                  <div className="h-1.5 rounded-full bg-[hsl(var(--muted)/0.14)]" />
+                </div>
+
+                <div className="flex items-center justify-between mb-3 px-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[hsl(var(--muted)/0.06)]"><IconList /></div>
+                    <div>
+                      <div className="text-lg font-medium">Steps</div>
+                      <div className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>{`Select a step — ${progress}% complete`}</div>
+                    </div>
+                  </div>
+                  <button className="p-2 rounded-md" onClick={() => setMobileNavOpen(false)} aria-label="Close steps">
+                    <IconClose />
+                  </button>
                 </div>
 
                 <div id="mobile-step-list" className="space-y-3 pb-8">
@@ -297,14 +391,18 @@ export default function TutorOnboardingWrapper({ onFinish }) {
                       <button
                         key={s.id}
                         onClick={() => { go(i); setMobileNavOpen(false); }}
-                        className={`w-full flex items-center gap-3 p-4 rounded-lg text-left ${active ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]" : "bg-transparent"}`}
+                        className={`w-full flex items-start gap-3 p-4 rounded-lg text-left transition-shadow ${active ? "shadow-md ring-1 ring-[hsl(var(--primary))]/20 bg-[hsl(var(--primary)/0.08)]" : "bg-transparent hover:bg-[hsl(var(--muted)/0.02)]"}`}
                       >
-                        <div className="w-10 h-10 flex items-center justify-center rounded-full font-semibold" style={{ background: active ? "hsl(var(--primary-foreground))" : "hsl(var(--muted))", color: active ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}>{i + 1}</div>
+                        <div className={`w-10 h-10 flex items-center justify-center rounded-full font-semibold ${active ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]" : "bg-[hsl(var(--muted)/0.12)] text-[hsl(var(--muted-foreground))]"}`}>
+                          {i + 1}
+                        </div>
+
                         <div className="flex-1">
                           <div className="text-sm font-medium">{s.title}</div>
-                          <div className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>{i === index ? "Current step" : `Step ${i + 1} of ${steps.length}`}</div>
+                          <div className="text-xs mt-1" style={{ color: "hsl(var(--muted-foreground))" }}>{s.subtitle}</div>
                         </div>
-                        {active && <div className="text-xs font-semibold">Active</div>}
+
+                        <div className="self-start text-xs font-semibold" style={{ color: active ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}>{active ? "Active" : `Step ${i + 1}`}</div>
                       </button>
                     );
                   })}
