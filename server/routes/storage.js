@@ -381,12 +381,16 @@ async function generateSignedUrl(bucketName, fileName, contentType, signContentT
 // Small whitelist of allowed image extensions for PFPS/BANNERS. Prevent strange uploads.
 const IMAGE_EXT_WHITELIST = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']);
 
+// File size limits (10MB for non-banner, no explicit limit for banner)
+const MAX_FILE_SIZE_NON_BANNER = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE_BANNER = 10 * 1024 * 1024; // 50MB for banner (or no explicit limit)
+
 router.post("/generateUploadUrl", verifyToken, async (req, res) => {
   console.log("Generate upload URL endpoint called");
   console.log("Request body:", req.body);
 
   try {
-    const { fileName, contentType, fileType, signContentType } = req.body;
+    const { fileName, contentType, fileType, signContentType, fileSize } = req.body;
 
     if (!fileName || !fileType) {
       console.log("Missing required parameters - returning 400");
@@ -396,6 +400,20 @@ router.post("/generateUploadUrl", verifyToken, async (req, res) => {
     // Basic filename length check
     if (typeof fileName !== 'string' || fileName.length > 255) {
       return res.status(400).json({ error: 'Invalid fileName' });
+    }
+
+    // Apply file size limits based on fileType
+    if (fileSize) {
+      const maxSize = fileType === 'banner' ? MAX_FILE_SIZE_BANNER : MAX_FILE_SIZE_NON_BANNER;
+      
+      if (fileSize > maxSize) {
+        const maxSizeMB = maxSize / (1024 * 1024);
+        const fileSizeMB = (fileSize / (1024 * 1024)).toFixed(2);
+        console.log(`File size too large: ${fileSizeMB}MB exceeds ${maxSizeMB}MB limit for ${fileType}`);
+        return res.status(400).json({ 
+          error: `File size too large: ${fileSizeMB}MB exceeds ${maxSizeMB}MB limit for ${fileType} files` 
+        });
+      }
     }
 
     let bucketName;
@@ -444,7 +462,8 @@ router.post("/generateUploadUrl", verifyToken, async (req, res) => {
     return res.status(200).json({
       signedUrl,
       filePath: destination,
-      bucket: bucketName
+      bucket: bucketName,
+      maxFileSize: fileType === 'banner' ? MAX_FILE_SIZE_BANNER : MAX_FILE_SIZE_NON_BANNER
     });
   } catch (err) {
     console.error("Error generating signed URL:", err && err.message ? err.message : err);
