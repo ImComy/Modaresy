@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Heart, GraduationCap, ChevronDown, Calendar, Globe } from 'lucide-react';
+import { MapPin, Heart, GraduationCap, ChevronDown, Calendar, Globe, BookOpen, MessageCircle } from 'lucide-react';
 import { useWishlistLogic } from '../../hooks/useWishlistActions';
 import { useAuth } from '@/context/AuthContext';
 import renderStars from '@/components/ui/renderStars';
@@ -14,13 +14,35 @@ import { getImageUrl, getAvatarSrc, getBannerUrl } from '@/api/imageService';
 import clsx from 'clsx';
 
 const TutorCard = ({ tutor }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { authState } = useAuth();
   const [openTypes, setOpenTypes] = useState({});
   const { isInWishlist, handleWishlistToggle } = useWishlistLogic(tutor);
   const govLabel = tutor?.governate ? t(`constants.Governates.${tutor.governate}`, { defaultValue: tutor.governate }) : null;
   const distLabel = tutor?.district ? t(`constants.Districts.${tutor.district}`, { defaultValue: tutor.district }) : null;
   const translatedLocation = govLabel ? (distLabel ? `${govLabel} - ${distLabel}` : govLabel) : null;
+  
+  // Helper function to flatten and extract languages from any structure
+  const extractLanguages = (langData) => {
+    if (!langData) return [];
+    
+    // If it's already an array of strings, return it
+    if (Array.isArray(langData)) {
+      return langData.flatMap(item => extractLanguages(item)).filter(Boolean);
+    }
+    
+    // If it's a string, return it as array
+    if (typeof langData === 'string') {
+      return [langData];
+    }
+    
+    // If it's an object, try to extract language properties
+    if (typeof langData === 'object') {
+      return Object.values(langData).flatMap(value => extractLanguages(value));
+    }
+    
+    return [];
+  };
 
   const subjectEntries = (() => {
     if (Array.isArray(tutor?.subject_profiles) && tutor.subject_profiles.length) {
@@ -31,7 +53,17 @@ const TutorCard = ({ tutor }) => {
           const grade = subj?.grade || p.grade || subj?.grade || '';
           const education_system = subj?.education_system || subj?.educationSystem || p.education_system || p.educationSystem || null;
           const sector = subj?.sector || p.sector || 'General';
-          const language = subj?.language || p.language || (Array.isArray(subj?.languages) ? subj.languages[0] : null) || null;
+          
+          // Extract languages from multiple possible sources
+          const languages = extractLanguages([
+            subj?.languages,
+            p.languages,
+            subj?.language,
+            p.language,
+            tutor?.languages,
+            tutor?.language
+          ]);
+          
           const years_experience = p.years_experience ?? p.yearsExp ?? subj?.years_experience ?? 0;
           return {
             name,
@@ -39,7 +71,7 @@ const TutorCard = ({ tutor }) => {
             grade,
             education_system,
             sector,
-            language,
+            languages: Array.from(new Set(languages)), // Remove duplicates
             years_experience,
             profile: p,
             rating: p.rating ?? subj?.rating ?? null,
@@ -77,6 +109,24 @@ const TutorCard = ({ tutor }) => {
     return acc;
   }, {});
 
+  // Get all unique languages from tutor and subjects
+  const allLanguages = Array.from(new Set([
+    ...extractLanguages(tutor?.languages),
+    ...subjectEntries.flatMap(subj => extractLanguages(subj.languages))
+  ])).filter(Boolean);
+
+  // Helper function to safely get language code
+  const getLanguageCode = (lang) => {
+    if (!lang || typeof lang !== 'string') return '';
+    return lang.slice(0, 2).toUpperCase();
+  };
+
+  // Helper function to safely get language display name
+  const getLanguageDisplay = (lang) => {
+    if (!lang || typeof lang !== 'string') return '';
+    return t(`constants.Languages.${lang}`, { defaultValue: lang });
+  };
+
   return (
     <motion.div
       layout
@@ -108,8 +158,8 @@ const TutorCard = ({ tutor }) => {
           </div>
 
           <CardContent className="flex-1 pt-12 pb-4 px-4 flex flex-col justify-between">
-            <div className="text-center space-y-1">
-              <h3 className="font-bold text-lg text-foreground">
+            <div className={clsx("text-center space-y-1", i18n.language === 'ar' ? 'text-right' : 'text-left')}>
+              <h3 className="font-bold text-lg text-foreground text-center">
                 {tutor?.name || t('unknownTutor', 'Unknown tutor')}
               </h3>
               <div className="flex items-center justify-center gap-1 text-muted-foreground mb-2">
@@ -140,7 +190,8 @@ const TutorCard = ({ tutor }) => {
 
             {Object.entries(groupedBySubject).length > 0 ? (
               Object.entries(groupedBySubject).map(([subjectKey, subjects]) => {
-                const isOpen = openTypes[subjectKey] ?? Object.keys(groupedBySubject).length === 1;
+                // Changed: Never auto-open, even if there's only one group
+                const isOpen = openTypes[subjectKey] ?? false;
 
                 const combosMap = {};
                 subjects.forEach(s => {
@@ -148,7 +199,14 @@ const TutorCard = ({ tutor }) => {
                   const sec = s?.sector || s?.Sector || 'General';
                   const grade = s?.grade || '';
                   const comboKey = `${sec}||${grade}||${edu}`;
-                  if (!combosMap[comboKey]) combosMap[comboKey] = { sector: sec, grade, education_system: edu };
+                  if (!combosMap[comboKey]) {
+                    combosMap[comboKey] = { 
+                      sector: sec, 
+                      grade, 
+                      education_system: edu,
+                      languages: extractLanguages(s.languages)
+                    };
+                  }
                 });
                 const combos = Object.values(combosMap);
 
@@ -161,7 +219,7 @@ const TutorCard = ({ tutor }) => {
                       setOpenTypes((prev) => ({ ...prev, [subjectKey]: !isOpen }));
                     }}
                     className={clsx(
-                      'relative transition-all rounded-xl',
+                      'relative transition-all rounded-xl cursor-pointer',
                       isOpen
                         ? 'p-4 pt-6 bg-primary/5 border border-primary mt-5'
                         : 'p-0 border-none mt-2'
@@ -169,29 +227,37 @@ const TutorCard = ({ tutor }) => {
                   >
                     <div
                       className={clsx(
-                        'flex items-center gap-2',
+                        'flex items-center gap-2 justify-between',
                         isOpen ? 'absolute -top-3 ltr:left-4 rtl:right-4' : 'mb-1 px-1'
                       )}
                     >
-                      <span className="px-3 py-0.5 text-[11px] font-semibold rounded-full shadow-sm border border-green-300 bg-green-100 text-green-700">
-                        {t(`constants.Subjects.${subjectKey}`, { defaultValue: subjectKey })}
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-3 py-0.5 text-[11px] font-semibold rounded-full shadow-sm border border-green-300 bg-green-100 text-green-700">
+                          {t(`constants.Subjects.${subjectKey}`, { defaultValue: subjectKey })}
+                        </span>
 
-                      {(() => {
-                        const first = subjects[0] || {};
-                        const lang =
-                          first?.language ??
-                          first?.languages ??
-                          (Array.isArray(tutor?.languages) && tutor.languages[0]) ??
-                          tutor?.language;
-                        if (lang)
+                        {/* Languages badges - compact design */}
+                        {(() => {
+                          const subjectLanguages = subjects.flatMap(s => extractLanguages(s.languages));
+                          const uniqueLangs = Array.from(new Set(subjectLanguages)).slice(0, 2); // Show max 2 languages
+                          
+                          if (uniqueLangs.length === 0) return null;
+
                           return (
-                            <span className="px-2 py-0.5 text-[11px] font-semibold rounded-full shadow-sm border border-blue-300 bg-blue-100 text-blue-700 ml-2">
-                              {Array.isArray(lang) ? t(`constants.Languages.${lang[0]}`, { defaultValue: lang[0] }) : t(`constants.Languages.${lang}`, { defaultValue: lang })}
-                            </span>
+                            <div className="flex gap-1">
+                              {uniqueLangs.map((lang, index) => (
+                                <span 
+                                  key={index}
+                                  className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full border border-blue-300 bg-blue-100 text-blue-700"
+                                  title={getLanguageDisplay(lang)}
+                                >
+                                  {getLanguageCode(lang)}
+                                </span>
+                              ))}
+                            </div>
                           );
-                        return null;
-                      })()}
+                        })()}
+                      </div>
 
                       <button
                         onClick={(e) => {
@@ -199,7 +265,7 @@ const TutorCard = ({ tutor }) => {
                           e.stopPropagation();
                           setOpenTypes((prev) => ({ ...prev, [subjectKey]: !isOpen }));
                         }}
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white hover:bg-primary/90 border border-primary shadow-sm transition"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white hover:bg-primary/90 border border-primary shadow-sm transition flex-shrink-0"
                       >
                         <ChevronDown
                           size={12}
@@ -214,49 +280,73 @@ const TutorCard = ({ tutor }) => {
                       {isOpen && (
                         <motion.div
                           key="combos"
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
                           transition={{ duration: 0.2 }}
-                          className="mt-2"
+                          className="mt-2 overflow-hidden"
                         >
-                          <div className="flex flex-wrap gap-2 -m-1">
+                          <div className="space-y-2">
                             {combos.map((c, idx) => {
                               const sectors = Array.isArray(c.sector) ? c.sector : [c.sector];
                               const translateSector = (s, system) => t(`constants.EducationStructure.${system || 'National'}.sectors.${s}`, { defaultValue: s });
                               const translateGrade = (g, system) => (g ? t(`constants.EducationStructure.${system || 'National'}.grades.${g}`, { defaultValue: g }) : '');
                               const translateEducation = (e) => (e ? t(`constants.Education_Systems.${e}`, { defaultValue: e }) : '');
 
-                              const displaySectors = sectors.map((s) => translateSector(s, c.education_system));
                               const gradeLabel = translateGrade(c.grade, c.education_system);
                               const eduLabel = translateEducation(c.education_system);
-
-                              const title = [displaySectors.join(', '), gradeLabel, eduLabel].filter(Boolean).join(' - ');
 
                               return (
                                 <div
                                   key={idx}
-                                  className="flex items-center gap-1 px-2 py-1 rounded-md border text-xs text-primary border-primary bg-primary/10 max-w-xs"
-                                  title={title}
+                                  className="p-2 rounded-md border border-primary/20 bg-primary/5"
                                 >
-                                  <MapPin size={12} className="flex-shrink-0" />
-
-                                  <div className="flex flex-wrap items-center gap-1 flex-1">
-                  {sectors.map((s, i) => (
-                                      <span
-                                        key={i}
-                                        className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] leading-tight"
-                                      >
-                    {translateSector(s, c.education_system)}
-                                      </span>
-                                    ))}
-
-                                    {(c.grade || c.education_system) && (
-                                      <span className="ml-auto text-muted-foreground text-[10px] italic">
-                                        {gradeLabel}{eduLabel ? ` - ${eduLabel}` : ''}
-                                      </span>
-                                    )}
+                                  {/* First row: Sector and Grade/Education with icons */}
+                                  <div className="flex items-start justify-between gap-1 mb-1.5">
+                                    <div className="flex flex-wrap gap-1 flex-1 min-w-0">
+                                      {sectors.map((s, i) => (
+                                        <span
+                                          key={i}
+                                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary/20 text-primary text-xs font-medium whitespace-nowrap"
+                                        >
+                                          <GraduationCap size={11} className="flex-shrink-0" />
+                                          {translateSector(s, c.education_system)}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    
+                                    <div className="flex flex-col items-end gap-0.5 text-xs text-muted-foreground whitespace-nowrap shrink-0 pl-1">
+                                      {gradeLabel && (
+                                        <div className="inline-flex items-center gap-1 leading-tight bg-muted/30 px-1.5 py-0.5 rounded">
+                                          <Calendar size={10} className="flex-shrink-0" />
+                                          {gradeLabel}
+                                        </div>
+                                      )}
+                                      {eduLabel && (
+                                        <div className="inline-flex items-center gap-1 text-[11px] leading-tight text-foreground/80 bg-amber-100/50 px-1.5 py-0.5 rounded border border-amber-200/30">
+                                          <BookOpen size={10} className="flex-shrink-0" />
+                                          {eduLabel}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
+
+                                  {/* Second row: Languages with improved design */}
+                                  {c.languages && c.languages.length > 0 && (
+                                    <div className="flex items-center gap-1.5">
+                                      <Globe size={11} className="text-muted-foreground flex-shrink-0" />
+                                      <div className="flex flex-wrap gap-1">
+                                        {c.languages.map((lang, langIdx) => (
+                                          <span 
+                                            key={langIdx}
+                                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-100/80 text-blue-700 text-[10px] font-medium border border-blue-200/60 shadow-sm"
+                                          >
+                                            {getLanguageDisplay(lang)}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
@@ -289,12 +379,6 @@ const TutorCard = ({ tutor }) => {
                 </Button>
               )}
               <div className="flex items-center gap-2">
-                {Array.isArray(tutor?.languages) && tutor.languages.length > 0 && (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Globe size={14} />
-                    {tutor.languages.map(l => t(`constants.Languages.${l}`, { defaultValue: l })).join(', ')}
-                  </span>
-                )}
                 <Button
                   as={Link}
                   to={`/tutor/${tutor?.id}`}
