@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import Fuse from 'fuse.js';
 import { getConstants } from '@/api/constantsFetch';
 import { apiFetch } from '@/api/apiService';
+import { add } from 'date-fns';
 
 const LS_KEYS = {
   searchTerm: 'filter-searchTerm',
@@ -509,6 +510,7 @@ export const useTutorFilterSort = (initialTutors = []) => {
       banner: teacher.banner || teacher.bannerimg || null,
       rating: teacher.rating,
       coordinates: normalizedCoords,
+      address: teacher.address || '',
       subjects,
     };
     return tutor;

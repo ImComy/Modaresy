@@ -11,6 +11,7 @@ const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
 
+// ... (unchanged SelectTrigger, SelectScrollUpButton, SelectScrollDownButton, SelectLabel, SelectItem, SelectSeparator)
 const SelectTrigger = React.forwardRef(({ className, children, error, ...props }, ref) => {
   const { i18n } = useTranslation();
   const isRTL = i18n.dir() === 'rtl';
@@ -105,6 +106,73 @@ const SelectSeparator = React.forwardRef(({ className, ...props }, ref) => (
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
+/**
+ * Arabic / general normalization helpers
+ * - remove diacritics (tashkeel)
+ * - normalize alef variations to ا
+ * - normalize ye/aa variations
+ * - remove tatweel, punctuation, extra spaces
+ * - strip leading conjunction و if it's attached (helpful for Arabic searches)
+ * - light stemming: remove trailing ة and map ى->ي, replace final ية -> ي
+ */
+function normalizeTextForSearch(input = '') {
+  if (!input) return '';
+
+  let s = String(input).trim().toLowerCase();
+
+  // Remove tatweel
+  s = s.replace(/ـ/g, '');
+
+  // Remove Arabic diacritics (tashkeel)
+  s = s.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g, '');
+
+  // Normalize alef variants to ا
+  s = s.replace(/[إأآا]/g, 'ا');
+
+  // Normalize hamza variations
+  s = s.replace(/[ؤئ]/g, 'ء');
+
+  // normalize ya and alef maqsura
+  s = s.replace(/ى/g, 'ي');
+
+  // normalize taa marbuta -> ه or ت? convert to ه to allow matches; we'll also strip final ة when tokenizing
+  s = s.replace(/ة/g, 'ه');
+
+  // Remove punctuation and separators and multiple spaces, hyphens, underscores, slashes
+  s = s.replace(/[-_.,/\\(){}\[\]@#$%^&*+=~`"'؟،؛:<>…]/g, ' ');
+  s = s.replace(/\s+/g, ' ').trim();
+
+  return s;
+}
+
+function tokenizeForSearch(normalized) {
+  if (!normalized) return [];
+  // split on spaces
+  const rawTokens = normalized.split(' ').filter(Boolean);
+
+  // strip attached leading conjunction 'و' if it looks glued: e.g., 'وطني' -> 'وطني' and also 'وطني' -> 'وطني' but often it's okay to also consider token without 'و'
+  const tokens = rawTokens.flatMap(tok => {
+    const variants = new Set();
+    variants.add(tok);
+
+    // strip leading و if word length > 2 (to avoid single letter)
+    if (tok.length > 2 && tok.startsWith('و')) {
+      variants.add(tok.slice(1));
+    }
+
+    // remove final ه that came from ة normalization to match both forms (العربي / العربية)
+    if (tok.length > 2 && tok.endsWith('ه')) {
+      variants.add(tok.slice(0, -1));
+    }
+
+    // collapse duplicates
+    return Array.from(variants);
+  });
+
+  // unique tokens
+  return Array.from(new Set(tokens));
+}
+
 const SearchableSelectContent = React.forwardRef(
   ({ className, items = [], position = 'popper', searchPlaceholder = 'Search...', ...props }, ref) => {
     const { i18n, t } = useTranslation();
@@ -112,25 +180,97 @@ const SearchableSelectContent = React.forwardRef(
     const [search, setSearch] = useState('');
     const inputRef = useRef(null);
 
-    const fuse = useMemo(
-      () => new Fuse(items, { keys: ['label'], threshold: 0.4 }),
-      [items]
-    );
+    // Preprocess items into normalized form & tokens for robust matching
+    const normalizedItems = useMemo(() => {
+      return items.map((it) => {
+        const label = (it.label ?? '').toString();
+        const normLabel = normalizeTextForSearch(label);
+        const tokens = tokenizeForSearch(normLabel);
+        // also create a "sorted tokens" string so order-insensitive exact-ish matches are easy
+        const sortedTokensKey = tokens.slice().sort().join(' ');
+        return {
+          ...it,
+          _normLabel: normLabel,
+          _tokens: tokens,
+          _sortedTokensKey: sortedTokensKey,
+        };
+      });
+    }, [items]);
 
+    // Fuse config: search across normalized label and tokens, prefer exact token matches first
+    const fuse = useMemo(() => {
+      return new Fuse(normalizedItems, {
+        keys: [
+          { name: '_tokens', weight: 0.9 },
+          { name: '_normLabel', weight: 0.7 },
+          { name: 'label', weight: 0.5 },
+        ],
+        includeScore: true,
+        includeMatches: true,
+        threshold: 0.45, // tuneable: smaller = stricter
+        ignoreLocation: true,
+        minMatchCharLength: 1,
+      });
+    }, [normalizedItems]);
+
+    // Compute filtered items:
     const filteredItems = useMemo(() => {
       const selectedValue = props?.value;
-      let results = search ? fuse.search(search).map((r) => r.item) : items;
-
-      if (
-        selectedValue &&
-        !results.some((item) => item.value === selectedValue)
-      ) {
-        const found = items.find((item) => item.value === selectedValue);
-        if (found) results = [found, ...results];
+      if (!search || search.trim() === '') {
+        // include the selected item first if it isn't in the list
+        let results = normalizedItems;
+        if (
+          selectedValue &&
+          !results.some((item) => item.value === selectedValue)
+        ) {
+          const found = items.find((item) => item.value === selectedValue);
+          if (found) results = [found, ...results];
+        }
+        return results;
       }
 
-      return results;
-    }, [search, fuse, props?.value, items]);
+      // Normalize query and tokenise
+      const normalizedQuery = normalizeTextForSearch(search);
+      const queryTokens = tokenizeForSearch(normalizedQuery);
+
+      // 1) Use Fuse for fuzzy matching
+      const fuseResults = fuse.search(normalizedQuery).map(r => ({ item: r.item, score: r.score }));
+
+      // 2) Boost/filter to require that every query token appears somewhere in the item's normalized tokens or normLabel (handles out-of-order tokens)
+      const strictFiltered = fuseResults.filter(({ item }) => {
+        return queryTokens.every(qt => {
+          // exact token included in tokens
+          if (item._tokens.some(tok => tok.includes(qt))) return true;
+          // or token as substring of the normalized label
+          if (item._normLabel.includes(qt)) return true;
+          // or the sortedTokensKey contains qt
+          if (item._sortedTokensKey.includes(qt)) return true;
+          return false;
+        });
+      }).map(r => r.item);
+
+      // If strictFiltered has results, use them (they're more relevant)
+      let final = strictFiltered.length > 0 ? strictFiltered : fuseResults.map(r => r.item);
+
+      // Ensure selectedValue still appears first if needed
+      if (
+        selectedValue &&
+        !final.some((item) => item.value === selectedValue)
+      ) {
+        const found = items.find((item) => item.value === selectedValue);
+        if (found) final = [found, ...final];
+      }
+
+      // Deduplicate while preserving order
+      const seen = new Set();
+      final = final.filter(it => {
+        if (seen.has(it.value)) return false;
+        seen.add(it.value);
+        return true;
+      });
+
+      return final;
+    }, [search, fuse, normalizedItems, props?.value, items]);
 
     useEffect(() => {
       const timeout = setTimeout(() => {

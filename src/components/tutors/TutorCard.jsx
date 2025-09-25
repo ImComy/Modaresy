@@ -2,22 +2,22 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, DollarSign, BookOpen, Heart, GraduationCap, Users, Clock, Globe } from 'lucide-react';
+import { MapPin, DollarSign, Heart } from 'lucide-react';
 import renderStars from '@/components/ui/renderStars';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { useWishlistLogic } from '@/hooks/useWishlistActions';
-import { getImageUrl, getAvatarSrc, getBannerUrl } from '@/api/imageService';
+import { getAvatarSrc, getImageUrl } from '@/api/imageService';
 
 const TutorCard = ({ tutor, filters }) => {
   const { t } = useTranslation();
   const { authState } = useAuth();
   const { isInWishlist, handleWishlistToggle } = useWishlistLogic(tutor);
 
+  // ----- subject selection logic (copied / adapted from old card) -----
   const subjectList = Array.isArray(tutor?.subjects) && tutor.subjects.length
     ? tutor.subjects
     : (Array.isArray(tutor?.subject_profiles) && tutor.subject_profiles.length
@@ -36,179 +36,92 @@ const TutorCard = ({ tutor, filters }) => {
     return name === (filters?.subject ?? name) && grade === (filters?.grade ?? grade);
   }) || subjectList[0];
 
-  const displayName = tutor?.name && tutor.name.length > 16 ? tutor.name.slice(0, 15) + '...' : tutor?.name;
+  // ----- display name + location -----
+  const displayName = tutor?.name && tutor.name.length > 20 ? tutor.name.slice(0, 19) + '…' : tutor?.name || t('unknownName', 'Unknown');
 
   const locationLabel = tutor?.governate
     ? `${t(`constants.Governates.${tutor.governate}`, { defaultValue: tutor.governate })}${tutor?.district ? ` - ${t(`constants.Districts.${tutor.district}`, { defaultValue: tutor.district })}` : ''}`
     : tutor?.location || t('unknownLocation', 'Unknown location');
 
+  // ----- rating: prefer subject rating then tutor-level -----
+  const rating = (typeof selectedSubject?.rating === 'number' && isFinite(selectedSubject.rating))
+    ? selectedSubject.rating
+    : (typeof tutor?.avgRating === 'number' && isFinite(tutor.avgRating))
+      ? tutor.avgRating
+      : (typeof tutor?.rating === 'number' && isFinite(tutor.rating) ? tutor.rating : null);
+
+  // ----- price: prefer subject price, fallback to tutor.price -----
   const price = (typeof selectedSubject?.price === 'number' && isFinite(selectedSubject.price))
     ? selectedSubject.price
     : (typeof tutor?.price === 'number' && isFinite(tutor.price) ? tutor.price : null);
 
-  const rating = (typeof selectedSubject?.rating === 'number' && isFinite(selectedSubject.rating))
-    ? selectedSubject.rating
-    : (typeof tutor?.avgRating === 'number' && isFinite(tutor.avgRating) ? tutor.avgRating :
-       (typeof tutor?.rating === 'number' && isFinite(tutor.rating) ? tutor.rating : null));
-
-  const languages = (selectedSubject?.language && typeof selectedSubject.language === 'string')
-    ? [selectedSubject.language]
-    : (Array.isArray(selectedSubject?.language) ? selectedSubject.language.filter(Boolean) : (Array.isArray(tutor?.languages) ? tutor.languages.slice(0) : []));
-
-  const derivedSector = selectedSubject?.sector || selectedSubject?.Sector || tutor?.sector || 'General';
-  const derivedEducationSystem = selectedSubject?.education_system || selectedSubject?.educationSystem || tutor?.education_system || null;
-
-  const translateSector = (s, system) => (s ? t(`constants.EducationStructure.${system || 'National'}.sectors.${s}`, { defaultValue: s }) : '');
-  const translateGrade = (g, system) => (g ? t(`constants.EducationStructure.${system || 'National'}.grades.${g}`, { defaultValue: g }) : '');
-  const translateEducation = (e) => (e ? t(`constants.Education_Systems.${e}`, { defaultValue: e }) : '');
-  const translateSubject = (sub) => {
-    const name = (sub && (sub.subject || sub.name)) ? (sub.subject || sub.name) : (filters?.subject || '');
-    return name ? t(`constants.Subjects.${name}`, { defaultValue: name }) : t('unknownSubject', 'Subject');
-  };
-
-  const renderBadgeList = (items, icon = null, labelPrefix = '') => {
-    if (!items || items.length === 0) return null;
-    const visible = items.slice(0, 3);
-    const extra = items.length - visible.length;
-    return (
-      <div className="flex items-center gap-2 flex-wrap">
-        {visible.map((it, idx) => (
-          <Badge
-            key={`${labelPrefix}-${it}-${idx}`}
-            className="bg-muted/30 border border-border text-xs px-2 py-0.5 rounded-md"
-          >
-            <span className="mr-1 align-middle text-[11px]">{icon}</span>
-            <span className="truncate max-w-[7rem]">{it}</span>
-          </Badge>
-        ))}
-        {extra > 0 && (
-          <Badge className="bg-muted/20 border border-border text-xs px-2 py-0.5 rounded-md">+{extra}</Badge>
-        )}
-      </div>
-    );
-  };
+  const priceLabel = (typeof price === 'number' && isFinite(price))
+    ? t('ratePerMonth', { rate: price })
+    : t('noPrice', 'Contact');
 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      whileHover={{ y: -2, transition: { duration: 0.15 } }}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 6 }}
+      transition={{ duration: 0.18 }}
       className="h-full"
     >
       <Link to={`/tutor/${tutor?.id}`} className="block h-full">
         <Card className="p-3 h-full rounded-xl bg-muted/50 border border-muted text-sm flex flex-col gap-3 hover:shadow transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-                <Avatar className="h-20 w-20 border-2 border-primary flex-shrink-0 rounded-md">
-                  <AvatarImage src={getAvatarSrc(tutor) || getImageUrl(tutor?.img) || ''} alt={tutor?.name} radius="rounded-sm" />
-                <AvatarFallback radius="rounded-sm">
-                  {tutor?.name?.split(' ')?.map((n) => n[0])?.join('')}
-                </AvatarFallback>
+
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <Avatar className="h-20 w-20 border-2 border-primary flex-shrink-0 rounded-md">
+                <AvatarImage src={getAvatarSrc(tutor) || getImageUrl(tutor?.img) || ''} alt={tutor?.name} radius="rounded-sm" />
+                <AvatarFallback radius="rounded-sm">{tutor?.name?.split(' ')?.map(n => n[0])?.join('') || 'T'}</AvatarFallback>
               </Avatar>
 
               <div className="min-w-0">
-                <h3 className="font-semibold text-base text-foreground truncate" title={tutor?.name}>
-                  {displayName}
-                </h3>
-
-                <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                  <BookOpen size={14} />
-                  <span className="truncate">{translateSubject(selectedSubject)}</span>
-                </div>
+                <h3 className="font-semibold text-base text-foreground truncate" title={tutor?.name}>{displayName}</h3>
 
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mt-1">
                   {rating && rating > 0 ? (
-                    <div className="flex items-center gap-1">
-                      {renderStars(rating)}
-                      <span className="text-[12px]">({rating.toFixed(1)})</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">{renderStars(rating)}</div>
+                      <span className="text-[12px]">{`(${rating.toFixed(1)})`}</span>
                     </div>
                   ) : (
-                    <span className="text-xs text-muted-foreground">
-                      {t('noReviews', 'No reviews yet')}
-                    </span>
+                    <span className="text-xs text-muted-foreground">{t('noReviews', 'No reviews yet')}</span>
                   )}
                 </div>
-
-
               </div>
             </div>
 
             {authState.isLoggedIn && (
-              <Button
-                variant="ghost"
-                size="icon"
+              <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleWishlistToggle(e);
                 }}
-                className={cn(
-                  'hover:text-destructive text-muted-foreground transition-colors h-8 w-8 rounded-full',
-                  isInWishlist && 'text-destructive'
-                )}
+                aria-label={isInWishlist ? t('removeFromWishlist', 'Remove from wishlist') : t('addToWishlist', 'Add to wishlist')}
+                className={cn('h-8 w-8 rounded-full flex items-center justify-center transition-colors', isInWishlist ? 'text-destructive' : 'text-muted-foreground')}
               >
                 <Heart size={16} fill={isInWishlist ? 'currentColor' : 'none'} />
-              </Button>
+              </button>
             )}
           </div>
-
-          {/* Location with governate - district */}
-          <div className="flex items-center gap-1 text-muted-foreground text-xs">
-            <MapPin size={12} />
-            <span className="truncate">{locationLabel}</span>
-          </div>
-
-          {/* Badges: grade, type, languages, education systems */}
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap gap-2">
-              {selectedSubject?.grade && (
-                <Badge className="bg-primary/10 border border-primary text-primary text-xs px-2 py-0.5 hover:bg-primary/20 transition-colors">
-                  <GraduationCap size={12} className="mr-1" />
-                  {translateGrade(selectedSubject.grade)}
-                </Badge>
-              )}
-
-              {/* Sector badge (derived from explicit sector or subject.type) */}
-              <Badge className="text-green-700 border border-green-300 bg-green-200 text-xs px-2 py-0.5 hover:bg-green-300 transition-colors">
-                <Users size={12} className="mr-1" />
-                {translateSector(derivedSector)}
-              </Badge>
-
-              {/* Languages */}
-              {Array.isArray(languages) && languages.length > 0 && (
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Globe size={14} />
-                  {languages.map(l => t(`constants.Languages.${l}`, { defaultValue: l })).join(', ')}
-                </span>
-              )}
-
-              {/* Education system badge (derived) */}
-              {derivedEducationSystem && (
-                <Badge className="bg-muted/20 border border-border text-xs px-2 py-0.5 hover:bg-muted/30 transition-colors">
-                  <GraduationCap size={12} className="mr-1" />
-                  <span className="truncate max-w-[7rem]">{translateEducation(derivedEducationSystem)}</span>
-                </Badge>
-              )}
-            </div>
-
-            {/* Short bio / subject note */}
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground line-clamp-2 self-start">
-                {selectedSubject?.bio || tutor?.bio || ''}
-              </p>
+          <div className="flex flex-col-reverse gap-1 text-muted-foreground text-xs mt-2">
+            <span className="truncate">{tutor?.address}</span>
+            <div className='flex items-center gap-1'>
+              <MapPin size={12} />
+              <span className="truncate">{locationLabel}</span>
             </div>
           </div>
 
           {/* Footer: price + view profile */}
           <div className="flex justify-between items-center text-muted-foreground mt-2 pt-2 border-t border-border/30 gap-2">
-            <span className="font-bold text-primary text-lg">
-              {selectedSubject?.price && isFinite(selectedSubject.price)
-                ? t('ratePerMonth', { rate: selectedSubject.price })
-                : t('noPrice')}
+            <span className="font-bold text-primary text-lg flex items-center gap-2">
+              <span>{priceLabel}</span>
             </span>
+
             <Button
               as={Link}
               to={`/tutor/${tutor?.id}`}

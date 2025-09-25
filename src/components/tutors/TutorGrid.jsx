@@ -20,7 +20,7 @@ const ErrorBanner = ({ message }) => (
   </Card>
 );
 
-const HIDE_DELAY_MS = 220;
+const HIDE_DELAY_MS = 20;
 
 const TutorGrid = ({ tutors, filters, loading = false, error = null }) => {
   const { t } = useTranslation();
