@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node app.js",
-    "build": "npm run build"
+    "start": "node app.js"
   },
   "engines": {
     "node": "20.19.0"
