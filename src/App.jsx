@@ -26,6 +26,7 @@ import AdminPage from './pages/AdminPage';
 import ChatPage from './pages/chat';
 import ModaresyCommunityPage from './pages/community'
 import TutorOnboardingWrapper from './pages/signupProfileEdit';
+import Blog from './pages/blogs';
 
 const ProtectedRoute = ({ element, requireAuth = false, allowedRoles = null, unsignedOnly = false }) => {
   const { authState } = useAuth();
@@ -128,6 +129,8 @@ function RoutesWrapper() {
       <Routes key={location.pathname}>
         <Route path="/" element={<HomePage />} />
         <Route path="/tutor/:tutorId" element={<TutorProfilePage />} />
+  <Route path="/blogs/:blogID" element={<Blog />} />
+  <Route path="/blog/:postId" element={<Blog />} />
         <Route path="/about" element={<AboutUsPage />} />
         <Route path="/contact" element={<ContactUsPage />} />
         <Route path="/terms" element={<TermsPage />} />

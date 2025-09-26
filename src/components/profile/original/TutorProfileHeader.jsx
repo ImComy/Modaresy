@@ -317,7 +317,7 @@ const AboutMeSection = ({ aboutMe, t }) => (
     {aboutMe?.trim() ? (
       <p className="text-foreground/90 leading-relaxed whitespace-pre-wrap bg-muted/50 p-4 rounded-md border border-primary/30">{aboutMe}</p>
     ) : (
-      <div className="border-2 border-dashed border-primary/20 rounded-xl bg-muted/40 p-6 w-full flex items-start gap-4 shadow-sm">
+      <div className="border-2 border-dashed border-primary/20 rounded-xl bg-muted/40 p-6 w-full flex items-center gap-4 shadow-sm">
         <div className="text-3xl animate-pulse select-none">📝</div>
         <div className="flex-1">
           <p className="text-base font-semibold text-primary">{t('noBioAdded', 'No bio added')}</p>
